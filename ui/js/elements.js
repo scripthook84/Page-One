@@ -1,4 +1,4 @@
-// Element definitions and the Enter / Tab flow (Final Draft defaults, Fade In-style Tab cycling).
+// Element definitions and the Enter / Tab element flow (the industry's standard conventions).
 
 export const ELEMS = {
   scene:      { label: 'Scene Heading', short: 'Scene',      key: '1', enter: 'action',   tab: 'action',    empty: 'action',     upper: true },

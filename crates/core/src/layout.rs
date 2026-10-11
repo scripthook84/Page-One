@@ -5,7 +5,7 @@
 //! horizontally and 6 lines per inch vertically. Column 0 is the physical left edge
 //! of the paper, so column 15 = 1.5", column 75 = 7.5".
 //!
-//! Final Draft standard metrics:
+//! Industry-standard screenplay metrics:
 //!   page 8.5" × 11", top/bottom margin 1.0" → 54 lines of body per page
 //!   Scene Heading / Action / Shot / General  1.5" – 7.5"
 //!   Character                                3.7"

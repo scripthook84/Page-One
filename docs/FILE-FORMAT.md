@@ -21,11 +21,13 @@ Project {
   paras: [ Para ],
   settings: {
     scene_numbers: bool, conts: bool, mores: bool, scene_space: 1|2, bold_scenes: bool,
-    page_size: "letter"|"a4", rev_level: 0..8, header: string, title_page: bool, target_pages: int
+    page_size: "letter"|"a4", rev_level: 0..8, header: string, title_page: bool, target_pages: int,
+    board_mode: "rows"|"columns", board_span: int (cards per row/column), board_snap: bool (unused)
   },
   notes: string,
   characters: [ { name, color, bio } ],
   smart: [ string ],
+  color_labels: { "#rrggbb": string },   // the writer's names for scene colours
   created: unix seconds, modified: unix seconds
 }
 
@@ -36,7 +38,8 @@ Para {
   dual: bool      // on a character: printed beside the previous speech (omitted when false)
   rev: 0..8       // revision colour that last changed this paragraph (omitted when 0)
   lvl: 1..3       // section depth: act, sequence, beat (omitted when 0)
-  meta: { color, synopsis, notes, num, omitted }   // scene headings and sections (optional)
+  meta: { color, synopsis, notes, num, omitted, slot }   // scene headings and sections (optional)
+                  // slot = story board cell in reading order; pos = legacy, ignored
 }
 ```
 

@@ -731,7 +731,7 @@ export class Editor {
       return;
     }
     if (empty) {
-      // Enter on an empty action line: offer the element list too (Final Draft behaviour)
+      // Enter on an empty action line: offer the element list too
       this.undoStack.pop();
       this.showElementPicker(el);
       return;
@@ -952,7 +952,7 @@ export class Editor {
     this.changed(true, last);
   }
 
-  // ---------------------------------------------------------------- SmartType
+  // ---------------------------------------------------------------- suggestions
 
   smartItems(el, txt) {
     const t = el.dataset.t;

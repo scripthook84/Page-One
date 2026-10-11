@@ -137,7 +137,7 @@ export async function setupDialog() {
       <label class="chk"><input type="checkbox" data-pref="autosave" ${p.autosave ? 'checked' : ''}> Save automatically every minute</label>
     </div>
   </div>
-  <p class="hint">Layout follows Final Draft’s defaults: Courier 12 pt, 1.5 in left margin, 1 in right, top and bottom margins, 54 lines per page; dialogue 2.5–6.0 in, character cues at 3.7 in, parentheticals 3.1–5.25 in, transitions end at 7.5 in.</p>`;
+  <p class="hint">Industry-standard layout: Courier 12 pt, 1.5 in left margin, 1 in right, top and bottom margins, 54 lines per page; dialogue 2.5–6.0 in, character cues at 3.7 in, parentheticals 3.1–5.25 in, transitions end at 7.5 in.</p>`;
   await modal({
     title: 'Document setup', body, wide: true,
     buttons: [{ label: 'Done', value: 'ok', primary: true }],
@@ -480,7 +480,7 @@ export function shortcutsDialog() {
       ['Enter on an empty line', 'Pick any element from a list (type its first letter)'],
       ['INT. / EXT.', 'Typing either on an action line makes it a scene heading'],
       ['( on an empty dialogue line', 'Starts a parenthetical'],
-      ['↑ ↓ then Enter or Tab', 'Choose a SmartType suggestion (characters, locations, times, transitions)'],
+      ['↑ ↓ then Enter or Tab', 'Choose a suggestion (characters, locations, times, transitions)'],
     ]],
     ['Elements', ORDER_SHORT()],
     ['Script', [

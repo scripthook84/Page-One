@@ -377,7 +377,7 @@ label.chk { display: inline-flex; gap: 6px; align-items: center; user-select: no
 .rev-chip i { width: 10px; height: 10px; border-radius: 2px; background: var(--rev-color); box-shadow: 0 0 0 1px var(--line); }
 .style-pending { color: var(--accent); font-weight: 700; }
 
-/* ------------------------------------------------------------------ SmartType popup */
+/* ------------------------------------------------------------------ suggestions popup */
 .smart {
   position: fixed; z-index: 60; margin: 0; padding: 4px; list-style: none; min-width: 200px; max-width: 360px;
   background: var(--chrome); border: 1px solid var(--line); border-radius: 7px; box-shadow: var(--shadow);

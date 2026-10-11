@@ -195,7 +195,7 @@ pub struct Project {
     pub settings: Settings,
     pub notes: String,
     pub characters: Vec<CharacterCard>,
-    /// Writer-added SmartType entries (locations, extensions, transitions …).
+    /// Writer-added suggestion entries (locations, extensions, transitions …).
     pub smart: Vec<String>,
     /// Writer's names for the scene colours, e.g. "#b9e4a8" → "B story".
     pub color_labels: std::collections::BTreeMap<String, String>,
