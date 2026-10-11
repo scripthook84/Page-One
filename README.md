@@ -1,14 +1,12 @@
-<img width="112" height="112" alt="Page One" src="ui/icon.png" />
+<img width="250" height="250" alt="Page One" src="https://github.com/user-attachments/assets/390777f1-1224-4a7b-99df-b0c0c13637b6" />
 
 # Page One
 
-A lightweight, open-source screenwriting app. Page One formats your script to the industry
+A lightweight, open-source screenwriting app. Built by a screenwriter for screenwriters. Page One formats your script to the industry
 standard as you type, lays your story out on a snap-to-grid story board, and exports print-ready
 PDF. It's free, works offline, needs no account, and the installer is about 2 MB.
 
 **Version 1.0.0** · Linux (.deb) · macOS (.dmg) · Apache License 2.0
-
-![The script view: a formatted screenplay page with the scene navigator on the left and the scene inspector on the right](docs/screenshots/script.png)
 
 ---
 
@@ -55,9 +53,7 @@ PDF. It's free, works offline, needs no account, and the installer is about 2 MB
 - Unlimited undo, find and replace, go to page, spell checking from your system dictionary, and a
   command palette (Ctrl+K) that finds every command.
 
-## The story board
-
-![The story board: scene cards on a snap grid under coloured ACT 1 and ACT 2 lanes, with act labels and a colour key on the left](docs/screenshots/board.png)
+## Storyboard
 
 - **One grid.** Every scene is a card that snaps to a cell, by row and by column, linked to the next
   scene by an arrow. Inside each act the story reads left to right, then down; set how many cards
@@ -95,8 +91,6 @@ PDF. It's free, works offline, needs no account, and the installer is about 2 MB
 - **Production.** Scene numbers in both margins, omitted scenes, revision mode in the standard
   colour order (Blue, Pink, Yellow, Green, Goldenrod, Buff, Salmon, Cherry) with asterisks and a
   revision header, a title page laid out to standard metrics, and watermarked PDFs.
-
-![Focus mode in the dark theme: full-screen blank page with the zoom toolbar at the bottom left](docs/screenshots/focus.png)
 
 ## Files
 
