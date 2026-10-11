@@ -54,7 +54,7 @@ PDF. It's free, works offline, needs no account, and the installer is about 2 MB
 - Unlimited undo, find and replace, go to page, spell checking from your system dictionary, and a
   command palette (Ctrl+K) that finds every command.
 
-## The story board
+## Story board
 
 - **One grid.** Every scene is a card that snaps to a cell, by row and by column, linked to the next
   scene by an arrow. Inside each act the story reads in **rows** (left to right, then down) or
