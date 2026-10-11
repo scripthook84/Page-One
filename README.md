@@ -9,8 +9,6 @@ PDF. It's free, works offline, needs no account, and the installer is about 2 MB
 
 **Version 1.0.0** · Linux (.deb) · Apache License 2.0
 
-![The script view: a formatted screenplay page with the scene navigator on the left and the scene inspector on the right](docs/screenshots/script.png)
-
 ---
 
 ## Highlights
@@ -58,8 +56,6 @@ PDF. It's free, works offline, needs no account, and the installer is about 2 MB
 
 ## The story board
 
-![The story board: scene cards on a snap grid under coloured ACT 1 and ACT 2 lanes, with act labels and a colour key on the left](docs/screenshots/board.png)
-
 - **One grid.** Every scene is a card that snaps to a cell, by row and by column, linked to the next
   scene by an arrow. Inside each act the story reads in **rows** (left to right, then down) or
   **columns** (top to bottom, then right); set how many cards fit per row or column.
@@ -96,8 +92,6 @@ PDF. It's free, works offline, needs no account, and the installer is about 2 MB
 - **Production.** Scene numbers in both margins, omitted scenes, revision mode in the standard
   colour order (Blue, Pink, Yellow, Green, Goldenrod, Buff, Salmon, Cherry) with asterisks and a
   revision header, a title page laid out to standard metrics, and watermarked PDFs.
-
-![Focus mode in the dark theme: full-screen blank page with the zoom toolbar at the bottom left](docs/screenshots/focus.png)
 
 ## Files
 
