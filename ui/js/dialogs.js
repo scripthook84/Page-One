@@ -2,7 +2,7 @@
 
 import { S, eighths, projectNow } from './state.js';
 import { esc, textOf } from './editor.js';
-import { ELEMS, cueName, sceneParts, SCENE_COLORS, colorLabel } from './elements.js';
+import { ELEMS, cueName, sceneParts, SCENE_COLORS, colorLabel, keyText } from './elements.js';
 
 const root = () => document.getElementById('modalRoot');
 
@@ -448,7 +448,7 @@ export function palette(commands, query = '') {
     const q = body.querySelector('#pq').value.toLowerCase().trim();
     shown = items.filter((c) => !q || (`${c.menu || ''} ${c.label}`).toLowerCase().includes(q) || q.split(/\s+/).every((w) => (`${c.menu || ''} ${c.label}`).toLowerCase().includes(w)));
     idx = Math.min(idx, Math.max(0, shown.length - 1));
-    body.querySelector('#pl').innerHTML = shown.map((c, i) => `<li data-i="${i}" class="${i === idx ? 'on' : ''}"><span>${esc(c.label)}</span><small>${esc(c.menu || '')}</small>${c.keys ? `<kbd>${c.keys.replace("ArrowUp", "↑").replace("ArrowDown", "↓")}</kbd>` : ''}</li>`).join('') || '<li><span class="hint">No matching command</span></li>';
+    body.querySelector('#pl').innerHTML = shown.map((c, i) => `<li data-i="${i}" class="${i === idx ? 'on' : ''}"><span>${esc(c.label)}</span><small>${esc(c.menu || '')}</small>${c.keys ? `<kbd>${keyText(c.keys).replace("ArrowUp", "↑").replace("ArrowDown", "↓")}</kbd>` : ''}</li>`).join('') || '<li><span class="hint">No matching command</span></li>';
     const on = body.querySelector('li.on');
     if (on) on.scrollIntoView({ block: 'nearest' });
   };
@@ -503,14 +503,14 @@ export function shortcutsDialog() {
       ['Ctrl+= / Ctrl+-', 'Zoom'],
     ]],
   ];
-  const body = `<div class="grid2">${rows.map(([h, list]) => `<div><h3 style="margin:0 0 6px;font-size:13px">${h}</h3><table class="report"><tbody>${list.map(([k, d]) => `<tr><td style="white-space:nowrap"><kbd>${esc(k)}</kbd></td><td>${esc(d)}</td></tr>`).join('')}</tbody></table></div>`).join('')}</div>`;
+  const body = `<div class="grid2">${rows.map(([h, list]) => `<div><h3 style="margin:0 0 6px;font-size:13px">${h}</h3><table class="report"><tbody>${list.map(([k, d]) => `<tr><td style="white-space:nowrap"><kbd>${esc(keyText(k))}</kbd></td><td>${esc(d)}</td></tr>`).join('')}</tbody></table></div>`).join('')}</div>`;
   return modal({ title: 'Keyboard shortcuts', body, wide: true, buttons: [{ label: 'Close', primary: true }] });
 }
 
 function ORDER_SHORT() {
   return ['general', 'scene', 'action', 'character', 'paren', 'dialogue', 'transition', 'shot', 'centered', 'lyric']
     .map((k) => [`Ctrl+${ELEMS[k].key}`, ELEMS[k].label])
-    .concat([['Ctrl+Shift+1', 'New act label on the story board (never on the page)'], ['Ctrl+Shift+2 / 3', 'New sequence or beat'], ['Ctrl+Shift+4', 'Note (never prints)']]);
+    .concat([['Ctrl+Shift+1', 'New act label on the story board (never on the page)'], ['Ctrl+Shift+2', 'New sequence'], ['Ctrl+Shift+3', 'New beat'], ['Ctrl+Shift+4', 'Note (never prints)']]);
 }
 
 export function formatGuide() {

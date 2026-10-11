@@ -1,7 +1,8 @@
 # Page One 1.0.0 — release notes
 
 **Released:** October 11, 2026
-**Platform:** Linux (Ubuntu 22.04+, Debian 12+, Linux Mint, Pop!_OS), 64-bit `.deb`
+**Platforms:** Linux (Ubuntu 22.04+, Debian 12+, Linux Mint, Pop!_OS), 64-bit `.deb`;
+macOS 12 Monterey or later, universal `.dmg` for Apple Silicon and Intel
 **License:** Apache License 2.0
 
 The first release of Page One: a lightweight, open-source screenwriting app that formats to the
@@ -17,7 +18,12 @@ sudo apt install ./Page-One_1.0.0_amd64.deb
 ```
 
 Installer size is about 2 MB. Page One needs WebKitGTK 4.1, which apt installs if it's missing.
-`.pageone` files are registered with the system and open on double-click.
+
+**macOS:** open `Page-One_1.0.0_universal.dmg` and drag Page One onto Applications. If the build
+isn't signed with an Apple Developer ID, the first launch needs **System Settings → Privacy &
+Security → Open Anyway**.
+
+On both, `.pageone` files are registered with the system and open on double-click.
 
 ---
 
@@ -64,6 +70,14 @@ Installer size is about 2 MB. Page One needs WebKitGTK 4.1, which apt installs i
 - Scene numbers, omitted scenes, colour revisions with asterisks and header, standard title page,
   watermarked PDFs
 
+### On the Mac
+
+- Universal app for Apple Silicon and Intel, with the standard Page One, Edit and Window menus
+- ⌘ and ⌥ in every shortcut label; ⌘Q asks to save changes before quitting
+- Shortcuts that macOS reserves get Mac equivalents: find and replace ⌥⌘F, new beat ⌥⇧⌘3,
+  note ⌥⇧⌘4, dual dialogue ⇧⌘D
+- `.pageone` files open from Finder, including while Page One is already running
+
 ### Files
 
 - `.pageone`: compact, checksummed binary format (documented in `docs/FILE-FORMAT.md`)
@@ -92,7 +106,7 @@ Installer size is about 2 MB. Page One needs WebKitGTK 4.1, which apt installs i
 
 ## Known limitations
 
-- Linux only for now. Windows and macOS builds use the same source but haven't been tested.
+- No Windows build yet; it uses the same source but hasn't been tested.
 - No real-time collaboration, track changes, page locking or A-pages yet.
 - No PDF import, and no TV, multi-camera or stage templates yet.
 - Very long unsplittable blocks (a dual-dialogue exchange longer than a page) run past the bottom

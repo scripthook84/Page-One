@@ -2,7 +2,7 @@
 
 import { api, isDesktop, stem } from './api.js';
 import { Editor, textOf, runsOf, sliceRuns, concatRuns, esc } from './editor.js';
-import { ELEMS, REVISIONS, cueName, sceneParts } from './elements.js';
+import { ELEMS, REVISIONS, cueName, sceneParts, IS_MAC, keyText, platformKeys } from './elements.js';
 import { S, savePrefs, emptyProject, projectNow } from './state.js';
 import * as panels from './panels.js';
 import * as dialogs from './dialogs.js';
@@ -404,7 +404,7 @@ function syncToolButtons() {
   const dark = S.prefs.theme !== 'day';
   const t = $('#themeBtn');
   t.setAttribute('aria-pressed', String(dark));
-  t.title = dark ? 'Light mode (Ctrl+Shift+L)' : 'Dark mode (Ctrl+Shift+L)';
+  t.title = keyText(dark ? 'Light mode (Ctrl+Shift+L)' : 'Dark mode (Ctrl+Shift+L)');
   t.querySelector('.i-moon').hidden = dark;
   t.querySelector('.i-sun').hidden = !dark;
   $('#focusBtn').setAttribute('aria-pressed', String(document.body.classList.contains('focus')));
@@ -793,7 +793,7 @@ function buildMenus() {
     const ul = document.createElement('ul');
     ul.className = 'menu-pop';
     ul.innerHTML = list.map((c) => c.sep ? '<li class="sep"></li>' :
-      `<li data-id="${c.id}" class="${c.check ? 'check' : ''} ${c.check && c.check() ? 'checked' : ''} ${c.when && !c.when() ? 'disabled' : ''}">${c.color ? `<i style="width:10px;height:10px;border-radius:2px;background:${c.color};box-shadow:0 0 0 1px var(--line)"></i>` : ''}<span>${esc(c.label)}</span>${c.keys ? `<kbd>${c.keys.replace("ArrowUp", "↑").replace("ArrowDown", "↓")}</kbd>` : ''}</li>`).join('');
+      `<li data-id="${c.id}" class="${c.check ? 'check' : ''} ${c.check && c.check() ? 'checked' : ''} ${c.when && !c.when() ? 'disabled' : ''}">${c.color ? `<i style="width:10px;height:10px;border-radius:2px;background:${c.color};box-shadow:0 0 0 1px var(--line)"></i>` : ''}<span>${esc(c.label)}</span>${c.keys ? `<kbd>${keyText(c.keys).replace("ArrowUp", "↑").replace("ArrowDown", "↓")}</kbd>` : ''}</li>`).join('');
     wrap.appendChild(ul);
   };
   nav.addEventListener('mousedown', (e) => {
@@ -820,6 +820,9 @@ function buildMenus() {
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
 }
 
+// Mac: move shortcuts that macOS reserves for itself
+for (const c of COMMANDS) if (c.keys) c.keys = platformKeys(c.keys);
+
 function matchKeys(e, keys) {
   if (!keys) return false;
   const parts = keys.split('+');
@@ -829,9 +832,11 @@ function matchKeys(e, keys) {
   if ((e.ctrlKey || e.metaKey) !== want.Ctrl || e.shiftKey !== want.Shift || e.altKey !== want.Alt) return false;
   if (/^F\d+$/.test(key)) return e.key === key;
   if (/^\d$/.test(key)) return e.code === 'Digit' + key;
-  if (key === '=') return e.key === '=' || e.key === '+';
-  if (key === '-') return e.key === '-' || e.key === '_';
-  return e.key.toLowerCase() === key.toLowerCase();
+  if (key === '=') return e.key === '=' || e.key === '+' || e.code === 'Equal';
+  if (key === '-') return e.key === '-' || e.key === '_' || e.code === 'Minus';
+  if (e.key.toLowerCase() === key.toLowerCase()) return true;
+  // on a Mac, Option turns letters into symbols (⌥N types "˜"), so match the physical key there
+  return e.altKey && /^[a-z]$/i.test(key) && e.code === 'Key' + key.toUpperCase();
 }
 
 document.addEventListener('keydown', (e) => {
@@ -922,7 +927,7 @@ function wire() {
 let toastTimer;
 export function toast(msg) {
   const t = $('#toast');
-  t.textContent = msg;
+  t.textContent = keyText(msg);
   t.hidden = false;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => (t.hidden = true), 3200);
@@ -931,10 +936,21 @@ export function toast(msg) {
 // exported for panels/dialogs
 S.app = { refresh, scheduleRefresh, markDirty, toast, setView, applySettingsUI, setSetting, setPref, onCaret, currentSceneIndex, save, doExport, setTitleUI };
 
+/** Mac: show ⌘ ⌥ ⇧ in the labels written into the page itself. */
+function platformLabels() {
+  if (!IS_MAC) return;
+  document.body.classList.add('mac');
+  for (const el of document.querySelectorAll('[title]')) el.title = keyText(el.title);
+  for (const el of document.querySelectorAll('kbd')) el.textContent = keyText(el.textContent);
+}
+
 async function start() {
   applyPrefs();
   buildMenus();
   wire();
+  platformLabels();
+  // a script double-clicked in Finder while Page One is already open (macOS)
+  api.onOpenFile((path) => openPath(path));
   const initial = await api.initialFile().catch(() => null);
   if (initial) {
     try {

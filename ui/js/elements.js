@@ -1,5 +1,27 @@
 // Element definitions and the Enter / Tab element flow (the industry's standard conventions).
 
+/** True on macOS, where Cmd stands in for Ctrl (append ?mac to preview the Mac labels in a browser). */
+export const IS_MAC = /Mac|iPhone|iPad/.test((typeof navigator !== 'undefined' && (navigator.platform || navigator.userAgent)) || '')
+  || (typeof location !== 'undefined' && /[?&]mac\b/.test(location.search));
+
+/** Shortcuts macOS keeps for itself (⌘H hides the app, ⇧⌘3/4 take screenshots, ⌥⌘D hides the Dock)
+ * get Mac replacements, following Mac conventions where one exists (⌥⌘F for find and replace). */
+const MAC_REMAP = { 'Ctrl+H': 'Ctrl+Alt+F', 'Ctrl+Shift+3': 'Ctrl+Alt+Shift+3', 'Ctrl+Shift+4': 'Ctrl+Alt+Shift+4', 'Ctrl+Alt+D': 'Ctrl+Shift+D' };
+
+/** The shortcut that triggers a command on this platform. */
+export function platformKeys(keys) {
+  return IS_MAC && keys && MAC_REMAP[keys] ? MAC_REMAP[keys] : keys;
+}
+
+/** Shortcut text for this platform: on a Mac "Ctrl+Shift+S" reads "⇧⌘S" and "Ctrl+Alt+1" reads "⌥⌘1". */
+export function keyText(s) {
+  if (!IS_MAC || !s) return s;
+  return String(s).replace(/\b(?:Ctrl\+H|Ctrl\+Shift\+[34]|Ctrl\+Alt\+D)(?![\w+])/g, (m) => MAC_REMAP[m]).replace(/(?:\b(?:Ctrl|Alt|Shift)[+ ])+/g, (m) => {
+    const has = (k) => new RegExp('\\b' + k + '[+ ]').test(m);
+    return (has('Alt') ? '⌥' : '') + (has('Shift') ? '⇧' : '') + (has('Ctrl') ? '⌘' : '');
+  });
+}
+
 export const ELEMS = {
   scene:      { label: 'Scene Heading', short: 'Scene',      key: '1', enter: 'action',   tab: 'action',    empty: 'action',     upper: true },
   action:     { label: 'Action',        short: 'Action',     key: '2', enter: 'action',   tab: 'character', empty: 'character' },

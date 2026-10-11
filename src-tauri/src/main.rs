@@ -4,7 +4,7 @@
 
 use pageone_core::{codec, fdx, fountain, layout, pdf, text, Project};
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Mutex;
 use tauri::{Emitter, Manager, State, WindowEvent};
 use tauri_plugin_dialog::DialogExt;
@@ -14,6 +14,9 @@ struct Launch(Mutex<Option<String>>);
 /// Time of the last close request; a second request within 3 s always closes,
 /// so the window can never get stuck if the page fails to answer.
 static LAST_CLOSE: AtomicU64 = AtomicU64::new(0);
+
+/// Set once the page has asked for its launch file; later files are sent as events.
+static PAGE_READY: AtomicBool = AtomicBool::new(false);
 
 #[tauri::command]
 fn layout(project: Project) -> layout::Layout {
@@ -120,7 +123,9 @@ fn export_file(path: String, kind: String, project: Project, watermark: String) 
 
 #[tauri::command]
 fn initial_file(state: State<Launch>) -> Option<String> {
-    state.0.lock().ok().and_then(|mut g| g.take())
+    let mut g = state.0.lock().ok()?;
+    PAGE_READY.store(true, Ordering::SeqCst);
+    g.take()
 }
 
 #[tauri::command]
@@ -150,6 +155,79 @@ fn enable_spellcheck(app: &tauri::App) {
 #[cfg(not(target_os = "linux"))]
 fn enable_spellcheck(_app: &tauri::App) {}
 
+/// Close or quit was asked for. The page asks "Save changes?" first and calls quit_app
+/// when done; a second request within 3 s always quits, so nothing can get stuck.
+/// Returns true when the caller should go ahead and close.
+fn request_close(app: &tauri::AppHandle) -> bool {
+    let now = pageone_core::now_secs();
+    let last = LAST_CLOSE.swap(now, Ordering::SeqCst);
+    if now.saturating_sub(last) <= 3 {
+        return true;
+    }
+    match app.get_webview_window("main") {
+        Some(w) => w.emit("close-requested", ()).is_err(),
+        None => true,
+    }
+}
+
+/// macOS menu bar. Edit holds Cut, Copy, Paste and Select All so the system's
+/// clipboard keys reach the page; undo, formatting and the rest are handled by the page
+/// itself. Quit goes through the page's "Save changes?" question.
+#[cfg(target_os = "macos")]
+fn mac_menu(app: &tauri::App) -> tauri::Result<()> {
+    use tauri::menu::{AboutMetadata, Menu, MenuItem, PredefinedMenuItem, Submenu};
+    let h = app.handle();
+    let about = AboutMetadata {
+        name: Some("Page One".into()),
+        version: Some(env!("CARGO_PKG_VERSION").into()),
+        copyright: Some("Apache License 2.0".into()),
+        ..Default::default()
+    };
+    let app_menu = Submenu::with_items(
+        h,
+        "Page One",
+        true,
+        &[
+            &PredefinedMenuItem::about(h, Some("About Page One"), Some(about))?,
+            &PredefinedMenuItem::separator(h)?,
+            &PredefinedMenuItem::services(h, None)?,
+            &PredefinedMenuItem::separator(h)?,
+            &PredefinedMenuItem::hide(h, Some("Hide Page One"))?,
+            &PredefinedMenuItem::hide_others(h, None)?,
+            &PredefinedMenuItem::show_all(h, None)?,
+            &PredefinedMenuItem::separator(h)?,
+            &MenuItem::with_id(h, "quit", "Quit Page One", true, Some("CmdOrCtrl+Q"))?,
+        ],
+    )?;
+    let edit = Submenu::with_items(
+        h,
+        "Edit",
+        true,
+        &[
+            &PredefinedMenuItem::cut(h, None)?,
+            &PredefinedMenuItem::copy(h, None)?,
+            &PredefinedMenuItem::paste(h, None)?,
+            &PredefinedMenuItem::select_all(h, None)?,
+        ],
+    )?;
+    let window = Submenu::with_items(
+        h,
+        "Window",
+        true,
+        &[
+            &PredefinedMenuItem::minimize(h, None)?,
+            &PredefinedMenuItem::maximize(h, Some("Zoom"))?,
+        ],
+    )?;
+    app.set_menu(Menu::with_items(h, &[&app_menu, &edit, &window])?)?;
+    app.on_menu_event(|app, event| {
+        if event.id() == "quit" && request_close(app) {
+            app.exit(0);
+        }
+    });
+    Ok(())
+}
+
 fn main() {
     let launch = std::env::args()
         .skip(1)
@@ -161,6 +239,8 @@ fn main() {
         .manage(Launch(Mutex::new(launch)))
         .setup(|app| {
             enable_spellcheck(app);
+            #[cfg(target_os = "macos")]
+            mac_menu(app)?;
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -176,16 +256,30 @@ fn main() {
         ])
         .on_window_event(|window, event| {
             if let WindowEvent::CloseRequested { api, .. } = event {
-                let now = pageone_core::now_secs();
-                let last = LAST_CLOSE.swap(now, Ordering::SeqCst);
-                if now.saturating_sub(last) <= 3 {
-                    return; // asked twice: close
+                if !request_close(window.app_handle()) {
+                    // the page asks "Save changes?" first and calls quit_app when done
+                    api.prevent_close();
                 }
-                // Let the page ask "Save changes?" first; it calls quit_app when done.
-                api.prevent_close();
-                let _ = window.emit("close-requested", ());
             }
         })
-        .run(tauri::generate_context!())
-        .expect("error while running Page One");
+        .build(tauri::generate_context!())
+        .expect("error while starting Page One")
+        .run(|_app, _event| {
+            // macOS hands over files double-clicked in Finder as an event, not on the command line
+            #[cfg(target_os = "macos")]
+            if let tauri::RunEvent::Opened { urls } = _event {
+                for path in urls.iter().filter_map(|u| u.to_file_path().ok()) {
+                    let path = path.to_string_lossy().into_owned();
+                    // before the page has asked for its first file, it picks this up from Launch
+                    let launch = _app.state::<Launch>();
+                    let mut pending = launch.0.lock().unwrap();
+                    if !PAGE_READY.load(Ordering::SeqCst) {
+                        *pending = Some(path);
+                    } else {
+                        drop(pending);
+                        let _ = _app.emit("open-file", path);
+                    }
+                }
+            }
+        });
 }

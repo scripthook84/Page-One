@@ -138,6 +138,11 @@ export const api = {
   onCloseRequested(cb) {
     if (isDesktop && T.event) T.event.listen('close-requested', cb);
   },
+
+  /** Files handed over by the system while running (Finder double-click on macOS). */
+  onOpenFile(cb) {
+    if (isDesktop && T.event) T.event.listen('open-file', (e) => e && e.payload && cb(e.payload));
+  },
 };
 
 export function baseName(p) {

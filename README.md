@@ -6,7 +6,7 @@ A lightweight, open-source screenwriting app. Page One formats your script to th
 standard as you type, lays your story out on a snap-to-grid story board, and exports print-ready
 PDF. It's free, works offline, needs no account, and the installer is about 2 MB.
 
-**Version 1.0.0** · Linux (.deb) · Apache License 2.0
+**Version 1.0.0** · Linux (.deb) · macOS (.dmg) · Apache License 2.0
 
 ![The script view: a formatted screenplay page with the scene navigator on the left and the scene inspector on the right](docs/screenshots/script.png)
 
@@ -123,7 +123,8 @@ PDF. It's free, works offline, needs no account, and the installer is about 2 MB
 |---|---|---|---|
 | Price | Free, open source (Apache 2.0) | $199.99 one-time, or $99.99/year as Final Draft Suite | $79.95 one-time, updates free |
 | Linux | Yes (.deb) | No | Yes |
-| Windows and macOS | Build from source (not yet tested) | Yes | Yes |
+| macOS | Yes (.dmg, Apple Silicon and Intel) | Yes | Yes |
+| Windows | Build from source (not yet tested) | Yes | Yes |
 | Phone and tablet | No | Final Draft Go for iOS, sold separately | Fade In Mobile for iOS and Android, sold separately |
 | Account or activation | None | Sign-in; two computers active at once | License key |
 | Formats as you type (element flow, suggestions) | Yes | Yes | Yes |
@@ -149,11 +150,13 @@ checked. Check each vendor's site for current details.
 - Real-time collaboration, track changes, page locking and A-pages
 - PDF import; templates for TV, multi-camera and stage formats
 - Production tagging and scheduling exports
-- Phone and tablet apps; Windows and macOS builds are possible from the same source but untested
+- Phone and tablet apps; a Windows build is possible from the same source but untested
 
 ---
 
 ## Install
+
+### Linux
 
 On Ubuntu, Debian, Linux Mint or Pop!_OS:
 
@@ -165,6 +168,21 @@ Page One appears in your applications menu, and `.pageone` files open with it on
 needs WebKitGTK 4.1 (`libwebkit2gtk-4.1-0`, included in Ubuntu 22.04+ and Debian 12+); apt installs
 it if it's missing. To remove it: `sudo apt remove page-one`.
 
+### macOS
+
+Requires macOS 12 Monterey or later, on Apple Silicon or Intel.
+
+1. Open `Page-One_1.0.0_universal.dmg` and drag **Page One** onto **Applications**.
+2. The first time, open it from Applications. If the build isn't signed with an Apple Developer ID,
+   macOS says it can't check the app: open **System Settings → Privacy & Security**, scroll down
+   and click **Open Anyway** next to Page One (on macOS 14 and earlier you can instead Control-click
+   the app and choose **Open**). After that it opens normally.
+
+`.pageone` files open in Page One on double-click. On a Mac, ⌘ takes the place of Ctrl in every
+shortcut and ⌥ (Option) the place of Alt. A few shortcuts macOS keeps for itself have Mac
+equivalents: find and replace is ⌥⌘F, a new beat ⌥⇧⌘3, a note ⌥⇧⌘4 and dual dialogue ⇧⌘D. Every
+shortcut is listed under Help → Keyboard shortcuts (F1).
+
 ## Build from source
 
 You need [Rust](https://rustup.rs) (stable), [Node.js](https://nodejs.org) 18+, and on Linux:
@@ -174,9 +192,12 @@ sudo apt install build-essential pkg-config file patchelf libwebkit2gtk-4.1-dev 
   libgtk-3-dev libssl-dev libxdo-dev libayatana-appindicator3-dev librsvg2-dev
 ```
 
+On a Mac you need Rust, Node.js and Xcode's command-line tools (`xcode-select --install`).
+
 ```bash
 npm install
 npm run build      # target/release/bundle/deb/Page One_1.0.0_amd64.deb
+npm run build:mac  # on a Mac: target/universal-apple-darwin/release/bundle/dmg/Page One_1.0.0_universal.dmg
 npm test           # core tests: file format, pagination, Fountain, FDX
 npm run preview    # the interface in a browser at http://127.0.0.1:8787
 ```
@@ -188,6 +209,17 @@ npm run preview    # the interface in a browser at http://127.0.0.1:8787
 | `ui` | Interface in plain HTML, CSS and JavaScript modules, no build step |
 | `docs` | File format specification and screenshots |
 | `samples` | An example script in Fountain and `.pageone` |
+
+For the Mac universal build, add both Rust targets once:
+`rustup target add aarch64-apple-darwin x86_64-apple-darwin`.
+
+**GitHub Actions.** `.github/workflows/build.yml` builds the `.deb` on Ubuntu and the universal `.dmg`
+on macOS, on every `v*` tag or when run by hand (Actions → Build → Run workflow); the installers are
+attached to the run. Without Apple credentials the Mac app is ad-hoc signed. To sign it with your
+Developer ID and have Apple notarize it (so it opens without a warning), add these repository
+secrets: `APPLE_CERTIFICATE` (your Developer ID Application certificate exported as .p12, base64),
+`APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY` (e.g. `Developer ID Application: Name (TEAMID)`),
+and for notarization `APPLE_ID`, `APPLE_PASSWORD` (an app-specific password) and `APPLE_TEAM_ID`.
 
 See [RELEASE_NOTES.md](RELEASE_NOTES.md) for what's in this release.
 

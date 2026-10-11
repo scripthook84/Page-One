@@ -30,3 +30,64 @@ jobs:
         with:
           name: page-one-deb
           path: target/release/bundle/deb/*.deb
+
+  # Universal .dmg (Apple Silicon and Intel). Without Apple signing secrets the app is
+  # ad-hoc signed: it runs, but macOS asks the user to approve it the first time.
+  # With the secrets below set in the repository, it is signed with your Developer ID
+  # and notarized, and opens without a warning.
+  macos-dmg:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci || npm install
+      - run: cargo test -p pageone-core
+      - name: Signing (Developer ID if configured, ad-hoc otherwise)
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          if [ -n "$APPLE_CERTIFICATE" ] && [ -n "$APPLE_SIGNING_IDENTITY" ]; then
+            echo "Signing with Developer ID"
+            {
+              echo "APPLE_CERTIFICATE=$APPLE_CERTIFICATE"
+              echo "APPLE_CERTIFICATE_PASSWORD=$APPLE_CERTIFICATE_PASSWORD"
+              echo "APPLE_SIGNING_IDENTITY=$APPLE_SIGNING_IDENTITY"
+            } >> "$GITHUB_ENV"
+            if [ -n "$APPLE_ID" ] && [ -n "$APPLE_PASSWORD" ] && [ -n "$APPLE_TEAM_ID" ]; then
+              echo "Notarizing with Apple"
+              {
+                echo "APPLE_ID=$APPLE_ID"
+                echo "APPLE_PASSWORD=$APPLE_PASSWORD"
+                echo "APPLE_TEAM_ID=$APPLE_TEAM_ID"
+              } >> "$GITHUB_ENV"
+            fi
+          else
+            echo "No Developer ID configured: ad-hoc signing"
+            echo "APPLE_SIGNING_IDENTITY=-" >> "$GITHUB_ENV"
+          fi
+      - run: npx tauri build --bundles dmg --target universal-apple-darwin
+      - name: Name the disk image
+        run: |
+          cd target/universal-apple-darwin/release/bundle/dmg
+          for f in *.dmg; do mv "$f" "Page-One_1.0.0_universal.dmg"; done
+          ls -la
+      - name: Check the app bundle
+        run: |
+          APP="target/universal-apple-darwin/release/bundle/macos/Page One.app"
+          lipo -info "$APP/Contents/MacOS/page-one"
+          codesign --verify --deep --verbose=2 "$APP"
+          plutil -p "$APP/Contents/Info.plist" | grep -E "CFBundleShortVersionString|LSMinimumSystemVersion|pageone"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: page-one-dmg
+          path: target/universal-apple-darwin/release/bundle/dmg/*.dmg

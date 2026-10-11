@@ -41,6 +41,7 @@
       "icons/128x128.png",
       "icons/128x128@2x.png",
       "icons/512x512.png",
+      "icons/icon.icns",
       "icons/icon.ico"
     ],
     "fileAssociations": [
@@ -51,7 +52,14 @@
         "name": "Page One screenplay",
         "description": "Page One screenplay",
         "mimeType": "application/x-pageone",
-        "role": "Editor"
+        "role": "Editor",
+        "exportedType": {
+          "identifier": "app.pageone.screenplay",
+          "conformsTo": [
+            "public.data",
+            "public.content"
+          ]
+        }
       }
     ],
     "linux": {
@@ -67,6 +75,23 @@
         "recommends": [
           "hunspell-en-us"
         ]
+      }
+    },
+    "macOS": {
+      "minimumSystemVersion": "12.0",
+      "dmg": {
+        "windowSize": {
+          "width": 560,
+          "height": 340
+        },
+        "appPosition": {
+          "x": 150,
+          "y": 170
+        },
+        "applicationFolderPosition": {
+          "x": 410,
+          "y": 170
+        }
       }
     }
   }

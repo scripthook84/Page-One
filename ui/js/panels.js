@@ -2,7 +2,7 @@
 
 import { S, eighths, projectNow } from './state.js';
 import { esc, textOf } from './editor.js';
-import { SCENE_COLORS, ELEMS, COLORS, colorLabel } from './elements.js';
+import { SCENE_COLORS, ELEMS, COLORS, colorLabel, keyText } from './elements.js';
 import * as dialogs from './dialogs.js';
 import { renderBoard } from './board.js';
 
@@ -221,7 +221,7 @@ function renderNotes() {
   for (let i = 0; i < els.length; i++) if (els[i].dataset.t === 'note') items.push([i, textOf(els[i])]);
   $('#noteList').innerHTML = items.length
     ? items.map(([i, t]) => `<li data-pi="${i}" style="display:block"><span class="s" style="display:block">${esc(t || '(empty note)')}</span><span class="pg">p. ${S.layout ? S.layout.para_page[i] : ''}</span></li>`).join('')
-    : '<li class="empty-hint" style="display:block;cursor:default">No notes yet. Ctrl+Shift+4 adds a note that never prints.</li>';
+    : '<li class="empty-hint" style="display:block;cursor:default">No notes yet. ' + keyText('Ctrl+Shift+4') + ' adds a note that never prints.</li>';
 }
 $('#noteList').addEventListener('click', (e) => {
   const li = e.target.closest('li[data-pi]');

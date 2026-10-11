@@ -3,7 +3,7 @@
 // (Enter, Tab, merges, multi-paragraph deletes, paste, formatting) is done
 // here explicitly so paragraph types never get mangled by the browser.
 
-import { ELEMS, INTROS, TIMES, EXTENSIONS, TRANSITIONS, ORDER, BOLD, ITALIC, UNDERLINE, cueName, sceneParts } from './elements.js';
+import { ELEMS, INTROS, TIMES, EXTENSIONS, TRANSITIONS, ORDER, BOLD, ITALIC, UNDERLINE, cueName, sceneParts, keyText } from './elements.js';
 
 // ------------------------------------------------------------------ runs helpers
 
@@ -1033,7 +1033,7 @@ export class Editor {
     const s = this.smart;
     const p = this.popup;
     p.innerHTML = s.items
-      .map((it, i) => `<li data-i="${i}" class="${i === s.index ? 'on' : ''}"><span>${esc(it.label)}</span>${it.key ? `<kbd>Ctrl ${it.key}</kbd>` : ''}</li>`)
+      .map((it, i) => `<li data-i="${i}" class="${i === s.index ? 'on' : ''}"><span>${esc(it.label)}</span>${it.key ? `<kbd>${keyText('Ctrl ' + it.key)}</kbd>` : ''}</li>`)
       .join('');
     p.classList.toggle('picker', !!s.picker);
     p.hidden = false;
