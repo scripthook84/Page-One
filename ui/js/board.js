@@ -5,8 +5,8 @@
 // act reads as a coloured lane running down the board. Drag a label to move it along the header, or
 // its right edge to stretch it across more columns — it snaps column by column.
 //
-// Story order: acts left to right; inside each act the cards read in rows (left→right, then down)
-// or in columns (top→bottom, then right). Drop a card on an empty cell and it lands there; drop it on
+// Story order: acts left to right; inside each act the cards read in rows (left→right, then
+// down). Drop a card on an empty cell and it lands there; drop it on
 // a card and it slides in before it, nudging the following cards of that act along. The screenplay
 // is reordered to match as soon as anything is dropped (one undo step).
 //
@@ -28,7 +28,8 @@ let justDragged = 0;
 
 const root = () => document.getElementById('cards');
 const st = () => S.project.settings;
-const mode = () => (st().board_mode === 'columns' ? 'columns' : 'rows');
+// Inside each act the cards read in rows (left to right, then down); act lanes give the columns.
+const mode = () => 'rows';
 const span = () => Math.max(1, Math.min(12, +st().board_span || 5));
 const colX = (c) => PAD + c * (CW + GX);
 const rowY = (r) => PAD + TOP + r * (CH + GY);
@@ -265,11 +266,7 @@ function neighbours(item) {
 
 function toolbar() {
   return `<div class="board-tools">
-    <div class="seg" role="group" aria-label="Reading order inside an act">
-      <button data-mode="rows" title="Inside each act, scenes read left to right, then down">Rows</button>
-      <button data-mode="columns" title="Inside each act, scenes read top to bottom, then right">Columns</button>
-    </div>
-    <span class="seg" title="Cards per row (or column) before wrapping"><button id="bSpanLess" aria-label="Fewer per line">−</button><span class="zoomv" id="bSpan">5 per row</span><button id="bSpanMore" aria-label="More per line">+</button></span>
+    <span class="seg" title="Cards per row before wrapping"><button id="bSpanLess" aria-label="Fewer per row">−</button><span class="zoomv" id="bSpan">5 per row</span><button id="bSpanMore" aria-label="More per row">+</button></span>
     <button class="btn" id="bTidy" title="Close the empty cells inside each act">Tidy up</button>
     <button class="btn" id="bAct" title="Create an act label (left panel)">+ Act label</button>
     <span class="seg"><button id="bZo" aria-label="Zoom out">−</button><span class="zoomv" id="bZv">100%</span><button id="bZi" aria-label="Zoom in">+</button></span>
@@ -310,7 +307,6 @@ export function renderBoard(force = false) {
   renderSide();
 
   const m = mode(), n = span();
-  for (const b of box.querySelectorAll('[data-mode]')) b.setAttribute('aria-pressed', String(b.dataset.mode === m));
   box.querySelector('#bSpan').textContent = `${n} per ${m === 'rows' ? 'row' : 'column'}`;
   box.querySelector('#bZv').textContent = `${Math.round(zoom * 100)}%`;
   const cards = model.items.filter((it) => it.kind === 'card');
@@ -452,8 +448,6 @@ function previewBands(list) {
 function wire(box) {
   box.addEventListener('click', (e) => {
     if (Date.now() - justDragged < 250) return;
-    const modeBtn = e.target.closest('[data-mode]');
-    if (modeBtn) { S.app.setSetting('board_mode', modeBtn.dataset.mode); return; }
     if (e.target.id === 'bSpanLess' || e.target.id === 'bSpanMore') {
       S.app.setSetting('board_span', Math.max(1, Math.min(12, span() + (e.target.id === 'bSpanMore' ? 1 : -1))));
       return;

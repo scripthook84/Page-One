@@ -22,7 +22,7 @@ Project {
   settings: {
     scene_numbers: bool, conts: bool, mores: bool, scene_space: 1|2, bold_scenes: bool,
     page_size: "letter"|"a4", rev_level: 0..8, header: string, title_page: bool, target_pages: int,
-    board_mode: "rows"|"columns", board_span: int (cards per row/column), board_snap: bool (unused)
+    board_mode: string (unused), board_span: int (cards per row), board_snap: bool (unused)
   },
   notes: string,
   characters: [ { name, color, bio } ],

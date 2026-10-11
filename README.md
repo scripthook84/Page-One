@@ -60,8 +60,8 @@ PDF. It's free, works offline, needs no account, and the installer is about 2 MB
 ![The story board: scene cards on a snap grid under coloured ACT 1 and ACT 2 lanes, with act labels and a colour key on the left](docs/screenshots/board.png)
 
 - **One grid.** Every scene is a card that snaps to a cell, by row and by column, linked to the next
-  scene by an arrow. Inside each act the story reads in **rows** (left to right, then down) or
-  **columns** (top to bottom, then right); set how many cards fit per row or column.
+  scene by an arrow. Inside each act the story reads left to right, then down; set how many cards
+  fit per row. The act lanes give the board its columns.
 - **Magic snap.** Drop a card on an empty cell and it lands there. Drop it on a card and it slides
   in before it, nudging that act's following cards along. Empty cells stay until **Tidy up**. The
   screenplay reorders as soon as you let go; Ctrl+Z puts it back.

@@ -41,8 +41,8 @@ Installer size is about 2 MB. Page One needs WebKitGTK 4.1, which apt installs i
 
 ### Story board
 
-- One snap grid: cards align by row and by column; inside each act the story reads in rows or in
-  columns, with a set number of cards per line
+- One snap grid: cards align by row and by column; inside each act the story reads left to right,
+  then down, with a set number of cards per row
 - Magic snap: drop on an empty cell to land there, or on a card to slide in before it while that
   act's later cards nudge along; empty cells stay until Tidy up
 - Act lanes: act labels sit above the grid, start one card wide (the first covers the scenes already there), and stretch across columns by their
