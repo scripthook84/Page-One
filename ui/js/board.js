@@ -462,7 +462,9 @@ function renderSide() {
   const scenes = S.derived.scenes;
   const acts = scenes.filter((sc) => sc.t === 'section' && sc.lvl === 1);
   const list = sideEl('actList');
-  if (!list.contains(document.activeElement)) {
+  // only hold off while the writer is typing an act's name; buttons never block a redraw
+  const typing = (box) => box.contains(document.activeElement) && /^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement.tagName);
+  if (!typing(list)) {
     list.innerHTML = acts.length ? acts.map((a, n) => `<li data-i="${a.i}" style="--c:${esc((a.meta && a.meta.color) || DEFAULT_ACT)}">
         <button type="button" class="dot" title="Change colour" aria-label="Change colour"></button><b>ACT ${n + 1}</b>
         <input type="text" value="${esc(a.text)}" aria-label="Act ${n + 1} name">
@@ -470,11 +472,18 @@ function renderSide() {
       : '<li class="empty-hint">No acts yet. Add the first one below; it appears on the board as ACT 1.</li>';
   }
   const form = sideEl('actNew');
-  if (!form.contains(document.activeElement)) {
+  if (!typing(form)) {
     const sel = sideEl('actBefore');
-    const curSi = S.app.currentSceneIndex(S.curPara);
-    const cur = scenes[curSi];
-    sel.innerHTML = scenes.filter((sc) => sc.t === 'scene').map((sc) => `<option value="${sc.i}" ${cur && cur.i === sc.i ? 'selected' : ''}>${esc(sc.number || '')} ${esc((sc.text || 'Untitled scene').toUpperCase().slice(0, 40))}</option>`).join('') + `<option value="${els.length}">End of script</option>`;
+    // default: the current scene, unless an act already starts there — then the next scene that doesn't
+    const sceneList = scenes.filter((sc) => sc.t === 'scene');
+    const items = view ? view.items : [];
+    const actSlots = new Set(items.filter((it) => it.kind === 'act').map((it) => it.slot));
+    const startsAct = (sc) => { const it = items.find((x) => x.sc === sc); return it && actSlots.has(it.slot); };
+    const curSc = scenes[S.app.currentSceneIndex(S.curPara)];
+    let k = Math.max(0, sceneList.indexOf(curSc));
+    while (k < sceneList.length && startsAct(sceneList[k])) k++;
+    const cur = sceneList[k];
+    sel.innerHTML = sceneList.map((sc) => `<option value="${sc.i}" ${cur && cur.i === sc.i ? 'selected' : ''}>${esc(sc.number || '')} ${esc((sc.text || 'Untitled scene').toUpperCase().slice(0, 40))}</option>`).join('') + `<option value="${els.length}" ${cur ? '' : 'selected'}>End of script</option>`;
     sideEl('actName').placeholder = `ACT ${['ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX'][acts.length] || acts.length + 1}`;
     sideEl('actColors').innerHTML = COLORS.map((k) => `<button type="button" data-c="${k.c}" style="--c:${k.c}" class="${newActColor === k.c ? 'on' : ''}" title="${esc(colorLabel(S.project, k.c))}"></button>`).join('');
   }
@@ -519,10 +528,18 @@ function wireSide() {
     if (!li) return;
     const el = actEl(li);
     if (e.target.closest('.del')) {
+      const name = textOf(el) || 'Act';
       S.editor.pushUndo();
       el.remove();
+      // gone from the side panel and the grid at once; remaining acts renumber
+      li.remove();
+      list.querySelectorAll('li[data-i] b').forEach((b, n) => { b.textContent = `ACT ${n + 1}`; });
+      if (!list.querySelector('li')) list.innerHTML = '<li class="empty-hint">No acts yet. Add the first one below; it appears on the board as ACT 1.</li>';
+      document.querySelectorAll(`#bCanvas .b-act[data-si]`).forEach((m) => { if (S.derived.scenes[+m.dataset.si] && S.derived.scenes[+m.dataset.si].i === +li.dataset.i) m.remove(); });
+      document.querySelectorAll('#bCanvas .b-act b').forEach((b, n) => { b.textContent = `ACT ${n + 1}`; });
       S.editor.changed(true);
-      S.app.toast('Act label removed. Its scenes stay where they are.');
+      S.app.refresh().then(() => renderBoard(true));
+      S.app.toast(`${name} removed. Its scenes stay where they are.`);
       return;
     }
     if (e.target.closest('.dot')) {
@@ -531,6 +548,7 @@ function wireSide() {
       const k = COLORS.findIndex((x) => x.c === cur);
       const next = COLORS[(k + 1) % COLORS.length].c;
       el._meta = { ...(el._meta || {}), color: next };
+      li.style.setProperty('--c', next);
       S.app.markDirty();
       S.app.refresh().then(() => renderBoard(true));
     }

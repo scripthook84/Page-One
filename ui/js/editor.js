@@ -427,11 +427,17 @@ export class Editor {
     const s = this.getSel();
     if (!s) return;
     const el = this.root.children[s.ep];
+    // a pending Ctrl+B/I/U lasts until the caret really moves away from where it was set
+    // (selectionchange can arrive late, after the writer already pressed the shortcut)
+    if (this.pendingStyle !== null && this.pendingAt && (this.pendingAt.el !== el || this.pendingAt.off !== s.eo || !s.collapsed)) {
+      this.pendingStyle = null;
+      this.pendingAt = null;
+      this.hooks.onStyle && this.hooks.onStyle(0);
+    }
     if (el !== this.current) {
       if (this.current) this.current.classList.remove('cur');
       this.current = el;
       el && el.classList.add('cur');
-      this.pendingStyle = null;
       this.hooks.onCaret && this.hooks.onCaret(el, s.ep);
     }
     if (this.typewriter) this.scrollToCaret();
@@ -545,6 +551,8 @@ export class Editor {
       e.preventDefault();
       this.openTyping();
       this.insertText(e.data, false, this.pendingStyle);
+      const c = this.caret();
+      if (c) this.pendingAt = { el: c.el, off: c.off };
       return;
     }
     if (t === 'insertText' && e.data && /[\s.,!?]/.test(e.data)) { this.openTyping(); }
@@ -823,6 +831,7 @@ export class Editor {
       const chars = toChars(runsOf(s.el));
       const cur = this.pendingStyle !== null ? this.pendingStyle : (chars[s.so - 1] ? chars[s.so - 1][1] : 0);
       this.pendingStyle = cur ^ bit;
+      this.pendingAt = { el: s.el, off: s.so };
       this.hooks.onStyle && this.hooks.onStyle(this.pendingStyle);
       return;
     }

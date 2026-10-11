@@ -232,7 +232,7 @@ async function refresh() {
     editor.applyLayout(lay, S.project.settings);
     attachLayout();
   } catch (e) {
-    console.error(e);
+    if (!/Failed to fetch|NetworkError|aborted/i.test(String(e && e.message))) console.error(e); // a reload mid-request isn't an error
   }
   if (S.sessionWords === null) S.sessionWords = S.derived.words;
   panels.renderAll();
@@ -320,7 +320,6 @@ function onCaret(el, i) {
   if (!el) return;
   S.curPara = i;
   updateHint(el);
-  $('#stylePending').textContent = '';
   updateStatus();
   panels.onCaretScene(currentSceneIndex(i));
 }
