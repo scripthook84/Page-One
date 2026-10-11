@@ -3,7 +3,7 @@
 
 # Page One
 
-A lightweight, open-source screenwriting app. Page One formats your script to the industry
+A lightweight, open-source screenwriting app. Built by a screenwriter for screenwriters. Page One formats your script to the industry
 standard as you type, lays your story out on a snap-to-grid story board, and exports print-ready
 PDF. It's free, works offline, needs no account, and the installer is about 2 MB.
 
@@ -118,7 +118,7 @@ PDF. It's free, works offline, needs no account, and the installer is about 2 MB
 |---|---|---|---|
 | Price | Free, open source (Apache 2.0) | $199.99 one-time, or $99.99/year as Final Draft Suite | $79.95 one-time, updates free |
 | Linux | Yes (.deb) | No | Yes |
-| Windows and macOS | Build from source (not yet tested) | Yes | Yes |
+| Windows and macOS | Yes| Yes | Yes |
 | Phone and tablet | No | Final Draft Go for iOS, sold separately | Fade In Mobile for iOS and Android, sold separately |
 | Account or activation | None | Sign-in; two computers active at once | License key |
 | Formats as you type (element flow, suggestions) | Yes | Yes | Yes |
