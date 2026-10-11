@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en" data-theme="day">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Page One</title>
+  <link rel="icon" href="icon.png">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <header class="bar">
+    <div class="brand"><img src="icon.png" alt=""><span>Page One</span></div>
+    <nav class="menus" id="menus" aria-label="Menu"></nav>
+    <div class="doc">
+      <button id="docTitle" title="Edit the title page">Untitled</button>
+      <span class="save-state" id="saveState">Not saved yet</span>
+    </div>
+    <div class="views" role="tablist" aria-label="View">
+      <button role="tab" data-view="script" aria-selected="true">Script</button>
+      <button role="tab" data-view="cards" aria-selected="false">Cards</button>
+    </div>
+    <button class="cmd" id="cmdBtn" title="Find any command">Commands <kbd>Ctrl K</kbd></button>
+  </header>
+
+  <main class="work">
+    <aside class="nav" aria-label="Navigator">
+      <div class="tabs" role="tablist">
+        <button role="tab" data-tab="scenes" aria-selected="true">Scenes</button>
+        <button role="tab" data-tab="characters" aria-selected="false">Characters</button>
+        <button role="tab" data-tab="notes" aria-selected="false">Notes</button>
+      </div>
+      <div class="pane" id="pane-scenes">
+        <div class="pane-tools"><input type="search" id="sceneFilter" placeholder="Filter scenes"><button class="btn" id="addAct" title="Start a new act before the current scene (Ctrl+Shift+1)">+ Act</button></div>
+        <ul class="scenes" id="sceneList"></ul>
+      </div>
+      <div class="pane" id="pane-characters" hidden>
+        <ul class="chars" id="charList"></ul>
+      </div>
+      <div class="pane" id="pane-notes" hidden>
+        <div class="insp">
+          <label class="field"><span>Script notes (saved with the file, never printed)</span>
+            <textarea id="projNotes" rows="8" placeholder="Themes, research, things to fix in the next pass…"></textarea></label>
+          <div><h3>Notes in the script</h3><ul class="scenes" id="noteList"></ul></div>
+        </div>
+      </div>
+    </aside>
+
+    <section class="desk" id="desk">
+      <div class="findbar" id="findbar" hidden>
+        <input type="text" id="findInput" placeholder="Find" aria-label="Find">
+        <input type="text" id="replaceInput" placeholder="Replace with" aria-label="Replace with">
+        <span class="count" id="findCount"></span>
+        <button class="btn" id="findPrev" title="Previous (Shift+Enter)">Previous</button>
+        <button class="btn" id="findNext" title="Next (Enter)">Next</button>
+        <button class="btn" id="replaceOne">Replace</button>
+        <button class="btn" id="replaceAll">Replace all</button>
+        <label class="chk"><input type="checkbox" id="findCase"> Match case</label>
+        <button class="btn ghost" id="findClose" aria-label="Close find">✕</button>
+      </div>
+      <div class="paper-wrap"><div class="paper"><div class="script" id="script"></div></div></div>
+    </section>
+    <section class="cards" id="cards" hidden></section>
+
+    <aside class="inspector" id="inspector" aria-label="Scene inspector"></aside>
+  </main>
+
+  <footer class="flow">
+    <button class="elem-chip" id="elemChip" title="Change element (Ctrl+0…9)">Scene Heading</button>
+    <span class="next" id="nextHint"></span>
+    <span class="style-pending" id="stylePending"></span>
+    <span class="spacer"></span>
+    <span class="stat" id="statScene"></span>
+    <span class="stat" id="statPage"></span>
+    <span class="stat" id="statTime"></span>
+    <span class="stat" id="statWords"></span>
+    <span class="target" id="statTarget" title="Progress toward your target length"><i></i><span></span></span>
+    <button class="rev-chip" id="revChip" hidden title="Revision mode is on"><i></i><span></span></button>
+  </footer>
+
+  <ul class="smart" id="smart" hidden></ul>
+  <div id="modalRoot"></div>
+
+  <div class="welcome" id="welcome" hidden>
+    <div class="welcome-inner">
+      <div class="sheet" aria-hidden="true">
+        <div>FADE IN:</div><br>
+        <div class="t">INT. YOUR DESK - NOW</div><br>
+        <div>A blank page waits.</div><br>
+        <div class="c">YOU</div>
+        <div class="d">Let's begin.<span class="caret"></span></div>
+      </div>
+      <div>
+        <h1>Page One</h1>
+        <p class="lede">Write screenplays in industry-standard format. Free, open source, and yours.</p>
+        <div class="actions">
+          <button class="primary" id="wNew">New screenplay <kbd>Ctrl N</kbd></button>
+          <button id="wOpen">Open or import… <kbd>Ctrl O</kbd></button>
+          <button id="wSample">Open the sample script</button>
+        </div>
+        <div class="recent" id="recent"></div>
+      </div>
+    </div>
+  </div>
+  <div class="toast" id="toast" hidden></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

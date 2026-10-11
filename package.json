@@ -1,0 +1,17 @@
+{
+  "name": "page-one",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Page One - lightweight, open-source screenwriting",
+  "license": "Apache-2.0",
+  "scripts": {
+    "tauri": "tauri",
+    "dev": "tauri dev",
+    "build": "tauri build --bundles deb",
+    "preview": "cargo run -p pageone-core --features devserver --bin pageone-devserver -- ui 8787",
+    "test": "cargo test -p pageone-core"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2"
+  }
+}

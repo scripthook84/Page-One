@@ -1,0 +1,12 @@
+[Desktop Entry]
+Categories=Office;TextEditor;
+Comment=Write screenplays in industry-standard format
+Exec={{exec}} %F
+StartupWMClass={{exec}}
+Icon={{icon}}
+Name={{name}}
+GenericName=Screenwriting
+Terminal=false
+Type=Application
+MimeType=application/x-pageone;text/x-fountain;application/x-fdx;
+Keywords=screenplay;screenwriting;script;fountain;fdx;final draft;

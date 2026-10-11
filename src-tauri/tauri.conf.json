@@ -1,0 +1,73 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Page One",
+  "mainBinaryName": "page-one",
+  "version": "1.0.0",
+  "identifier": "app.pageone.desktop",
+  "build": {
+    "frontendDist": "../ui"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "Page One",
+        "width": 1380,
+        "height": 880,
+        "minWidth": 900,
+        "minHeight": 600,
+        "dragDropEnabled": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self' ipc: http://ipc.localhost; img-src 'self' data: asset: http://asset.localhost; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src ipc: http://ipc.localhost 'self'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": [
+      "deb"
+    ],
+    "category": "Productivity",
+    "publisher": "scripthook84",
+    "copyright": "Copyright 2026 scripthook84. Apache License 2.0.",
+    "licenseFile": "../LICENSE",
+    "homepage": "https://github.com/scripthook84/Novelcraft",
+    "shortDescription": "Lightweight, open-source screenwriting",
+    "longDescription": "Page One writes screenplays in industry-standard format: automatic element flow with Enter and Tab, SmartType for characters and locations, index cards, scene navigator, dual dialogue, revisions, reports and a dialogue tuner. Saves compact .pageone files, opens and exports Fountain and Final Draft (.fdx), and exports print-ready PDF.",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/512x512.png",
+      "icons/icon.ico"
+    ],
+    "fileAssociations": [
+      {
+        "ext": [
+          "pageone"
+        ],
+        "name": "Page One screenplay",
+        "description": "Page One screenplay",
+        "mimeType": "application/x-pageone",
+        "role": "Editor"
+      }
+    ],
+    "linux": {
+      "deb": {
+        "section": "editors",
+        "priority": "optional",
+        "desktopTemplate": "linux/page-one.desktop",
+        "postInstallScript": "linux/postinst",
+        "postRemoveScript": "linux/postrm",
+        "files": {
+          "/usr/share/mime/packages/page-one.xml": "linux/page-one-mime.xml"
+        },
+        "recommends": [
+          "hunspell-en-us"
+        ]
+      }
+    }
+  }
+}

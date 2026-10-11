@@ -1,0 +1,22 @@
+[package]
+name = "pageone-core"
+version = "1.0.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "Screenplay model, .pageone file format, pagination and exporters for Page One"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rmp-serde = "1"
+flate2 = "1"
+roxmltree = "0.20"
+tiny_http = { version = "0.12", optional = true }
+
+[features]
+devserver = ["dep:tiny_http"]
+
+[[bin]]
+name = "pageone-devserver"
+path = "src/bin/devserver.rs"
+required-features = ["devserver"]

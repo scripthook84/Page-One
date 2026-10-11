@@ -1,0 +1,20 @@
+[package]
+name = "page-one"
+version = "1.0.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "Page One - a lightweight, open-source screenwriting app"
+authors = ["scripthook84"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+pageone-core = { path = "../crates/core" }
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+webkit2gtk = "2.0"

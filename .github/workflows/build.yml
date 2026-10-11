@@ -1,0 +1,32 @@
+name: Build
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  linux-deb:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: System libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config file patchelf libwebkit2gtk-4.1-dev \
+            libgtk-3-dev libssl-dev libxdo-dev libayatana-appindicator3-dev librsvg2-dev
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci || npm install
+      - run: cargo test -p pageone-core
+      - run: npx tauri build --bundles deb
+      - name: Rename package
+        run: |
+          cd target/release/bundle/deb
+          for f in *.deb; do mv "$f" "${f// /-}"; done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: page-one-deb
+          path: target/release/bundle/deb/*.deb
