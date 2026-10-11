@@ -2,7 +2,7 @@
 
 import { S, eighths, projectNow } from './state.js';
 import { esc, textOf } from './editor.js';
-import { ELEMS, cueName, sceneParts } from './elements.js';
+import { ELEMS, cueName, sceneParts, SCENE_COLORS, colorLabel } from './elements.js';
 
 const root = () => document.getElementById('modalRoot');
 
@@ -221,13 +221,20 @@ export async function sectionDialog(opts = {}) {
   const count = Array.from(els).filter((e) => e.dataset.t === 'section' && (+e.dataset.lvl || 1) === lvl).length;
   const ordinals = ['One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight'];
   const suggested = editing ? textOf(editing) : `${LEVELS[lvl]} ${lvl === 1 ? (ordinals[count] || count + 1) : count + 1}`;
-  let name = suggested, syn = meta.synopsis || '';
+  let name = suggested, syn = meta.synopsis || '', color = meta.color || '';
   const v = await modal({
     title: editing ? `Edit ${LEVELS[lvl].toLowerCase()}` : `New ${LEVELS[lvl].toLowerCase()}`,
     body: `<p class="hint" style="margin:0">${editing ? '' : 'Starts before the scene your cursor is in. '}Acts, sequences and beats organise the navigator and index cards. They never appear on the script page.</p>
       <label class="field"><span>Name</span><input type="text" id="sn" value="${esc(suggested)}"></label>
       <label class="field"><span>Level</span><select id="sl">${[1, 2, 3].map((k) => `<option value="${k}" ${k === lvl ? 'selected' : ''}>${LEVELS[k]}</option>`).join('')}</select></label>
+      <div class="field"><span>Label colour on the board</span><div class="swatches" id="scol">${SCENE_COLORS.map((x) => `<button type="button" data-c="${x}" style="--c:${x || 'transparent'}" class="${color === x ? 'on' : ''}" title="${esc(x ? colorLabel(S.project, x) : 'Default')}"></button>`).join('')}</div></div>
       <label class="field"><span>Summary (optional)</span><textarea id="ss" rows="3" placeholder="What this part of the story does.">${esc(syn)}</textarea></label>`,
+    onOpen: (b) => b.querySelector('#scol').addEventListener('click', (e) => {
+      const sw = e.target.closest('button[data-c]');
+      if (!sw) return;
+      color = sw.dataset.c;
+      for (const x of b.querySelectorAll('#scol button')) x.classList.toggle('on', x === sw);
+    }),
     buttons: [
       ...(editing ? [{ label: 'Delete', value: 'delete', danger: true }] : []),
       { label: 'Cancel', value: null },
@@ -246,7 +253,7 @@ export async function sectionDialog(opts = {}) {
   } else if (editing) {
     ed.setRuns(editing, [{ x: name }]);
     editing.dataset.lvl = lvl;
-    editing._meta = { ...meta, synopsis: syn };
+    editing._meta = { ...meta, synopsis: syn, color };
   } else {
     // insert before the scene heading that contains the cursor (or before the cursor's line)
     let i = Math.min(S.curPara, els.length - 1);
@@ -254,7 +261,7 @@ export async function sectionDialog(opts = {}) {
     while (k >= 0 && els[k].dataset.t !== 'scene') k--;
     if (k >= 0) i = k;
     while (i > 0 && els[i - 1].dataset.t === 'section' && (+els[i - 1].dataset.lvl || 1) > lvl) i--;
-    const el = ed.makeEl({ t: 'section', lvl, runs: [{ x: name }], meta: syn ? { synopsis: syn } : undefined });
+    const el = ed.makeEl({ t: 'section', lvl, runs: [{ x: name }], meta: syn || color ? { synopsis: syn, color } : undefined });
     els[i].before(el);
   }
   ed.changed(true);
@@ -441,7 +448,7 @@ export function palette(commands, query = '') {
     const q = body.querySelector('#pq').value.toLowerCase().trim();
     shown = items.filter((c) => !q || (`${c.menu || ''} ${c.label}`).toLowerCase().includes(q) || q.split(/\s+/).every((w) => (`${c.menu || ''} ${c.label}`).toLowerCase().includes(w)));
     idx = Math.min(idx, Math.max(0, shown.length - 1));
-    body.querySelector('#pl').innerHTML = shown.map((c, i) => `<li data-i="${i}" class="${i === idx ? 'on' : ''}"><span>${esc(c.label)}</span><small>${esc(c.menu || '')}</small>${c.keys ? `<kbd>${c.keys}</kbd>` : ''}</li>`).join('') || '<li><span class="hint">No matching command</span></li>';
+    body.querySelector('#pl').innerHTML = shown.map((c, i) => `<li data-i="${i}" class="${i === idx ? 'on' : ''}"><span>${esc(c.label)}</span><small>${esc(c.menu || '')}</small>${c.keys ? `<kbd>${c.keys.replace("ArrowUp", "↑").replace("ArrowDown", "↓")}</kbd>` : ''}</li>`).join('') || '<li><span class="hint">No matching command</span></li>';
     const on = body.querySelector('li.on');
     if (on) on.scrollIntoView({ block: 'nearest' });
   };
@@ -489,8 +496,10 @@ export function shortcutsDialog() {
       ['Ctrl+K', 'Command palette — every command, searchable'],
       ['Ctrl+N / O / S', 'New, open, save'],
       ['Ctrl+P', 'Export PDF'],
-      ['Ctrl+Alt+1 / 2', 'Script view / index cards'],
-      ['Ctrl+Shift+F', 'Focus mode (Esc leaves)'],
+      ['Ctrl+Alt+1 / 2', 'Script view / story board'],
+      ['Ctrl+Shift+F', 'Focus mode: full screen blank page; Fit width or 100–200 % at bottom left (Esc leaves)'],
+      ['Ctrl+Shift+L', 'Dark mode on / off'],
+      ['Alt+Shift+↑ / ↓', 'Move the current scene up / down'],
       ['Ctrl+= / Ctrl+-', 'Zoom'],
     ]],
   ];
@@ -501,7 +510,7 @@ export function shortcutsDialog() {
 function ORDER_SHORT() {
   return ['general', 'scene', 'action', 'character', 'paren', 'dialogue', 'transition', 'shot', 'centered', 'lyric']
     .map((k) => [`Ctrl+${ELEMS[k].key}`, ELEMS[k].label])
-    .concat([['Ctrl+Shift+1 / 2 / 3', 'New act, sequence or beat (navigator and cards only — never on the page)'], ['Ctrl+Shift+4', 'Note (never prints)']]);
+    .concat([['Ctrl+Shift+1', 'New act label on the story board (never on the page)'], ['Ctrl+Shift+2 / 3', 'New sequence or beat'], ['Ctrl+Shift+4', 'Note (never prints)']]);
 }
 
 export function formatGuide() {

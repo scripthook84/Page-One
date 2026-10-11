@@ -18,7 +18,7 @@ fn fdx_type(t: Elem) -> &'static str {
         Elem::Lyric => "Lyrics",
         Elem::Centered => "Action",
         Elem::Section => "Outline 1",
-        Elem::Note => "General",
+        Elem::Note => "Note",
         Elem::General | Elem::Unknown => "General",
     }
 }
@@ -46,7 +46,12 @@ fn texts(runs: &[Run]) -> String {
 }
 
 fn para_xml(p: &Para, number: Option<&str>) -> String {
-    let mut attrs = format!("Type=\"{}\"", fdx_type(p.t));
+    let ty = match (p.t, p.lvl) {
+        (Elem::Section, 2) => "Outline 2",
+        (Elem::Section, 3) => "Outline 3",
+        _ => fdx_type(p.t),
+    };
+    let mut attrs = format!("Type=\"{}\"", ty);
     if p.t == Elem::Centered {
         attrs.push_str(" Alignment=\"Center\"");
     }
@@ -68,11 +73,7 @@ fn para_xml(p: &Para, number: Option<&str>) -> String {
             }
         }
     }
-    let text = if p.t == Elem::Note {
-        vec![Run { x: format!("[[{}]]", p.text()), s: 0 }]
-    } else {
-        p.runs.clone()
-    };
+    let text = p.runs.clone();
     format!("    <Paragraph {attrs}>{inner}{}</Paragraph>\n", texts(&text))
 }
 

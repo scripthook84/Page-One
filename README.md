@@ -3,7 +3,7 @@
 # Page One
 
 Page One is a lightweight, open-source screenwriting app. It formats your script to the industry
-standard as you type, keeps your whole story in view with a scene navigator and index cards, and
+standard as you type, keeps your whole story in view with a scene navigator and a story board, and
 exports print-ready PDF. It takes the parts writers like most in Final Draft and Fade In, combines
 them, and leaves the rest out.
 
@@ -29,28 +29,43 @@ It is free, works offline, needs no account, and the installer is about 2 MB.
   (V.O.), (O.S.) and (CONT'D), scene intros, locations you've used, times of day and transitions.
   Tab inside a scene heading moves from INT. to the location to the time.
 - **Shortcuts that save keystrokes.** Type `int.` or `ext.` on an action line and it becomes a scene
-  heading. Type `(` on a dialogue line to start a parenthetical; the brackets close themselves.
+  heading, and `int apartment day` is tidied to `INT. APARTMENT - DAY` when you press Enter. Type `(`
+  on a dialogue line to start a parenthetical; the brackets close themselves.
+- **New scripts open on a blank scene heading**, ready to type.
 - **Ctrl+0…9** switch elements: General, Scene, Action, Character, Parenthetical, Dialogue,
   Transition, Shot, Centered, Lyric.
 - **Automatic (MORE) / (CONT'D)** when dialogue breaks across pages (split at a sentence), and
-  automatic (CONT'D) when a character keeps talking after action. Scene headings and character
-  cues are never left alone at the bottom of a page.
-- **Dual dialogue** (Ctrl+Alt+D), bold, italic and underline, a soft line break with Shift+Enter.
-- **Acts, sequences and beats stay off the page.** As in a real script, structure headings never
-  appear in the screenplay. Add them with **+ Act** in the navigator (or Ctrl+Shift+1/2/3) and they
-  divide the scene list and the index-card board; click one to rename it, give it a summary, or
-  delete it, and drag it to move the whole act. Notes (Ctrl+Shift+4) are collected on the Notes tab
-  and never print.
-- Focus mode, typewriter scrolling, and Day, Night and Midnight themes (Midnight pairs a dark desk
-  with a white page). Zoom is 60–200%.
+  automatic (CONT'D) when a character keeps talking after action — shown live on the page. Scene
+  headings and character cues are never left alone at the bottom of a page.
+- **Dual dialogue, live** (Ctrl+Alt+D). The two speeches sit side by side in the editor in exactly
+  the columns they print in, and you keep typing in either one.
+- Bold, italic and underline, and a soft line break with Shift+Enter.
+- **Acts stay off the page.** As in a real script, ACT ONE, ACT TWO and the like never appear in
+  the screenplay; they are made and edited on the story board and also divide the navigator's scene
+  list. Notes (Ctrl+Shift+4) are collected on the Notes tab and never print.
+- **Dark mode and focus mode, one click away** at the top right. Focus mode goes full screen on a
+  completely blank sheet (no holes, no panels, the line you're writing kept centred). A small
+  toolbar at the bottom left switches between **Fit width** and a **100–200 %** text size; Esc
+  leaves. Day, Night and Midnight themes (Midnight pairs a dark desk with a white page); zoom
+  60–200%.
 - Unlimited undo, find and replace, go to page, and spell checking from your system dictionary.
 
 ## Organizing
 
 - **Navigator.** Scene list with numbers, length in eighths of a page, colours and synopses. Filter
-  it, click to jump, and drag to reorder scenes or whole acts.
-- **Index cards.** Each scene is a ruled 3×5 card with its colour, synopsis, page and length. Drag
-  cards to restructure the script; acts and sequences divide the board.
+  it, click to jump, and drag to reorder scenes or whole acts. Alt+Shift+↑/↓ moves the current scene.
+- **Story board.** Every scene is a card on a canvas, linked by arrows in story order, with an
+  **ACT 1 / ACT 2 …** master label over each act (pick each act's colour). Arrange the cards in one
+  **line** or **stacked in columns** by act. With **auto-snap** on, cards snap into place; turn it
+  off and cards float wherever you drop them (**Tidy up** snaps them back). Wherever you drop a card
+  decides its place in the story, and the screenplay is reordered the moment you let go. Click a
+  card's text to write its synopsis, its dot to colour it, and double-click to open the scene.
+- **Act labels** (board panel, left). Create ACT 1, ACT 2 … labels with a name, a colour and the
+  scene they start before; rename, recolour or remove them in place, or drag an act label on the
+  board to move where the act begins.
+- **Colour key** (board panel, left). The nine standard colours — red, orange, yellow, green, blue,
+  indigo, violet, pink, gray, all light enough for black text. Type what each one means ("B story",
+  "Flashback"); click a colour to highlight its scenes on the board.
 - **Scene inspector.** Synopsis, colour, notes, a locked scene number (such as 12A), and an omit
   option for the scene under the cursor, plus who speaks in it.
 - **Characters.** Lines, words and scenes for every speaker, a colour and bio for each, and jump to
@@ -82,7 +97,8 @@ It is free, works offline, needs no account, and the installer is about 2 MB.
   half-written script. The previous 20 versions of each script are kept in
   `~/.local/share/app.pageone.desktop/backups`.
 - Autosave runs every minute once a script has been saved, and you are asked to save before
-  anything is lost.
+  anything is lost. Unsaved work, even in a script that was never saved, is mirrored every 20
+  seconds; after a crash, the welcome screen offers to recover it.
 - **Import:** Fountain (`.fountain`, `.spmd`, `.txt`) and Final Draft (`.fdx`). Pasting Fountain
   text formats it automatically.
 - **Export:** PDF (with the Courier Prime font embedded), Final Draft `.fdx`, Fountain and formatted
@@ -95,13 +111,50 @@ It is free, works offline, needs no account, and the installer is about 2 MB.
 |---|---|
 | Enter / Tab / Shift+Tab | Next element / cycle element / cycle back |
 | Ctrl+0…9 | General, Scene, Action, Character, Paren, Dialogue, Transition, Shot, Centered, Lyric |
-| Ctrl+Shift+1/2/3, Ctrl+Shift+4 | New act, sequence or beat (navigator only), note |
+| Ctrl+Shift+1, Ctrl+Shift+2/3, Ctrl+Shift+4 | New act label (board), sequence or beat, note |
 | Ctrl+K | Command palette — every command, searchable |
-| Ctrl+Alt+1 / Ctrl+Alt+2 | Script / index cards |
+| Ctrl+Alt+1 / Ctrl+Alt+2 | Script / story board |
+| Alt+Shift+↑ / ↓ | Move the current scene up / down |
 | Ctrl+Alt+D, Ctrl+Alt+T, Ctrl+Shift+R | Dual dialogue, dialogue tuner, reports |
 | Ctrl+F, Ctrl+H, Ctrl+G | Find, replace, go to page |
 | Ctrl+S, Ctrl+Shift+S, Ctrl+P | Save, save as, export PDF |
-| Ctrl+Shift+F | Focus mode (Esc leaves) |
+| Ctrl+Shift+F, Ctrl+Shift+L | Focus mode (full screen; Esc leaves), dark mode |
+
+---
+
+## How Page One compares
+
+| | **Page One** | **Final Draft 13** | **Fade In** |
+|---|---|---|---|
+| Price | Free, open source (Apache 2.0) | $199.99 one-time, or $99.99/year as Final Draft Suite | $79.95 one-time, updates free |
+| Linux | Yes (.deb) | No | Yes |
+| Windows and macOS | Build from source (not yet tested) | Yes | Yes |
+| Phone and tablet | No | Final Draft Go for iOS, sold separately | Fade In Mobile for iOS and Android, sold separately |
+| Account or activation | None | Sign-in; two computers active at once | License key |
+| Formats as you type (Enter/Tab flow, SmartType) | Yes | Yes | Yes |
+| Live page breaks with (MORE) / (CONT'D) | Yes | Yes | Yes |
+| Dual dialogue | Yes, side by side while you type | Yes | Yes |
+| Planning view | Story board: one line or act columns, snapping or free-floating cards, act labels, drag to reorder the script live | Beat Board, Outline Editor and index cards | Index cards |
+| Colour key with your own labels | Yes | — | — |
+| Dialogue tuner | Yes | — | Yes |
+| Revision colours | Yes | Yes | Yes |
+| Page locking and A-pages | No | Yes | Yes |
+| Real-time collaboration | No | Yes | Yes |
+| Fountain | Opens and saves | Not listed in the Final Draft 13 User Guide | Opens and saves |
+| Final Draft .fdx | Opens and saves | Native format | Opens and saves |
+| Own file format | `.pageone`: compact binary, documented | `.fdx` (XML) | `.fadein` (zipped XML) |
+
+Prices and platforms are as published by each vendor in October 2026 (the Final Draft store and
+knowledge base, and Fade In's product listing). Feature entries for Final Draft come from the
+Final Draft 13 User Guide; "—" means the feature isn't offered or wasn't found in the sources
+checked. Check each vendor's site for current details.
+
+### What Page One doesn't do yet
+
+- Real-time collaboration, track changes, and page locking with A-pages
+- PDF import, and templates for TV, multi-camera and stage formats
+- Production tagging and scheduling exports
+- Phone and tablet apps; Windows and macOS builds are possible from the same source but untested
 
 ---
 

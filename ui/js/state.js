@@ -1,7 +1,7 @@
 // Shared application state.
 
 export const PREFS_DEFAULT = {
-  theme: 'day', zoom: 1, autosave: true, typewriter: false, nav: true, insp: true, showNotes: true, recent: [],
+  theme: 'day', zoom: 1, focusZoom: 'fit', autosave: true, typewriter: false, nav: true, insp: true, showNotes: true, recent: [],
 };
 
 function loadPrefs() {
@@ -39,8 +39,9 @@ export function emptyProject() {
     settings: {
       scene_numbers: false, conts: true, mores: true, scene_space: 1, bold_scenes: false,
       page_size: 'letter', rev_level: 0, header: '', title_page: true, target_pages: 110,
+      board_mode: 'line', board_snap: true,
     },
-    notes: '', characters: [], smart: [], created: 0, modified: 0,
+    notes: '', characters: [], smart: [], color_labels: {}, created: 0, modified: 0,
   };
 }
 

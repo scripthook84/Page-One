@@ -148,6 +148,10 @@ pub fn wrap(chars: &[SChar], width: usize, hang: usize) -> Vec<Vec<SChar>> {
             let s = i;
             while i < hard.len() && hard[i].0 != ' ' {
                 i += 1;
+                // a hyphen inside a word is a break opportunity ("hand-|painted"), like the editor
+                if hard[i - 1].0 == '-' && i < hard.len() && hard[i].0.is_alphanumeric() && i - s > 1 && hard[i - 2].0 != '-' {
+                    break;
+                }
             }
             while i < hard.len() && hard[i].0 == ' ' {
                 i += 1;
@@ -846,6 +850,38 @@ mod tests {
         assert_eq!(l.pages.len(), 2);
         assert_eq!(l.pages[1].lines[0].runs[0].x, "EXT. STREET - DAY");
         assert_eq!(l.breaks, vec![26]);
+    }
+
+    #[test]
+    fn dual_never_split_across_pages() {
+        let mut paras = vec![];
+        for _ in 0..25 {
+            paras.push(Para::new(Elem::Action, "Action."));
+        }
+        let mut bob = Para::new(Elem::Character, "BOB");
+        bob.dual = true;
+        paras.push(Para::new(Elem::Character, "ANN"));
+        paras.push(Para::new(Elem::Dialogue, &"Words words words. ".repeat(6)));
+        paras.push(bob);
+        paras.push(Para::new(Elem::Dialogue, "Short."));
+        let l = layout(&proj(paras));
+        assert_eq!(l.pages.len(), 2);
+        let p2 = &l.pages[1];
+        assert_eq!(p2.lines[0].row, 0);
+        assert_eq!(p2.lines[0].runs[0].x, "ANN");
+        assert_eq!(p2.lines[1].runs[0].x, "BOB");
+        for pg in &l.pages {
+            assert!(pg.lines.iter().all(|x| (x.row as usize) < LETTER_LINES));
+        }
+    }
+
+    #[test]
+    fn hyphen_breaks() {
+        let w = wrap(&"aaaa bbbb-cccc".chars().map(|c| (c, 0)).collect::<Vec<_>>(), 10, 0);
+        let lines: Vec<String> = w.iter().map(|l| l.iter().map(|c| c.0).collect()).collect();
+        assert_eq!(lines, vec!["aaaa bbbb-", "cccc"]);
+        let w = wrap(&"x -- y".chars().map(|c| (c, 0)).collect::<Vec<_>>(), 60, 0);
+        assert_eq!(w.len(), 1);
     }
 
     #[test]

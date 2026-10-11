@@ -127,6 +127,14 @@ export const api = {
     try { if (isDesktop && T.window) T.window.getCurrentWindow().setTitle(t); } catch { /* not critical */ }
   },
 
+  async setFullscreen(on) {
+    try {
+      if (isDesktop && T.window) { await T.window.getCurrentWindow().setFullscreen(on); return; }
+      if (on && !document.fullscreenElement) await document.documentElement.requestFullscreen();
+      if (!on && document.fullscreenElement) await document.exitFullscreen();
+    } catch { /* full screen refused — focus mode still works in the window */ }
+  },
+
   onCloseRequested(cb) {
     if (isDesktop && T.event) T.event.listen('close-requested', cb);
   },

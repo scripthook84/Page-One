@@ -17,7 +17,16 @@
     </div>
     <div class="views" role="tablist" aria-label="View">
       <button role="tab" data-view="script" aria-selected="true">Script</button>
-      <button role="tab" data-view="cards" aria-selected="false">Cards</button>
+      <button role="tab" data-view="cards" aria-selected="false">Board</button>
+    </div>
+    <div class="tool-btns">
+      <button class="icon-btn" id="themeBtn" aria-pressed="false" title="Dark mode (Ctrl+Shift+L)" aria-label="Dark mode">
+        <svg viewBox="0 0 24 24" class="i-moon"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>
+        <svg viewBox="0 0 24 24" class="i-sun" hidden><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      </button>
+      <button class="icon-btn" id="focusBtn" title="Focus mode: full screen, zoomed in (Ctrl+Shift+F)" aria-label="Focus mode">
+        <svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+      </button>
     </div>
     <button class="cmd" id="cmdBtn" title="Find any command">Commands <kbd>Ctrl K</kbd></button>
   </header>
@@ -30,8 +39,26 @@
         <button role="tab" data-tab="notes" aria-selected="false">Notes</button>
       </div>
       <div class="pane" id="pane-scenes">
-        <div class="pane-tools"><input type="search" id="sceneFilter" placeholder="Filter scenes"><button class="btn" id="addAct" title="Start a new act before the current scene (Ctrl+Shift+1)">+ Act</button></div>
+        <div class="pane-tools"><input type="search" id="sceneFilter" placeholder="Filter scenes"></div>
         <ul class="scenes" id="sceneList"></ul>
+      </div>
+      <div class="pane" id="pane-board">
+        <section class="bside">
+          <h3>Act labels</h3>
+          <ul class="acts" id="actList"></ul>
+          <form class="act-new" id="actNew" autocomplete="off">
+            <label class="field"><span>New act label</span><input type="text" id="actName" placeholder="ACT TWO"></label>
+            <label class="field"><span>Starts before</span><select id="actBefore"></select></label>
+            <div class="swatches" id="actColors" aria-label="Label colour"></div>
+            <button class="btn primary" type="submit">Add act label</button>
+          </form>
+        </section>
+        <section class="bside">
+          <h3>Colour key</h3>
+          <p class="hint">Name what each colour means. Click a colour to highlight its scenes.</p>
+          <ul class="legend" id="legend"></ul>
+          <p class="filter-note" id="legendNote" hidden></p>
+        </section>
       </div>
       <div class="pane" id="pane-characters" hidden>
         <ul class="chars" id="charList"></ul>
@@ -77,14 +104,22 @@
     <button class="rev-chip" id="revChip" hidden title="Revision mode is on"><i></i><span></span></button>
   </footer>
 
+  <button class="focus-exit" id="focusExit" title="Leave focus mode">Exit focus <kbd>Esc</kbd></button>
+  <div class="focus-bar" id="focusBar" role="toolbar" aria-label="Focus mode zoom">
+    <button id="fzFit" aria-pressed="false" title="Scale the page to the width of the screen">Fit width</button>
+    <span class="sep" aria-hidden="true"></span>
+    <button id="fzOut" aria-label="Smaller text" title="Smaller text">−</button>
+    <input type="range" id="fzRange" min="100" max="200" step="10" value="140" aria-label="Text size">
+    <button id="fzIn" aria-label="Larger text" title="Larger text">+</button>
+    <output id="fzVal">140%</output>
+  </div>
   <ul class="smart" id="smart" hidden></ul>
   <div id="modalRoot"></div>
 
   <div class="welcome" id="welcome" hidden>
     <div class="welcome-inner">
       <div class="sheet" aria-hidden="true">
-        <div>FADE IN:</div><br>
-        <div class="t">INT. YOUR DESK - NOW</div><br>
+        <div class="t">INT. YOUR DESK - NIGHT</div><br>
         <div>A blank page waits.</div><br>
         <div class="c">YOU</div>
         <div class="d">Let's begin.<span class="caret"></span></div>
@@ -96,6 +131,7 @@
           <button class="primary" id="wNew">New screenplay <kbd>Ctrl N</kbd></button>
           <button id="wOpen">Open or import… <kbd>Ctrl O</kbd></button>
           <button id="wSample">Open the sample script</button>
+          <button id="wRecover" hidden></button>
         </div>
         <div class="recent" id="recent"></div>
       </div>

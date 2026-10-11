@@ -3,15 +3,27 @@
 //! Run: cargo run -p pageone-core --features devserver -- ui 8787
 
 use pageone_core::*;
-use std::io::Read;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     let root = std::path::PathBuf::from(args.get(1).cloned().unwrap_or_else(|| "ui".into()));
     let port = args.get(2).cloned().unwrap_or_else(|| "8787".into());
-    let server = tiny_http::Server::http(format!("127.0.0.1:{port}")).expect("bind");
+    let server = std::sync::Arc::new(tiny_http::Server::http(format!("127.0.0.1:{port}")).expect("bind"));
     eprintln!("Page One dev server on http://127.0.0.1:{port}");
-    for mut req in server.incoming_requests() {
+    let workers: Vec<_> = (0..6)
+        .map(|_| {
+            let server = server.clone();
+            let root = root.clone();
+            std::thread::spawn(move || serve(&server, &root))
+        })
+        .collect();
+    for w in workers {
+        let _ = w.join();
+    }
+}
+
+fn serve(server: &tiny_http::Server, root: &std::path::Path) {
+    while let Ok(mut req) = server.recv() {
         let url = req.url().to_string();
         let mut body = Vec::new();
         let _ = req.as_reader().read_to_end(&mut body);

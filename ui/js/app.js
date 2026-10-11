@@ -21,7 +21,10 @@ const editor = new Editor($('#script'), $('#smart'), {
     return S.derived.smart;
   },
   importText: (t) => api.importText(t),
-  addSection: (lvl) => dialogs.sectionDialog({ lvl }),
+  addSection: (lvl) => {
+    if (lvl === 1) { setView('cards'); setTimeout(() => { const n = document.getElementById('actName'); n && n.focus(); }, 50); }
+    else dialogs.sectionDialog({ lvl });
+  },
   learn: () => {},
 });
 S.editor = editor;
@@ -83,15 +86,31 @@ async function guardUnsaved() {
   const r = await dialogs.confirmUnsaved(S.name);
   if (r === 'cancel') return false;
   if (r === 'save') return !!(await save());
+  clearRecovery();
   return true;
+}
+
+// ------------------------------------------------------------------ crash recovery
+// Unsaved work is mirrored every 20 seconds, so a crash or power cut never loses more than that.
+
+const RECOVERY_KEY = 'pageone.recovery';
+function writeRecovery() {
+  if (!S.project || !S.dirty) return;
+  try { localStorage.setItem(RECOVERY_KEY, JSON.stringify({ t: Date.now(), name: S.name, path: S.path, project: projectNow() })); } catch { /* storage full or blocked */ }
+}
+function clearRecovery() {
+  try { localStorage.removeItem(RECOVERY_KEY); } catch { /* ignore */ }
+}
+function readRecovery() {
+  try { return JSON.parse(localStorage.getItem(RECOVERY_KEY) || 'null'); } catch { return null; }
 }
 
 async function newDoc() {
   if (!(await guardUnsaved())) return;
   const p = emptyProject();
   p.created = Math.floor(Date.now() / 1000);
-  p.paras = [{ t: 'action', runs: [{ x: 'FADE IN:' }] }, { t: 'scene', runs: [{ x: '' }] }];
-  loadProject(p, { name: 'Untitled', focus: 1 });
+  p.paras = [{ t: 'scene', runs: [{ x: '' }] }];
+  loadProject(p, { name: 'Untitled', focus: 0 });
   toast('New screenplay. Start with a scene heading: type INT. or EXT.');
 }
 
@@ -141,6 +160,7 @@ async function save(as = false) {
     S.everSaved = true;
     S.dirty = false;
     S.lastSaved = new Date();
+    clearRecovery();
     setSaveState();
     return path;
   } catch (e) {
@@ -174,6 +194,13 @@ function renderRecent() {
 
 function showWelcome() {
   renderRecent();
+  const rec = readRecovery();
+  const rb = $('#wRecover');
+  rb.hidden = !rec;
+  if (rec) {
+    const when = new Date(rec.t).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    rb.innerHTML = `Recover unsaved changes <small style="font-weight:400;color:var(--muted)">${esc(rec.name || 'Untitled')}, ${esc(when)}</small>`;
+  }
   document.title = 'Page One';
   api.setWindowTitle('Page One');
   $('#welcome').hidden = false;
@@ -363,12 +390,77 @@ export function applySettingsUI() {
 function applyPrefs() {
   const p = S.prefs;
   document.documentElement.dataset.theme = p.theme;
-  document.documentElement.style.setProperty('--zoom', p.zoom);
+  if (!document.body.classList.contains('focus')) document.documentElement.style.setProperty('--zoom', p.zoom);
   document.body.classList.toggle('no-nav', !p.nav);
   document.body.classList.toggle('no-insp', !p.insp);
   document.body.classList.toggle('hide-notes', !p.showNotes);
   editor.typewriter = !!p.typewriter;
+  if (p.theme !== 'day') p.darkTheme = p.theme;
   savePrefs();
+  if (document.getElementById('themeBtn')) syncToolButtons();
+  editor.scheduleDual();
+}
+
+function syncToolButtons() {
+  const dark = S.prefs.theme !== 'day';
+  const t = $('#themeBtn');
+  t.setAttribute('aria-pressed', String(dark));
+  t.title = dark ? 'Light mode (Ctrl+Shift+L)' : 'Dark mode (Ctrl+Shift+L)';
+  t.querySelector('.i-moon').hidden = dark;
+  t.querySelector('.i-sun').hidden = !dark;
+  $('#focusBtn').setAttribute('aria-pressed', String(document.body.classList.contains('focus')));
+}
+
+function toggleDark() {
+  setPref('theme', S.prefs.theme === 'day' ? (S.prefs.darkTheme || 'night') : 'day');
+}
+
+/** Focus mode: full screen, chrome hidden, the page zoomed to fill the screen, typewriter scrolling. */
+async function toggleFocus(on = !document.body.classList.contains('focus')) {
+  if (on && !S.project) return;
+  document.body.classList.toggle('focus', on);
+  if (on) {
+    if (S.view !== 'script') setView('script');
+    await api.setFullscreen(true);
+    editor.typewriter = true;
+    editor.root.focus();
+    setTimeout(applyFocusZoom, 60); // after the window has gone full screen
+  } else {
+    await api.setFullscreen(false);
+    applyPrefs();
+    setTimeout(() => editor.scrollToCaret(), 80);
+  }
+  editor.scheduleDual();
+  syncToolButtons();
+}
+
+// Focus-mode zoom: "fit" scales the page to the screen width; otherwise 100–200 %.
+const PAPER_PX = 816 + 48; // 8.5 in at 96 dpi plus the desk margin
+
+function focusZoomValue() {
+  const fz = S.prefs.focusZoom ?? 'fit';
+  if (fz === 'fit') return Math.max(1, Math.min(3, ($('#desk').clientWidth || window.innerWidth) / PAPER_PX));
+  return Math.max(1, Math.min(2, +fz || 1.4));
+}
+
+function applyFocusZoom() {
+  if (!document.body.classList.contains('focus')) return;
+  const fz = S.prefs.focusZoom ?? 'fit';
+  const z = focusZoomValue();
+  document.documentElement.style.setProperty('--zoom', z.toFixed(3));
+  const pct = Math.round(z * 100);
+  $('#fzFit').setAttribute('aria-pressed', String(fz === 'fit'));
+  $('#focusBar').classList.toggle('fit', fz === 'fit');
+  $('#fzRange').value = String(Math.max(100, Math.min(200, pct)));
+  $('#fzVal').textContent = `${pct}%`;
+  editor.scheduleDual();
+  setTimeout(() => editor.scrollToCaret(), 30);
+}
+
+function setFocusZoom(v) {
+  S.prefs.focusZoom = v;
+  savePrefs();
+  applyFocusZoom();
 }
 
 function setPref(k, v) {
@@ -384,6 +476,10 @@ function setSetting(k, v) {
 }
 
 function zoom(d) {
+  if (document.body.classList.contains('focus')) {
+    setFocusZoom(d === 0 ? 1 : Math.max(1, Math.min(2, Math.round((focusZoomValue() + d) * 10) / 10)));
+    return;
+  }
   const z = d === 0 ? 1 : Math.min(2, Math.max(0.6, Math.round((S.prefs.zoom + d) * 10) / 10));
   setPref('zoom', z);
   toast(`Zoom ${Math.round(z * 100)}%`);
@@ -393,6 +489,7 @@ function zoom(d) {
 
 function setView(v) {
   S.view = v;
+  document.body.classList.toggle('board-view', v === 'cards');
   for (const b of document.querySelectorAll('.views button')) b.setAttribute('aria-selected', String(b.dataset.view === v));
   $('#desk').hidden = v !== 'script';
   $('#cards').hidden = v !== 'cards';
@@ -449,6 +546,18 @@ function clearRevisions() {
   markDirty();
   scheduleRefresh(50);
   toast('Revision marks cleared.');
+}
+
+function moveScene(dir) {
+  const scenes = S.derived.scenes.filter((x) => x.t === 'scene');
+  const si = currentSceneIndex(S.curPara);
+  const cur = S.derived.scenes[si];
+  if (!cur) return;
+  const k = scenes.indexOf(cur);
+  if (dir < 0 && k > 0) panels.moveBlock(cur.i, scenes[k - 1].i);
+  else if (dir > 0 && k >= 0 && k < scenes.length - 1) panels.moveBlock(cur.i, k + 2 < scenes.length ? scenes[k + 2].i : editor.els().length);
+  else { toast(dir < 0 ? 'This is already the first scene.' : 'This is already the last scene.'); return; }
+  refresh();
 }
 
 function addElementHere(t, lvl) {
@@ -619,13 +728,14 @@ export const COMMANDS = [
   { id: 'underline', menu: 'Edit', label: 'Underline', keys: 'Ctrl+U', run: () => editor.toggleStyle(4), when: need },
   // View
   { id: 'v-script', menu: 'View', label: 'Script', keys: 'Ctrl+Alt+1', run: () => setView('script'), check: () => S.view === 'script', when: need },
-  { id: 'v-cards', menu: 'View', label: 'Index cards', keys: 'Ctrl+Alt+2', run: () => setView('cards'), check: () => S.view === 'cards', when: need },
+  { id: 'v-cards', menu: 'View', label: 'Story board', keys: 'Ctrl+Alt+2', run: () => setView('cards'), check: () => S.view === 'cards', when: need },
   { sep: true, menu: 'View' },
   { id: 'nav', menu: 'View', label: 'Navigator', keys: 'Ctrl+Alt+N', run: () => setPref('nav', !S.prefs.nav), check: () => S.prefs.nav },
   { id: 'insp', menu: 'View', label: 'Scene inspector', keys: 'Ctrl+Alt+I', run: () => setPref('insp', !S.prefs.insp), check: () => S.prefs.insp },
   { id: 'notes', menu: 'View', label: 'Show notes', run: () => setPref('showNotes', !S.prefs.showNotes), check: () => S.prefs.showNotes },
   { sep: true, menu: 'View' },
-  { id: 'focus', menu: 'View', label: 'Focus mode', keys: 'Ctrl+Shift+F', run: () => { document.body.classList.toggle('focus'); if (document.body.classList.contains('focus')) toast('Focus mode. Press Esc to leave.'); }, check: () => document.body.classList.contains('focus') },
+  { id: 'focus', menu: 'View', label: 'Focus mode (full screen)', keys: 'Ctrl+Shift+F', run: () => toggleFocus(), check: () => document.body.classList.contains('focus'), when: need },
+  { id: 'dark', menu: 'View', label: 'Dark mode', keys: 'Ctrl+Shift+L', run: () => toggleDark(), check: () => S.prefs.theme !== 'day' },
   { id: 'typewriter', menu: 'View', label: 'Typewriter scrolling', run: () => setPref('typewriter', !S.prefs.typewriter), check: () => S.prefs.typewriter },
   { sep: true, menu: 'View' },
   { id: 'zin', menu: 'View', label: 'Zoom in', keys: 'Ctrl+=', run: () => zoom(0.1) },
@@ -640,10 +750,13 @@ export const COMMANDS = [
     id: 'el-' + t, menu: 'Script', label: ELEMS[t].label, keys: 'Ctrl+' + ELEMS[t].key, run: () => { editor.root.focus(); editor.changeElement(t); }, when: need, check: () => editor.current && editor.current.dataset.t === t,
   })),
   { sep: true, menu: 'Script' },
-  { id: 'sec1', menu: 'Script', label: 'New act here…', keys: 'Ctrl+Shift+1', run: () => dialogs.sectionDialog({ lvl: 1 }), when: need },
+  { id: 'sec1', menu: 'Script', label: 'New act label (board)…', keys: 'Ctrl+Shift+1', run: () => { setView('cards'); setTimeout(() => { const n = document.getElementById('actName'); n && n.focus(); }, 50); }, when: need },
   { id: 'sec2', menu: 'Script', label: 'New sequence here…', keys: 'Ctrl+Shift+2', run: () => dialogs.sectionDialog({ lvl: 2 }), when: need },
   { id: 'sec3', menu: 'Script', label: 'New beat here…', keys: 'Ctrl+Shift+3', run: () => dialogs.sectionDialog({ lvl: 3 }), when: need },
   { id: 'note', menu: 'Script', label: 'Note', keys: 'Ctrl+Shift+4', run: () => { editor.root.focus(); editor.changeElement('note'); }, when: need },
+  { sep: true, menu: 'Script' },
+  { id: 'sceneup', menu: 'Script', label: 'Move scene up', keys: 'Alt+Shift+ArrowUp', run: () => moveScene(-1), when: need },
+  { id: 'scenedown', menu: 'Script', label: 'Move scene down', keys: 'Alt+Shift+ArrowDown', run: () => moveScene(1), when: need },
   { sep: true, menu: 'Script' },
   { id: 'dual', menu: 'Script', label: 'Dual dialogue', keys: 'Ctrl+Alt+D', run: toggleDual, when: need },
   { id: 'rename', menu: 'Script', label: 'Rename character…', run: () => dialogs.renameDialog(), when: need },
@@ -681,7 +794,7 @@ function buildMenus() {
     const ul = document.createElement('ul');
     ul.className = 'menu-pop';
     ul.innerHTML = list.map((c) => c.sep ? '<li class="sep"></li>' :
-      `<li data-id="${c.id}" class="${c.check ? 'check' : ''} ${c.check && c.check() ? 'checked' : ''} ${c.when && !c.when() ? 'disabled' : ''}">${c.color ? `<i style="width:10px;height:10px;border-radius:2px;background:${c.color};box-shadow:0 0 0 1px var(--line)"></i>` : ''}<span>${esc(c.label)}</span>${c.keys ? `<kbd>${c.keys}</kbd>` : ''}</li>`).join('');
+      `<li data-id="${c.id}" class="${c.check ? 'check' : ''} ${c.check && c.check() ? 'checked' : ''} ${c.when && !c.when() ? 'disabled' : ''}">${c.color ? `<i style="width:10px;height:10px;border-radius:2px;background:${c.color};box-shadow:0 0 0 1px var(--line)"></i>` : ''}<span>${esc(c.label)}</span>${c.keys ? `<kbd>${c.keys.replace("ArrowUp", "↑").replace("ArrowDown", "↓")}</kbd>` : ''}</li>`).join('');
     wrap.appendChild(ul);
   };
   nav.addEventListener('mousedown', (e) => {
@@ -726,14 +839,19 @@ document.addEventListener('keydown', (e) => {
   if (e.defaultPrevented) return;
   if (e.key === 'Escape') {
     if (!$('#findbar').hidden && $('#findbar').contains(document.activeElement)) { closeFind(); return; }
-    if (document.body.classList.contains('focus') && !document.querySelector('.scrim')) { document.body.classList.remove('focus'); return; }
+    if (document.body.classList.contains('focus') && !document.querySelector('.scrim') && !S.editor.smart) { toggleFocus(false); return; }
   }
   if (document.querySelector('.scrim')) return; // dialogs handle their own keys
   const inEditor = editor.root.contains(e.target);
+  const t = e.target;
+  const inOtherText = !inEditor && t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable);
   for (const c of COMMANDS) {
     if (c.sep || !matchKeys(e, c.keys)) continue;
-    // element shortcuts are handled by the editor itself
-    if (c.id.startsWith('el-') || /^sec\d|^note$|^bold|^italic|^underline|^undo|^redo|^selscene/.test(c.id)) { if (!inEditor && S.project) { e.preventDefault(); c.run(); } return; }
+    // script-editing shortcuts belong to the editor; in other text boxes the box's own Ctrl+Z, Ctrl+B… apply
+    if (c.id.startsWith('el-') || /^sec[23]|^note$|^bold|^italic|^underline|^undo|^redo|^selscene/.test(c.id)) {
+      if (!inEditor && !inOtherText && S.project && S.view === 'script') { e.preventDefault(); c.run(); }
+      return;
+    }
     if (c.when && !c.when()) return;
     e.preventDefault();
     c.run();
@@ -746,11 +864,31 @@ document.addEventListener('keydown', (e) => {
 function wire() {
   for (const b of document.querySelectorAll('.views button')) b.addEventListener('click', () => setView(b.dataset.view));
   $('#cmdBtn').addEventListener('click', () => dialogs.palette(COMMANDS));
-  $('#addAct').addEventListener('click', () => S.project && dialogs.sectionDialog({ lvl: 1 }));
+  $('#themeBtn').addEventListener('click', toggleDark);
+  $('#focusBtn').addEventListener('click', () => toggleFocus());
+  $('#focusExit').addEventListener('click', () => toggleFocus(false));
+  $('#fzFit').addEventListener('click', () => setFocusZoom('fit'));
+  $('#fzRange').addEventListener('input', (e) => setFocusZoom(+e.target.value / 100));
+  $('#fzOut').addEventListener('click', () => setFocusZoom(Math.max(1, Math.round((focusZoomValue() - 0.1) * 10) / 10)));
+  $('#fzIn').addEventListener('click', () => setFocusZoom(Math.min(2, Math.round((focusZoomValue() + 0.1) * 10) / 10)));
+  // keep the caret in the page, not on the toolbar
+  $('#focusBar').addEventListener('mouseup', () => setTimeout(() => editor.root.focus(), 0));
+  window.addEventListener('resize', () => { if ((S.prefs.focusZoom ?? 'fit') === 'fit') applyFocusZoom(); });
+  document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && document.body.classList.contains('focus') && !isDesktop) toggleFocus(false); });
+  window.addEventListener('resize', () => editor.scheduleDual());
+
   $('#docTitle').addEventListener('click', () => S.project && dialogs.titlePageDialog());
   $('#wNew').addEventListener('click', newDoc);
   $('#wOpen').addEventListener('click', openDoc);
   $('#wSample').addEventListener('click', openSample);
+  $('#wRecover').addEventListener('click', () => {
+    const rec = readRecovery();
+    if (!rec) return;
+    loadProject(rec.project, { path: rec.path, name: rec.name || 'Untitled', imported: true });
+    toast('Recovered. Save to keep these changes.');
+  });
+  setInterval(writeRecovery, 20000);
+  window.addEventListener('pagehide', writeRecovery);
   $('#recent').addEventListener('click', (e) => { const b = e.target.closest('button[data-path]'); if (b) openPath(b.dataset.path); });
   $('#elemChip').addEventListener('mousedown', (e) => {
     e.preventDefault();

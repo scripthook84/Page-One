@@ -130,6 +130,7 @@ export class Editor {
     for (const p of paras && paras.length ? paras : [{ t: 'scene', runs: [{ x: '' }] }]) frag.appendChild(this.makeEl(p));
     this.root.textContent = '';
     this.root.appendChild(frag);
+    this.scheduleDual();
     this.undoStack = [];
     this.redoStack = [];
     this.current = null;
@@ -230,6 +231,16 @@ export class Editor {
 
   setSel(sp, so, ep = sp, eo = so, scroll = true) {
     const els = this.root.children;
+    // the caret never rests on a hidden act/sequence line: use the nearest visible one
+    const visible = (i, o) => {
+      if (!els[i] || els[i].dataset.t !== 'section') return [i, o];
+      for (let j = i + 1; j < els.length; j++) if (els[j].dataset.t !== 'section') return [j, 0];
+      for (let j = i - 1; j >= 0; j--) if (els[j].dataset.t !== 'section') return [j, textOf(els[j]).length];
+      return [i, o];
+    };
+    [sp, so] = visible(sp, so);
+    [ep, eo] = visible(ep, eo);
+    if (ep < sp || (ep === sp && eo < so)) { ep = sp; eo = so; }
     const a = els[sp], b = els[ep];
     if (!a || !b) return;
     const A = this.posAt(a, so), B = this.posAt(b, eo);
@@ -322,7 +333,54 @@ export class Editor {
   changed(structural = false, el = null) {
     if (el && this.revLevel > 0) el.dataset.rev = this.revLevel;
     if (el) this.decorate(el);
+    this.scheduleDual();
     this.hooks.onChange(structural);
+  }
+
+  // ---------------------------------------------------------------- dual dialogue, live
+  // Both speeches stay ordinary paragraphs (so typing, undo and the caret behave normally);
+  // they are narrowed to the two print columns and the second speech is lifted beside the first.
+
+  scheduleDual() {
+    if (this.dualFrame) return;
+    if (!this.root.querySelector('[data-dual="1"], .dl, .dr')) return;
+    this.dualFrame = requestAnimationFrame(() => { this.dualFrame = null; this.layoutDual(); });
+  }
+
+  layoutDual() {
+    for (const el of this.root.querySelectorAll('.dl, .dr')) {
+      el.classList.remove('dl', 'dr');
+      el.style.removeProperty('margin-top');
+      el.style.removeProperty('padding-bottom');
+    }
+    const els = this.root.children;
+    const speech = (el) => el && (el.dataset.t === 'dialogue' || el.dataset.t === 'paren' || el.dataset.t === 'lyric');
+    const pairs = [];
+    for (let i = 0; i < els.length; i++) {
+      const el = els[i];
+      if (el.dataset.t !== 'character' || el.dataset.dual !== '1') continue;
+      let j = i - 1;
+      while (j >= 0 && speech(els[j])) j--;
+      if (j < 0 || j === i - 1 || els[j].dataset.t !== 'character') continue;
+      let k = i + 1;
+      while (k < els.length && speech(els[k])) k++;
+      const L = [], R = [];
+      for (let n = j; n < i; n++) L.push(els[n]);
+      for (let n = i; n < k; n++) R.push(els[n]);
+      pairs.push([L, R]);
+    }
+    for (const [L, R] of pairs) { L.forEach((e) => e.classList.add('dl')); R.forEach((e) => e.classList.add('dr')); }
+    for (const [L, R] of pairs) {
+      const top = L[0].offsetTop;
+      const last = L[L.length - 1];
+      const lb = last.offsetTop + last.offsetHeight;
+      const r0 = R[0];
+      const cur = parseFloat(getComputedStyle(r0).marginTop) || 0;
+      r0.style.setProperty('margin-top', `${cur - (r0.offsetTop - top)}px`, 'important');
+      const rl = R[R.length - 1];
+      const rb = rl.offsetTop + rl.offsetHeight;
+      if (lb > rb) rl.style.setProperty('padding-bottom', `${lb - rb}px`);
+    }
   }
 
   setRuns(el, runs) {
@@ -568,6 +626,10 @@ export class Editor {
     const s = this.getSel();
     if (!s || s.collapsed) return;
     const els = this.root.children;
+    // never let an edit land inside a hidden act/sequence line (e.g. after Select All)
+    while (s.sp < s.ep && els[s.sp].dataset.t === 'section') { s.sp++; s.so = 0; }
+    while (s.ep > s.sp && els[s.ep].dataset.t === 'section') { s.ep--; s.eo = textOf(els[s.ep]).length; }
+    if (els[s.sp].dataset.t === 'section') return;
     const a = els[s.sp], b = els[s.ep];
     const left = sliceRuns(runsOf(a), 0, s.so);
     const right = sliceRuns(runsOf(b), s.eo);
@@ -673,7 +735,14 @@ export class Editor {
       c = { ...c, off: c.off + 1 };
       txt = textOf(el);
     }
-    if (t === 'scene') this.hooks.learn && this.hooks.learn('scene', txt);
+    if (t === 'scene' && c.off >= txt.length) {
+      const tidy = tidyHeading(txt);
+      if (tidy !== txt) {
+        this.setRuns(el, [{ x: tidy }]);
+        txt = tidy;
+        c = { ...c, off: tidy.length };
+      }
+    }
     const runs = runsOf(el);
     let off = c.off;
     let atEnd = off >= txt.length;
@@ -795,6 +864,7 @@ export class Editor {
     const els = this.root.children;
     const list = [];
     for (let i = s.sp; i <= s.ep; i++) {
+      if (els[i].dataset.t === 'section') continue; // acts stay put; copying never duplicates them
       const p = this.paraData(els[i]);
       const a = i === s.sp ? s.so : 0, b = i === s.ep ? s.eo : Infinity;
       p.runs = cleanRuns(sliceRuns(p.runs, a, b));
@@ -802,6 +872,7 @@ export class Editor {
       list.push(p);
     }
     e.preventDefault();
+    if (!list.length) return;
     const plain = list.map((p) => {
       const t = runsText(p.runs);
       return ELEMS[p.t] && ELEMS[p.t].upper ? t.toUpperCase() : t;
@@ -1015,6 +1086,16 @@ export class Editor {
       const el = els[s.para];
       if (el) el.dataset.sn = settings.scene_numbers ? s.number : '';
     }
+    // show the automatic (CONT'D) the printed page will carry
+    const contd = new Set();
+    for (const pg of lay.pages) for (const l of pg.lines) {
+      if (l.para < 0) continue;
+      const el = els[l.para];
+      if (el && el.dataset.t === 'character' && l.runs.some((r) => r.x.includes("(CONT'D)")) && !/CONT'D/i.test(textOf(el))) contd.add(el);
+    }
+    for (const el of this.root.querySelectorAll('[data-contd]')) if (!contd.has(el)) delete el.dataset.contd;
+    for (const el of contd) el.dataset.contd = '1';
+    this.scheduleDual();
   }
 
   focusPara(i, off = 0) {
@@ -1028,6 +1109,20 @@ export class Editor {
     const r = el.getBoundingClientRect(), dr = desk.getBoundingClientRect();
     desk.scrollTop += r.top - dr.top - dr.height * 0.25;
   }
+}
+
+/** "int apartment day" → "int. apartment - day": add the intro's period and the dash before a time of day. */
+export function tidyHeading(txt) {
+  let t = txt.replace(/\s+$/, '');
+  const m = t.match(/^(int\.?\/ext|ext\.?\/int|int|ext|est|i\/e)(\.?)(\s+)(.*)$/i);
+  if (!m) return txt;
+  let rest = m[4];
+  if (!rest.includes(' - ')) {
+    const up = rest.toUpperCase();
+    const time = TIMES.slice().sort((a, b) => b.length - a.length).find((x) => up.endsWith(' ' + x) && up.length > x.length + 1);
+    if (time) rest = rest.slice(0, rest.length - time.length).replace(/[\s-]+$/, '') + ' - ' + rest.slice(rest.length - time.length);
+  }
+  return `${m[1]}.${' '}${rest}`.replace(/\.\. /, '. ');
 }
 
 export function esc(s) {

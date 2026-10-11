@@ -22,7 +22,27 @@ export const TIMES = ['DAY', 'NIGHT', 'MORNING', 'AFTERNOON', 'EVENING', 'DAWN',
 export const EXTENSIONS = ["V.O.", "O.S.", "O.C.", "CONT'D", "PRE-LAP", "FILTERED", "ON PHONE", "INTO PHONE", "SUBTITLED"];
 export const TRANSITIONS = ['CUT TO:', 'DISSOLVE TO:', 'SMASH CUT TO:', 'MATCH CUT TO:', 'JUMP CUT TO:', 'FADE OUT.', 'FADE TO BLACK.', 'FADE IN:', 'INTERCUT WITH:', 'BACK TO:', 'TIME CUT:', 'CUT TO BLACK.'];
 
-export const SCENE_COLORS = ['', '#e5534b', '#f0883e', '#e3b341', '#57ab5a', '#39c5cf', '#539bf5', '#986ee2', '#e275ad'];
+/** Standard scene colours: the rainbow, light enough to read black text on. */
+export const COLORS = [
+  { c: '#f7b2b2', name: 'Red' },
+  { c: '#fbcb97', name: 'Orange' },
+  { c: '#f9e48f', name: 'Yellow' },
+  { c: '#b9e3a5', name: 'Green' },
+  { c: '#a8d0f4', name: 'Blue' },
+  { c: '#bdb8f2', name: 'Indigo' },
+  { c: '#dcb5ef', name: 'Violet' },
+  { c: '#f5b8d5', name: 'Pink' },
+  { c: '#d5d9df', name: 'Gray' },
+];
+export const SCENE_COLORS = ['', ...COLORS.map((x) => x.c)];
+
+/** The writer's label for a colour, or the colour's name. */
+export function colorLabel(project, c) {
+  const l = project && project.color_labels && project.color_labels[c];
+  if (l && l.trim()) return l.trim();
+  const k = COLORS.find((x) => x.c === c);
+  return k ? k.name : 'No colour';
+}
 
 export const REVISIONS = [
   ['None', '#ffffff'], ['Blue', '#7fb2ff'], ['Pink', '#ff9ecb'], ['Yellow', '#ffe066'], ['Green', '#8fdb8f'],

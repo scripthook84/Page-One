@@ -86,6 +86,9 @@ pub struct SceneMeta {
     pub num: String,
     #[serde(skip_serializing_if = "is_false")]
     pub omitted: bool,
+    /// Free position on the story board when auto-snap is off.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pos: Option<[f32; 2]>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq)]
@@ -144,6 +147,10 @@ pub struct Settings {
     pub header: String,
     pub title_page: bool,
     pub target_pages: u32,
+    /// Story board arrangement: "line" or "columns".
+    pub board_mode: String,
+    /// Story board cards snap into place (false = free-floating).
+    pub board_snap: bool,
 }
 
 impl Default for Settings {
@@ -159,6 +166,8 @@ impl Default for Settings {
             header: String::new(),
             title_page: true,
             target_pages: 110,
+            board_mode: "line".into(),
+            board_snap: true,
         }
     }
 }
@@ -182,6 +191,8 @@ pub struct Project {
     pub characters: Vec<CharacterCard>,
     /// Writer-added SmartType entries (locations, extensions, transitions …).
     pub smart: Vec<String>,
+    /// Writer's names for the scene colours, e.g. "#b9e4a8" → "B story".
+    pub color_labels: std::collections::BTreeMap<String, String>,
     pub created: u64,
     pub modified: u64,
 }
@@ -196,6 +207,7 @@ impl Default for Project {
             notes: String::new(),
             characters: vec![],
             smart: vec![],
+            color_labels: Default::default(),
             created: 0,
             modified: 0,
         }

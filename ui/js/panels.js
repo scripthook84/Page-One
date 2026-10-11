@@ -2,8 +2,9 @@
 
 import { S, eighths, projectNow } from './state.js';
 import { esc, textOf } from './editor.js';
-import { SCENE_COLORS, ELEMS } from './elements.js';
+import { SCENE_COLORS, ELEMS, COLORS, colorLabel } from './elements.js';
 import * as dialogs from './dialogs.js';
+import { renderBoard } from './board.js';
 
 const $ = (s) => document.querySelector(s);
 let curScene = -1;
@@ -22,6 +23,9 @@ for (const b of document.querySelectorAll('.nav .tabs button')) {
 
 export function renderAll() {
   if (!S.project) return;
+  // paragraph indices shift when scenes move or acts are added: re-anchor to the caret's element
+  if (S.editor.current && S.editor.current.parentNode) S.curPara = S.editor.indexOf(S.editor.current);
+  curScene = S.app.currentSceneIndex(S.curPara);
   renderScenes();
   if (navTab === 'characters') renderCharacters();
   if (navTab === 'notes') renderNotes();
@@ -100,13 +104,14 @@ function blockRange(paras, a) {
 export function moveBlock(from, before) {
   const paras = S.editor.paras();
   const [a, b] = blockRange(paras, from);
-  if (before >= a && before <= b) return;
+  if (before >= a && before <= b) return false;
   const block = paras.slice(a, b);
   const rest = paras.slice(0, a).concat(paras.slice(b));
   const at = before > a ? before - (b - a) : before;
   rest.splice(at, 0, ...block);
   S.editor.replaceAll(rest, [at, 0, at, 0]);
-  S.app.toast('Moved. Ctrl+Z puts it back.');
+  S.app.toast('Scene moved in the script. Ctrl+Z puts it back.');
+  return true;
 }
 
 function wireDrag(container, selector) {
@@ -250,7 +255,7 @@ export function renderInspector(force = false) {
     <div class="heading" style="${m.color ? `border-left:4px solid ${esc(m.color)}` : ''}">${esc(sc.text || (isScene ? 'Untitled scene' : 'Untitled section'))}</div>
     ${isScene ? `<dl class="facts">${factsHtml(sc)}</dl>` : ''}
     <label class="field"><span>Synopsis (shows on the index card)</span><textarea rows="4" data-k="synopsis" placeholder="What happens, in a sentence or two.">${esc(m.synopsis || '')}</textarea></label>
-    <div class="field"><span>Colour</span><div class="swatches">${SCENE_COLORS.map((x) => `<button data-c="${x}" style="--c:${x || 'transparent'}" class="${(m.color || '') === x ? 'on' : ''}" title="${x ? 'Colour' : 'No colour'}"></button>`).join('')}</div></div>
+    <div class="field"><span>Colour${m.color ? `: ${esc(colorLabel(S.project, m.color))}` : ''}</span><div class="swatches">${SCENE_COLORS.map((x) => `<button data-c="${x}" style="--c:${x || 'transparent'}" class="${(m.color || '') === x ? 'on' : ''}" title="${esc(x ? colorLabel(S.project, x) : 'No colour')}"></button>`).join('')}</div></div>
     <label class="field"><span>Notes</span><textarea rows="5" data-k="notes" placeholder="Research, ideas, what to fix…">${esc(m.notes || '')}</textarea></label>
     ${isScene ? `<label class="field"><span>Scene number</span><input type="text" data-k="num" value="${esc(m.num || '')}" placeholder="Automatic (${esc(sc.number || '')})"></label>
       <label class="chk"><input type="checkbox" data-k="omitted" ${m.omitted ? 'checked' : ''}> Omitted (prints as OMITTED, keeps its number)</label>` : ''}
@@ -295,82 +300,8 @@ $('#inspector').addEventListener('click', (e) => {
   renderScenes();
 });
 
-// ------------------------------------------------------------------ index cards
+// ------------------------------------------------------------------ story board
 
-let showSections = true;
-
-export function renderCards() {
-  const box = $('#cards');
-  if (!S.project) return;
-  if (box.contains(document.activeElement) && document.activeElement.classList.contains('syn')) return;
-  const scenes = S.derived.scenes;
-  const els = S.editor.els();
-  box.innerHTML = `<div class="cards-tools">
-      <span>${scenes.filter((s) => s.t === 'scene').length} scenes. Drag a card to move its scene; click the text to write a synopsis.</span>
-      <span style="flex:1"></span>
-      <label class="chk"><input type="checkbox" id="cardSecs" ${showSections ? 'checked' : ''}> Show acts and sequences</label>
-    </div>
-    <div class="cards-grid" id="cardGrid">${scenes.map((sc, si) => {
-      if (sc.t === 'section') {
-        if (!showSections) return '';
-        return `<div class="card-sec" data-si="${si}" data-lvl="${sc.lvl}" draggable="true">${esc(sc.text || 'Untitled section')}<small>p. ${sc.page || ''}</small></div>`;
-      }
-      const m = sc.meta || {};
-      const first = sc.first || '';
-      return `<article class="card ${m.omitted ? 'omit' : ''}" data-si="${si}" draggable="true" style="${m.color ? `--c:${esc(m.color)}` : ''}">
-        <header><span class="n">${esc(sc.number || '')}</span><span class="h">${esc(sc.text || 'Untitled scene')}</span></header>
-        <div class="syn" spellcheck="true" data-ph="${esc(first.slice(0, 140) || 'Write a synopsis…')}">${esc(m.synopsis || '')}</div>
-        <footer><span>p. ${sc.page || ''}</span><span>${sc.eighths ? eighths(sc.eighths) + ' pg' : ''}</span></footer>
-      </article>`;
-    }).join('')}</div>`;
-  void els;
-  box.querySelector('#cardSecs').addEventListener('change', (e) => { showSections = e.target.checked; renderCards(); });
-}
-
-wireDrag($('#cards'), '[data-si]');
-$('#cards').addEventListener('input', (e) => {
-  const syn = e.target.closest('.syn');
-  if (!syn) return;
-  const si = +syn.closest('[data-si]').dataset.si;
-  const sc = S.derived.scenes[si];
-  const el = S.editor.els()[sc.i];
-  el._meta = { ...(el._meta || {}), synopsis: syn.innerText.trim() };
-  sc.meta = el._meta;
-  S.app.markDirty();
-  S.app.scheduleRefresh(800);
-});
-$('#cards').addEventListener('click', (e) => {
-  const sec = e.target.closest('.card-sec');
-  if (sec) dialogs.sectionDialog({ para: S.derived.scenes[+sec.dataset.si].i });
-});
-$('#cards').addEventListener('dblclick', (e) => {
-  const card = e.target.closest('.card header');
-  if (!card) return;
-  const sc = S.derived.scenes[+card.closest('[data-si]').dataset.si];
-  S.app.setView('script');
-  S.editor.focusPara(sc.i);
-});
-$('#cards').addEventListener('click', (e) => {
-  const syn = e.target.closest('.syn');
-  if (!syn || syn.isContentEditable) return;
-  syn.contentEditable = 'true';
-  syn.closest('[draggable]').draggable = false;
-  syn.focus();
-  const r = document.createRange();
-  r.selectNodeContents(syn);
-  r.collapse(false);
-  const s = window.getSelection();
-  s.removeAllRanges();
-  s.addRange(r);
-});
-$('#cards').addEventListener('focusout', (e) => {
-  const syn = e.target.closest && e.target.closest('.syn');
-  if (!syn) return;
-  syn.removeAttribute('contenteditable');
-  syn.closest('[data-si]').draggable = true;
-});
-$('#cards').addEventListener('keydown', (e) => {
-  if (e.target.closest('.syn') && e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); e.target.blur(); }
-});
+export function renderCards() { renderBoard(); }
 
 export { projectNow, ELEMS };
