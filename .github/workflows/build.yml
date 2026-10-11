@@ -2,8 +2,13 @@ name: Build
 
 on:
   push:
+    branches: [main]
     tags: ["v*"]
+    paths-ignore: ["**.md", "docs/**"]
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   linux-deb:
@@ -91,3 +96,26 @@ jobs:
         with:
           name: page-one-dmg
           path: target/universal-apple-darwin/release/bundle/dmg/*.dmg
+
+  # Publish both installers on the v1.0.0 release page (marked pre-release until tested on every
+  # platform). Each new build replaces the files there.
+  release:
+    needs: [linux-deb, macos-dmg]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - run: ls -la dist
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.0
+          target_commitish: ${{ github.sha }}
+          name: Page One 1.0.0
+          body_path: RELEASE_NOTES.md
+          prerelease: true
+          files: |
+            dist/*.deb
+            dist/*.dmg
