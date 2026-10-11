@@ -1,4 +1,5 @@
-<img width="112" height="112" alt="Page One" src="ui/icon.png" />
+<img width="250" height="250" alt="Page One" src="https://github.com/user-attachments/assets/390777f1-1224-4a7b-99df-b0c0c13637b6" />
+
 
 # Page One
 
