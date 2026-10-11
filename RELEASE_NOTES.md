@@ -41,14 +41,17 @@ Installer size is about 2 MB. Page One needs WebKitGTK 4.1, which apt installs i
 
 ### Story board
 
-- One snap grid: cards align by row and by column; choose rows or columns as the reading order and
-  how many cards per line
-- Magic snap: drop on an empty cell to land there, or on a card to slide in before it while later
-  cards nudge along; empty cells stay until Tidy up
-- The screenplay reorders as soon as a card is dropped, as a single undo step
-- Act labels are created and edited on the board (name, colour, starting scene) and never move
-  cards; each card shows its act colour
-- Colour key with nine standard colours light enough for black text, writer-named and filterable
+- One snap grid: cards align by row and by column; inside each act the story reads in rows or in
+  columns, with a set number of cards per line
+- Magic snap: drop on an empty cell to land there, or on a card to slide in before it while that
+  act's later cards nudge along; empty cells stay until Tidy up
+- Act lanes: act labels sit above the grid, start one card wide (the first covers the scenes already there), and stretch across columns by their
+  right edge or move by dragging, snapping column by column; every card takes the colour of the act
+  label above it, and each act's columns are tinted
+- Adding, removing, moving or stretching an act never moves a card
+- The screenplay reorders as soon as anything is dropped, as a single undo step
+- Colour key with nine standard colours light enough for black text, writer-named and filterable;
+  a card's own colour shows as a band along its top
 - Synopses, colours and scene opening straight from the cards
 
 ### Organizing and production
@@ -79,6 +82,7 @@ Installer size is about 2 MB. Page One needs WebKitGTK 4.1, which apt installs i
 - The cursor could rest on a hidden act line after whole-script edits
 - Notes exported to `.fdx` would have printed; sequences and beats exported at act level
 - Adding or deleting an act moved cards on the board
+- A card could sit under one act's label while belonging to another act
 - A deleted act label stayed in the side panel until the next redraw
 - The board position of the first card was lost on save
 - Ctrl+B pressed right after Enter could be cancelled by a late cursor update

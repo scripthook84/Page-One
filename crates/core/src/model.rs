@@ -89,9 +89,15 @@ pub struct SceneMeta {
     /// Legacy free position on the story board (read for old files, no longer written).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub pos: Option<[f32; 2]>,
-    /// Cell on the story board grid, counted in reading order (0 = first cell).
+    /// Legacy board position (cell number in reading order); read for old files only.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub slot: Option<u32>,
+    /// Story board cell of a scene card: [column, row].
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cell: Option<[u32; 2]>,
+    /// Columns an act label spans on the story board: [first column, width].
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub band: Option<[u32; 2]>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq)]

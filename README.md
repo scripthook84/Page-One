@@ -57,19 +57,23 @@ PDF. It's free, works offline, needs no account, and the installer is about 2 MB
 
 ## The story board
 
-![The story board: scene cards on a snap grid with ACT 1 and ACT 2 labels and a colour key on the left](docs/screenshots/board.png)
+![The story board: scene cards on a snap grid under coloured ACT 1 and ACT 2 lanes, with act labels and a colour key on the left](docs/screenshots/board.png)
 
 - **One grid.** Every scene is a card that snaps to a cell, by row and by column, linked to the next
-  scene by an arrow. The story reads in **rows** (left to right, then down) or **columns** (top to
-  bottom, then right); set how many cards fit per row or column.
+  scene by an arrow. Inside each act the story reads in **rows** (left to right, then down) or
+  **columns** (top to bottom, then right); set how many cards fit per row or column.
 - **Magic snap.** Drop a card on an empty cell and it lands there. Drop it on a card and it slides
-  in before it, nudging the cards after it along to the next free cell. Empty cells stay until
-  **Tidy up**. The grid's reading order is the story order, so the screenplay reorders as soon as you
-  let go; Ctrl+Z puts it back.
-- **Act labels.** Create ACT 1, ACT 2 … in the panel on the left with a name, a colour and the scene
-  they start before. Rename, recolour or remove them in place, or drag one to another cell. Acts are
-  markers above the grid: adding, removing or moving one never moves a card. Each card shows its
-  act's colour along its top edge.
+  in before it, nudging that act's following cards along. Empty cells stay until **Tidy up**. The
+  screenplay reorders as soon as you let go; Ctrl+Z puts it back.
+- **Act lanes.** Act labels sit in a header row above the grid; a new label is one card wide. Drag a
+  label's right edge to stretch it across more columns, or drag the label to move where the act
+  begins; it snaps column by column. Acts sit side by side, so every card is under exactly one act
+  label, belongs to that act, and takes its colour, and each act's columns are tinted as a lane. A
+  card's own scene colour shows as a band along its top.
+- **Acts never move cards.** Create ACT 1, ACT 2 … in the panel on the left with a name and a
+  colour; the first act covers the scenes already on the board and later ones start in the first free
+  column on the right. Rename, recolour or remove them in place. Adding, removing, moving or
+  stretching an act changes which act a card belongs to, never where the card is.
 - **Colour key.** Nine standard colours (red, orange, yellow, green, blue, indigo, violet, pink,
   gray), all light enough for black text. Name what each one means ("B story", "Flashback") and click
   a colour to highlight its scenes.
@@ -125,7 +129,7 @@ PDF. It's free, works offline, needs no account, and the installer is about 2 MB
 | Formats as you type (element flow, suggestions) | Yes | Yes | Yes |
 | Live page breaks with (MORE) / (CONT'D) | Yes | Yes | Yes |
 | Dual dialogue | Yes, side by side while you type | Yes | Yes |
-| Planning view | Snap-grid story board (rows or columns), act labels that never move cards, drag to reorder the script live | Beat Board, Outline Editor and index cards | Index cards |
+| Planning view | Snap-grid story board with colour-coded act lanes you stretch across columns; drag cards to reorder the script live | Beat Board, Outline Editor and index cards | Index cards |
 | Colour key with your own labels | Yes | — | — |
 | Dialogue tuner | Yes | — | Yes |
 | Revision colours | Yes | Yes | Yes |

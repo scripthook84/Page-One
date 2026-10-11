@@ -38,8 +38,10 @@ Para {
   dual: bool      // on a character: printed beside the previous speech (omitted when false)
   rev: 0..8       // revision colour that last changed this paragraph (omitted when 0)
   lvl: 1..3       // section depth: act, sequence, beat (omitted when 0)
-  meta: { color, synopsis, notes, num, omitted, slot }   // scene headings and sections (optional)
-                  // slot = story board cell in reading order; pos = legacy, ignored
+  meta: { color, synopsis, notes, num, omitted, cell, band }   // scene headings and sections (optional)
+                  // cell = [column, row] of a scene card on the story board
+                  // band = [first column, width] of an act label on the story board
+                  // slot and pos = legacy board positions, read for old files only
 }
 ```
 
