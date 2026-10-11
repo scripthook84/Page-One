@@ -86,9 +86,12 @@ pub struct SceneMeta {
     pub num: String,
     #[serde(skip_serializing_if = "is_false")]
     pub omitted: bool,
-    /// Free position on the story board when auto-snap is off.
+    /// Legacy free position on the story board (read for old files, no longer written).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub pos: Option<[f32; 2]>,
+    /// Cell on the story board grid, counted in reading order (0 = first cell).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub slot: Option<u32>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq)]
@@ -147,10 +150,12 @@ pub struct Settings {
     pub header: String,
     pub title_page: bool,
     pub target_pages: u32,
-    /// Story board arrangement: "line" or "columns".
+    /// Story board reading direction: "rows" (left→right, then down) or "columns".
     pub board_mode: String,
-    /// Story board cards snap into place (false = free-floating).
+    /// Unused since the snap grid; kept so older files load unchanged.
     pub board_snap: bool,
+    /// Cards per row (rows mode) or per column (columns mode).
+    pub board_span: u32,
 }
 
 impl Default for Settings {
@@ -166,8 +171,9 @@ impl Default for Settings {
             header: String::new(),
             title_page: true,
             target_pages: 110,
-            board_mode: "line".into(),
+            board_mode: "rows".into(),
             board_snap: true,
+            board_span: 5,
         }
     }
 }

@@ -164,7 +164,7 @@ export class Editor {
     if (+el.dataset.lvl) p.lvl = +el.dataset.lvl;
     if (el._meta) {
       const m = {};
-      for (const [k, v] of Object.entries(el._meta)) if (v) m[k] = v;
+      for (const [k, v] of Object.entries(el._meta)) if (v || v === 0) m[k] = v;
       if (Object.keys(m).length) p.meta = m;
     }
     return p;

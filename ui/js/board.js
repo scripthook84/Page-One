@@ -1,18 +1,22 @@
-// Story board: every scene is a card on a canvas, linked to the next one in story order.
-// Arrange them in one line or stacked in act columns; with auto-snap off, cards float
-// wherever you drop them. Either way, the drop position decides the scene's place in the
-// screenplay, and the script is reordered the moment you let go.
+// Story board — the "magic snap" grid.
+//
+// Every scene is a card in one grid. Cards always snap to a cell, by row and by column, and the
+// grid's reading order *is* the story order: rows mode reads left→right then down, columns mode
+// reads top→bottom then right. Drop a card on an empty cell and it lands there; drop it on an
+// occupied cell and it slides in, nudging the following cards along to the next free cell.
+// Empty cells you leave stay empty until you Tidy up.
+//
+// Acts (and sequences/beats) are markers that sit above the cell where they begin. Adding,
+// removing, renaming or dragging one never moves a card — it only changes where the act starts.
+//
+// Positions are stored as a "slot" (cell number in reading order) on each scene and section.
 
 import { S, eighths } from './state.js';
 import { esc, textOf } from './editor.js';
 import { COLORS, colorLabel } from './elements.js';
 import * as dialogs from './dialogs.js';
-import { moveBlock } from './panels.js';
 
-const CW = 230, CH = 150, GAP = 54, ACT_GAP = 46, PAD = 40;
-const ACT_H = 40, SEQ_H = 24;
-const LINE_ACT_Y = PAD, LINE_SEQ_Y = PAD + 52, LINE_CARD_Y = PAD + 88;
-const COL_GAP = 80, COL_TOP = PAD + 56, ROW_GAP = 30;
+const CW = 230, CH = 150, GX = 44, GY = 64, PAD = 40, TOP = 44;
 const DEFAULT_ACT = '#d5d9df';
 
 let zoom = 1;
@@ -22,104 +26,180 @@ let justDragged = 0;
 
 const root = () => document.getElementById('cards');
 const st = () => S.project.settings;
+const mode = () => (st().board_mode === 'columns' ? 'columns' : 'rows');
+const span = () => Math.max(1, Math.min(12, +st().board_span || 5));
 
-// ------------------------------------------------------------------ layout
+// ------------------------------------------------------------------ grid model
 
-function computeLayout() {
-  const mode = st().board_mode === 'columns' ? 'columns' : 'line';
-  const snap = st().board_snap !== false;
-  const scenes = S.derived.scenes;
-  const items = [];
-  let actNo = 0;
+function cellOf(slot) {
+  const n = span();
+  return mode() === 'rows' ? { col: slot % n, row: Math.floor(slot / n) } : { col: Math.floor(slot / n), row: slot % n };
+}
+function slotOf(col, row) {
+  const n = span();
+  return mode() === 'rows' ? row * n + col : col * n + row;
+}
+function cellXY({ col, row }) {
+  return { x: PAD + col * (CW + GX), y: PAD + TOP + row * (CH + GY) };
+}
+/** The cell under a point (canvas coordinates), clamped to the grid's fixed dimension. */
+function cellAt(x, y) {
+  let col = Math.round((x - PAD - CW / 2) / (CW + GX));
+  let row = Math.round((y - PAD - TOP - CH / 2) / (CH + GY));
+  col = Math.max(0, col);
+  row = Math.max(0, row);
+  if (mode() === 'rows') col = Math.min(span() - 1, col); else row = Math.min(span() - 1, row);
+  return { col, row };
+}
 
-  if (mode === 'line') {
-    let x = PAD, lastAct = null, seqRun = 0;
-    scenes.forEach((sc, si) => {
-      if (sc.t === 'section' && sc.lvl === 1) {
-        if (items.length) x += ACT_GAP;
-        actNo++;
-        lastAct = { si, sc, kind: 'act', x, y: LINE_ACT_Y, w: CW, h: ACT_H, n: actNo, count: 0 };
-        items.push(lastAct);
-        seqRun = 0;
-      } else if (sc.t === 'section') {
-        items.push({ si, sc, kind: 'seq', x: x + seqRun * 14, y: LINE_SEQ_Y - seqRun * 4, w: CW, h: SEQ_H });
-        seqRun++;
-      } else {
-        items.push({ si, sc, kind: 'card', x, y: LINE_CARD_Y, w: CW, h: CH });
-        if (lastAct) { lastAct.w = x + CW - lastAct.x; lastAct.count++; }
-        x += CW + GAP;
-        seqRun = 0;
-      }
-    });
-  } else {
-    const hasActs = scenes.some((sc) => sc.t === 'section' && sc.lvl === 1);
-    let col = -1, y = COL_TOP, inCol = 0, act = null;
-    const colX = (c) => PAD + c * (CW + COL_GAP);
-    scenes.forEach((sc, si) => {
-      if (sc.t === 'section' && sc.lvl === 1) {
-        col++;
-        actNo++;
-        act = { si, sc, kind: 'act', x: colX(col), y: PAD, w: CW, h: ACT_H, n: actNo, col, count: 0 };
-        items.push(act);
-        y = COL_TOP;
-        inCol = 0;
-        return;
-      }
-      if (col < 0 || (!hasActs && sc.t === 'scene' && inCol >= 4)) { col++; y = COL_TOP; inCol = 0; }
-      if (sc.t === 'section') {
-        items.push({ si, sc, kind: 'seq', x: colX(col), y, w: CW, h: SEQ_H, col });
-        y += SEQ_H + 12;
-      } else {
-        items.push({ si, sc, kind: 'card', x: colX(col), y, w: CW, h: CH, col });
-        y += CH + ROW_GAP;
-        inCol++;
-        if (act) act.count++;
-      }
-    });
+/** Longest increasing run of stored slots, so a scene moved in the script keeps its neighbours put. */
+function lisKeep(cards) {
+  const idx = cards.map((c, k) => (c.slot === null ? -1 : k)).filter((k) => k >= 0);
+  const best = new Map(), prev = new Map();
+  let top = -1;
+  for (const k of idx) {
+    best.set(k, 1); prev.set(k, -1);
+    for (const j of idx) {
+      if (j >= k) break;
+      if (cards[j].slot < cards[k].slot && best.get(j) + 1 > best.get(k)) { best.set(k, best.get(j) + 1); prev.set(k, j); }
+    }
+    if (top < 0 || best.get(k) > best.get(top)) top = k;
   }
+  const keep = new Set();
+  for (let k = top; k >= 0; k = prev.get(k)) keep.add(k);
+  return keep;
+}
 
+/** Items in script order with a valid slot each: cards strictly increasing, markers in between. */
+function gridItems() {
+  const items = S.derived.scenes.map((sc, ord) => ({
+    si: ord, ord, sc,
+    kind: sc.t === 'scene' ? 'card' : sc.lvl === 1 ? 'act' : 'seq',
+    slot: sc.meta && Number.isInteger(sc.meta.slot) && sc.meta.slot >= 0 ? sc.meta.slot : null,
+  }));
+  const cards = items.filter((it) => it.kind === 'card');
+  const keep = lisKeep(cards);
+  let last = -1;
+  cards.forEach((c, k) => {
+    c.slot = keep.has(k) && c.slot > last ? c.slot : last + 1;
+    last = c.slot;
+  });
+  // markers: after the previous card, no later than the next card
+  let prevCard = -1;
+  for (let k = 0; k < items.length; k++) {
+    const it = items[k];
+    if (it.kind === 'card') { prevCard = it.slot; continue; }
+    const next = items.slice(k + 1).find((x) => x.kind === 'card');
+    const lo = prevCard + 1, hi = next ? next.slot : Infinity;
+    let s = it.slot === null ? (next ? next.slot : prevCard + 1) : it.slot;
+    it.slot = Math.min(Math.max(s, lo), hi === Infinity ? Math.max(s, lo) : hi);
+  }
+  // act membership and numbering
+  let act = null, actNo = 0;
   for (const it of items) {
-    it.sx = it.x;
-    it.sy = it.y;
-    const pos = it.kind === 'card' && it.sc.meta && it.sc.meta.pos;
-    if (!snap && pos) { it.x = pos[0]; it.y = pos[1]; it.floating = true; }
+    if (it.kind === 'act') { actNo++; it.n = actNo; act = it; }
+    if (it.kind === 'card') it.act = act;
   }
-  let w = 0, h = 0;
-  for (const it of items) { w = Math.max(w, it.x + it.w); h = Math.max(h, it.y + it.h); }
-  return { mode, snap, items, w: w + PAD * 3, h: h + PAD * 3 };
+  return items;
+}
+
+/**
+ * Make the script follow the grid: order items by slot (markers before the card in the same
+ * cell), move whole scene blocks accordingly, and remember every slot. One undo step.
+ */
+function commitGrid(items, message) {
+  const paras = S.editor.paras();
+  const starts = items.map((it) => it.sc.i);
+  const firstStart = Math.min(...starts);
+  const byStart = [...items].sort((a, b) => a.sc.i - b.sc.i);
+  const blocks = new Map();
+  byStart.forEach((it, k) => {
+    const end = k + 1 < byStart.length ? byStart[k + 1].sc.i : paras.length;
+    const block = paras.slice(it.sc.i, end).map((p) => ({ ...p }));
+    block[0].meta = { ...(block[0].meta || {}), slot: it.slot };
+    delete block[0].meta.pos;
+    blocks.set(it, block);
+  });
+  const order = [...items].sort((a, b) => a.slot - b.slot || (a.kind === 'card') - (b.kind === 'card') || a.ord - b.ord);
+  const next = paras.slice(0, firstStart).concat(...order.map((it) => blocks.get(it)));
+  S.editor.replaceAll(next);
+  if (message) S.app.toast(message);
+  S.app.refresh().then(() => renderBoard(true));
+}
+
+/** Drop a card into a cell: land in a free cell, or slide in and nudge the cards after it along. */
+function dropCard(item, cell) {
+  const items = view.items.map((x) => ({ ...x }));
+  const me = items.find((x) => x.si === item.si);
+  const target = slotOf(cell.col, cell.row);
+  const cards = items.filter((x) => x.kind === 'card' && x !== me).sort((a, b) => a.slot - b.slot);
+  for (const c of cards) c.old = c.slot;
+  const markers = items.filter((x) => x.kind !== 'card');
+  for (const m of markers) m.anchor = cards.find((c) => c.slot >= m.slot) || null;
+  me.slot = target;
+  let cur = target;
+  for (const c of cards) {
+    if (c.slot < target) continue;
+    if (c.slot === cur) { c.slot = cur + 1; cur++; } else break;
+  }
+  // markers ride along with the card they head — except at the drop cell, where the new card joins that act
+  for (const m of markers) if (m.anchor && m.slot !== target && m.slot === m.anchor.old && m.anchor.slot !== m.anchor.old) m.slot = m.anchor.slot;
+  commitGrid(items, 'Scene moved in the script. Ctrl+Z puts it back.');
+}
+
+function dropMarker(item, cell) {
+  const items = view.items.map((x) => ({ ...x }));
+  items.find((x) => x.si === item.si).slot = slotOf(cell.col, cell.row);
+  commitGrid(items, item.kind === 'act' ? 'Act now starts here. No scenes were moved.' : 'Moved.');
+}
+
+function tidy() {
+  const items = view.items.map((x) => ({ ...x }));
+  const cards = items.filter((x) => x.kind === 'card').sort((a, b) => a.slot - b.slot);
+  const old = cards.map((c) => c.slot);
+  cards.forEach((c, k) => { c.slot = k; });
+  for (const it of items) {
+    if (it.kind === 'card') continue;
+    const k = old.findIndex((sl) => sl >= it.slot);
+    it.slot = k < 0 ? cards.length : k;
+  }
+  commitGrid(items, 'Gaps closed.');
 }
 
 // ------------------------------------------------------------------ render
 
 function toolbar() {
   return `<div class="board-tools">
-    <div class="seg" role="group" aria-label="Arrangement">
-      <button data-mode="line" title="All scenes in one line, acts labelled above">Line</button>
-      <button data-mode="columns" title="Each act stacked in its own column">Columns</button>
+    <div class="seg" role="group" aria-label="Reading order">
+      <button data-mode="rows" title="Story reads left to right, then down">Rows</button>
+      <button data-mode="columns" title="Story reads top to bottom, then right">Columns</button>
     </div>
-    <label class="chk" title="On: cards snap into place. Off: drop cards anywhere; their order still follows position."><input type="checkbox" id="bSnap"> Auto-snap</label>
-    <button class="btn" id="bTidy" title="Snap every floating card back into place">Tidy up</button>
+    <span class="seg" title="How many cards fit in a row (or column)"><button id="bSpanLess" aria-label="Fewer per line">−</button><span class="zoomv" id="bSpan">5 per row</span><button id="bSpanMore" aria-label="More per line">+</button></span>
+    <button class="btn" id="bTidy" title="Close the empty cells between cards">Tidy up</button>
     <button class="btn" id="bAct" title="Create an act label (left panel)">+ Act label</button>
     <span class="seg"><button id="bZo" aria-label="Zoom out">−</button><span class="zoomv" id="bZv">100%</span><button id="bZi" aria-label="Zoom in">+</button></span>
-    <span class="hint">Drag cards to reorder the script, and act labels to change where an act starts. Click a card's text to write a synopsis; double-click to open the scene.</span>
+    <span class="hint">Cards snap to the grid. Drop on a card to slide in before it; acts mark where they start and never move cards.</span>
   </div>
   <div class="board-scroll" id="bScroll"><div class="board-sizer" id="bSizer"><div class="board-canvas" id="bCanvas"></div></div></div>`;
 }
 
 function linkPath(a, b) {
   const ax = a.x, ay = a.y, bx = b.x, by = b.y;
-  if (bx >= ax + CW - 2) {
-    const x1 = ax + CW, y1 = ay + CH / 2, x2 = bx - 6, y2 = by + CH / 2;
-    const d = Math.max(24, (x2 - x1) / 2);
-    return `M${x1},${y1} C${x1 + d},${y1} ${x2 - d},${y2} ${x2},${y2}`;
-  }
-  if (by >= ay + CH - 2 && Math.abs(bx - ax) < CW) {
+  const r = 10; // corner radius
+  if (Math.abs(ay - by) < 2 && bx > ax) return `M${ax + CW},${ay + CH / 2} L${bx - 6},${by + CH / 2}`;
+  if (Math.abs(ax - bx) < 2 && by > ay) return `M${ax + CW / 2},${ay + CH} L${bx + CW / 2},${by - 6}`;
+  if (by > ay) {
+    // next row: down into the gap, across, down into the card (elbows through the gutter)
     const x1 = ax + CW / 2, y1 = ay + CH, x2 = bx + CW / 2, y2 = by - 6;
-    const d = Math.max(16, (y2 - y1) / 2);
-    return `M${x1},${y1} C${x1},${y1 + d} ${x2},${y2 - d} ${x2},${y2}`;
+    const my = ay + CH + GY / 2;
+    const dir = x2 < x1 ? -1 : 1;
+    return `M${x1},${y1} V${my - r} Q${x1},${my} ${x1 + dir * r},${my} H${x2 - dir * r} Q${x2},${my} ${x2},${my + r} V${y2}`;
   }
-  const x1 = ax + CW / 2, y1 = ay + CH, x2 = bx + CW / 2, y2 = by - 6;
-  return `M${x1},${y1} C${x1},${y1 + 90} ${x2},${y2 - 90} ${x2},${y2}`;
+  // next column: out to the right gutter, up, into the card
+  const x1 = ax + CW, y1 = ay + CH / 2, x2 = bx - 6, y2 = by + CH / 2;
+  const mx = ax + CW + GX / 2;
+  const dir = y2 < y1 ? -1 : 1;
+  return `M${x1},${y1} H${mx - r} Q${mx},${y1} ${mx},${y1 + dir * r} V${y2 - dir * r} Q${mx},${y2} ${mx + r},${y2} H${x2}`;
 }
 
 export function renderBoard(force = false) {
@@ -130,120 +210,77 @@ export function renderBoard(force = false) {
     box.innerHTML = toolbar();
     wire(box);
   }
-  view = computeLayout();
-  for (const b of box.querySelectorAll('[data-mode]')) b.setAttribute('aria-pressed', String(b.dataset.mode === view.mode));
-  box.querySelector('#bSnap').checked = view.snap;
-  box.querySelector('#bTidy').disabled = !view.items.some((it) => it.floating);
-  box.querySelector('#bZv').textContent = `${Math.round(zoom * 100)}%`;
-
+  const items = gridItems();
+  for (const it of items) Object.assign(it, cellXY(cellOf(it.slot)), cellOf(it.slot));
+  view = { items };
   renderSide();
+
+  const n = span(), m = mode();
+  for (const b of box.querySelectorAll('[data-mode]')) b.setAttribute('aria-pressed', String(b.dataset.mode === m));
+  box.querySelector('#bSpan').textContent = `${n} per ${m === 'rows' ? 'row' : 'column'}`;
+  box.querySelector('#bZv').textContent = `${Math.round(zoom * 100)}%`;
+  const cards = items.filter((it) => it.kind === 'card');
+  const maxSlot = Math.max(0, ...items.map((it) => it.slot));
+  box.querySelector('#bTidy').disabled = cards.every((c, k) => c.slot === k);
+
+  // grid cells: everything used plus one spare row/column to drop into
+  const lines = Math.ceil((maxSlot + 1) / n) + 1;
+  const cols = m === 'rows' ? n : lines, rows = m === 'rows' ? lines : n;
+  const occupied = new Set(cards.map((c) => c.slot));
+  let cells = '';
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+    const sl = slotOf(c, r);
+    if (occupied.has(sl)) continue;
+    const { x, y } = cellXY({ col: c, row: r });
+    cells += `<div class="b-cell" data-slot="${sl}" style="left:${x}px;top:${y}px"></div>`;
+  }
+
   const curSi = S.app.currentSceneIndex(S.curPara);
   const filter = S.colorFilter || '';
-  const cards = view.items.filter((it) => it.kind === 'card');
   let links = '';
   for (let k = 0; k + 1 < cards.length; k++) links += `<path d="${linkPath(cards[k], cards[k + 1])}" marker-end="url(#bArrow)"/>`;
 
-  const html = view.items.map((it) => {
-    const m = it.sc.meta || {};
-    if (it.kind === 'act') {
-      return `<div class="b-act" data-si="${it.si}" style="left:${it.x}px;top:${it.y}px;width:${it.w}px;--c:${esc(m.color || DEFAULT_ACT)}" title="Click to rename or recolour this act">
-        <b>ACT ${it.n}</b><span>${esc(it.sc.text || 'Untitled act')}</span><small>${it.count} sc</small></div>`;
-    }
-    if (it.kind === 'seq') {
-      return `<div class="b-seq" data-si="${it.si}" style="left:${it.x}px;top:${it.y}px" title="${it.sc.lvl === 2 ? 'Sequence' : 'Beat'} — click to edit">${esc(it.sc.text || 'Untitled')}</div>`;
-    }
-    const c = m.color || '';
+  // markers grouped per cell, shown above it
+  const marks = new Map();
+  for (const it of items) if (it.kind !== 'card') { if (!marks.has(it.slot)) marks.set(it.slot, []); marks.get(it.slot).push(it); }
+  let markHtml = '';
+  for (const [slot, list] of marks) {
+    const { x, y } = cellXY(cellOf(slot));
+    markHtml += `<div class="b-marks" style="left:${x}px;top:${y - 40}px">${list.map((it) => {
+      const meta = it.sc.meta || {};
+      if (it.kind === 'act') {
+        return `<div class="b-act" data-si="${it.si}" style="--c:${esc(meta.color || DEFAULT_ACT)}" title="Drag to change where this act starts; click to edit">
+          <b>ACT ${it.n}</b><span>${esc(it.sc.text || 'Untitled act')}</span></div>`;
+      }
+      return `<div class="b-seq" data-si="${it.si}" title="${it.sc.lvl === 2 ? 'Sequence' : 'Beat'}: drag to move, click to edit">${esc(it.sc.text || 'Untitled')}</div>`;
+    }).join('')}</div>`;
+  }
+
+  const cardHtml = cards.map((it) => {
+    const meta = it.sc.meta || {};
+    const c = meta.color || '';
     const label = c ? colorLabel(S.project, c) : 'No colour';
-    return `<div class="b-card${m.omitted ? ' omit' : ''}${it.floating ? ' floating' : ''}${it.si === curSi ? ' cur' : ''}${filter && c !== filter ? ' dim' : ''}"
-        data-si="${it.si}" style="left:${it.x}px;top:${it.y}px;${c ? `--c:${esc(c)}` : ''}">
+    const actColor = it.act ? (it.act.sc.meta && it.act.sc.meta.color) || DEFAULT_ACT : '';
+    return `<div class="b-card${meta.omitted ? ' omit' : ''}${it.si === curSi ? ' cur' : ''}${filter && c !== filter ? ' dim' : ''}"
+        data-si="${it.si}" style="left:${it.x}px;top:${it.y}px;${c ? `--c:${esc(c)};` : ''}${actColor ? `--act:${esc(actColor)}` : ''}">
       <header><span class="n">${esc(it.sc.number || '')}</span><span class="h">${esc(it.sc.text || 'Untitled scene')}</span></header>
       <button class="b-color" title="Colour: ${esc(label)}" aria-label="Colour: ${esc(label)}"></button>
-      <div class="syn" spellcheck="true" data-ph="${esc((it.sc.first || 'Write a synopsis…').slice(0, 140))}">${esc(m.synopsis || '')}</div>
-      <footer><span>p. ${it.sc.page || ''}</span><span>${it.sc.eighths ? eighths(it.sc.eighths) + ' pg' : ''}</span></footer>
+      <div class="syn" spellcheck="true" data-ph="${esc((it.sc.first || 'Write a synopsis…').slice(0, 140))}">${esc(meta.synopsis || '')}</div>
+      <footer><span>p. ${it.sc.page || ''}</span><span>${it.act ? `Act ${it.act.n} · ` : ''}${it.sc.eighths ? eighths(it.sc.eighths) + ' pg' : ''}</span></footer>
     </div>`;
   }).join('');
 
+  const last = cellXY(m === 'rows' ? { col: n - 1, row: rows - 1 } : { col: cols - 1, row: n - 1 });
+  const w = last.x + CW + PAD * 2, h = last.y + CH + PAD * 2;
   const canvas = box.querySelector('#bCanvas');
-  canvas.style.width = `${view.w}px`;
-  canvas.style.height = `${view.h}px`;
+  canvas.style.width = `${w}px`;
+  canvas.style.height = `${h}px`;
   canvas.style.transform = `scale(${zoom})`;
-  box.querySelector('#bSizer').style.width = `${view.w * zoom}px`;
-  box.querySelector('#bSizer').style.height = `${view.h * zoom}px`;
-  canvas.innerHTML = `<svg class="board-links" width="${view.w}" height="${view.h}" aria-hidden="true">
-      <defs><marker id="bArrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="arrow" d="M0,0 L10,5 L0,10 z"/></marker></defs>${links}</svg>${html}
-    ${cards.length ? '' : '<p class="empty-hint" style="position:absolute;left:40px;top:120px">Scenes appear here as cards once the script has scene headings.</p>'}`;
-}
-
-// ------------------------------------------------------------------ dropping
-
-/** Where a card dropped with its centre at (cx, cy) belongs: paragraph index to insert before, and a marker. */
-function dropTarget(cx, cy, dragged) {
-  const nParas = S.editor.els().length;
-  const others = view.items.filter((it) => it !== dragged);
-  if (view.mode === 'line') {
-    const keyed = others.map((it) => ({ it, key: it.kind === 'act' ? it.x - 1 : it.x + it.w / 2 })).sort((a, b) => a.key - b.key);
-    const hit = keyed.find((k) => k.key > cx);
-    const lastCard = [...others].reverse().find((it) => it.kind === 'card');
-    let mx;
-    if (hit) mx = hit.it.kind === 'act' ? hit.it.x - ACT_GAP / 2 - GAP / 4 : hit.it.x - GAP / 2;
-    else mx = lastCard ? lastCard.x + CW + GAP / 2 : PAD;
-    const my = hit ? (hit.it.kind === 'act' ? LINE_CARD_Y : hit.it.y) : (lastCard ? lastCard.y : LINE_CARD_Y);
-    return { para: hit ? hit.it.sc.i : nParas, marker: { x: mx - 2, y: my - 8, w: 4, h: CH + 16 } };
-  }
-  // columns
-  const cols = [...new Set(view.items.map((it) => it.col).filter((c) => c !== undefined))].sort((a, b) => a - b);
-  const colX = (c) => PAD + c * (CW + COL_GAP);
-  let col = cols[0] ?? 0, best = Infinity;
-  for (const c of cols) { const d = Math.abs(colX(c) + CW / 2 - cx); if (d < best) { best = d; col = c; } }
-  const inCol = others.filter((it) => it.col === col && it.kind !== 'act').sort((a, b) => a.y - b.y);
-  const hit = inCol.find((it) => it.y + it.h / 2 > cy);
-  if (hit) return { para: hit.sc.i, marker: { x: colX(col) - 6, y: hit.y - ROW_GAP / 2 - 2, w: CW + 12, h: 4 } };
-  const next = view.items.find((it) => it.col !== undefined && it.col > col);
-  const last = inCol[inCol.length - 1];
-  const y = last ? last.y + last.h + ROW_GAP / 2 - 2 : COL_TOP - 8;
-  return { para: next ? next.sc.i : nParas, marker: { x: colX(col) - 6, y, w: CW + 12, h: 4 } };
-}
-
-function showMarker(m) {
-  const canvas = document.getElementById('bCanvas');
-  let el = canvas.querySelector('.b-drop');
-  if (!el) { el = document.createElement('div'); el.className = 'b-drop'; canvas.appendChild(el); }
-  Object.assign(el.style, { left: `${m.x}px`, top: `${m.y}px`, width: `${m.w}px`, height: `${m.h}px` });
-}
-
-async function finishActDrag(d) {
-  const x = parseFloat(d.el.style.left), y = parseFloat(d.el.style.top);
-  const tgt = dropTarget(x + 1, view.mode === 'line' ? LINE_CARD_Y + CH / 2 : y + 60, d.it);
-  if (!moveSection(d.it.sc.i, tgt.para)) renderBoard(true);
-  else { await S.app.refresh(); renderBoard(true); }
-}
-
-/** Move just an act/sequence label (not its scenes): the act now starts before `before`. */
-function moveSection(from, before) {
-  if (before === from || before === from + 1) return false;
-  const paras = S.editor.paras();
-  const [p] = paras.splice(from, 1);
-  const at = before > from ? before - 1 : before;
-  paras.splice(at, 0, p);
-  S.editor.replaceAll(paras);
-  S.app.toast('Act boundary moved. Ctrl+Z puts it back.');
-  return true;
-}
-
-async function finishDrag(d) {
-  if (d.it.kind === 'act') { finishActDrag(d); return; }
-  const card = d.el;
-  const x = parseFloat(card.style.left), y = parseFloat(card.style.top);
-  const it = d.it;
-  const tgt = dropTarget(x + CW / 2, y + CH / 2, it);
-  const el = S.editor.els()[it.sc.i];
-  const meta = { ...(el._meta || {}) };
-  if (view.snap) delete meta.pos; else meta.pos = [Math.round(x), Math.round(y)];
-  el._meta = meta;
-  const moved = moveBlock(it.sc.i, tgt.para);
-  if (!moved) S.app.markDirty();
-  await S.app.refresh();
-  renderBoard(true);
+  box.querySelector('#bSizer').style.width = `${w * zoom}px`;
+  box.querySelector('#bSizer').style.height = `${h * zoom}px`;
+  canvas.innerHTML = `${cells}<svg class="board-links" width="${w}" height="${h}" aria-hidden="true">
+      <defs><marker id="bArrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="arrow" d="M0,0 L10,5 L0,10 z"/></marker></defs>${links}</svg>${markHtml}${cardHtml}
+    ${cards.length ? '' : '<p class="empty-hint" style="position:absolute;left:40px;top:130px">Scenes appear here as cards once the script has scene headings.</p>'}`;
 }
 
 // ------------------------------------------------------------------ interaction
@@ -280,17 +317,26 @@ function setMeta(it, k, v) {
   S.app.markDirty();
 }
 
+function showTarget(cell, occupiedBy) {
+  const canvas = document.getElementById('bCanvas');
+  let el = canvas.querySelector('.b-target');
+  if (!el) { el = document.createElement('div'); el.className = 'b-target'; canvas.appendChild(el); }
+  const { x, y } = cellXY(cell);
+  Object.assign(el.style, { left: `${x - 6}px`, top: `${y - 6}px` });
+  el.classList.toggle('insert', !!occupiedBy);
+  el.dataset.tip = occupiedBy ? 'Slide in here' : 'Drop here';
+}
+
 function wire(box) {
   box.addEventListener('click', (e) => {
     if (Date.now() - justDragged < 250) return;
-    const mode = e.target.closest('[data-mode]');
-    if (mode) { S.app.setSetting('board_mode', mode.dataset.mode); return; }
-    if (e.target.id === 'bTidy') {
-      for (const it of view.items) if (it.floating) { const el = S.editor.els()[it.sc.i]; const m = { ...el._meta }; delete m.pos; el._meta = m; }
-      S.app.markDirty();
-      S.app.refresh().then(() => renderBoard(true));
+    const modeBtn = e.target.closest('[data-mode]');
+    if (modeBtn) { S.app.setSetting('board_mode', modeBtn.dataset.mode); return; }
+    if (e.target.id === 'bSpanLess' || e.target.id === 'bSpanMore') {
+      S.app.setSetting('board_span', Math.max(1, Math.min(12, span() + (e.target.id === 'bSpanMore' ? 1 : -1))));
       return;
     }
+    if (e.target.id === 'bTidy') { tidy(); return; }
     if (e.target.id === 'bAct') { document.getElementById('actName').focus(); return; }
     if (e.target.id === 'bZi' || e.target.id === 'bZo') {
       zoom = Math.min(1.5, Math.max(0.4, Math.round((zoom + (e.target.id === 'bZi' ? 0.1 : -0.1)) * 10) / 10));
@@ -318,9 +364,6 @@ function wire(box) {
       s.addRange(r);
     }
   });
-  box.addEventListener('change', (e) => {
-    if (e.target.id === 'bSnap') S.app.setSetting('board_snap', e.target.checked);
-  });
   box.addEventListener('dblclick', (e) => {
     const card = e.target.closest('.b-card');
     if (!card || e.target.closest('.syn')) return;
@@ -344,27 +387,41 @@ function wire(box) {
     if (syn && (e.key === 'Escape' || (e.key === 'Enter' && !e.shiftKey))) { e.preventDefault(); syn.blur(); }
   });
 
-  // dragging cards
+  // dragging cards and act/sequence markers
   box.addEventListener('pointerdown', (e) => {
-    const card = e.target.closest('.b-card, .b-act');
-    if (!card || e.button !== 0 || e.target.closest('.b-color') || e.target.closest('.syn[contenteditable="true"]')) return;
+    const el = e.target.closest('.b-card, .b-act, .b-seq');
+    if (!el || e.button !== 0 || e.target.closest('.b-color') || e.target.closest('.syn[contenteditable="true"]')) return;
     closePopover();
-    const it = itemOf(card);
-    drag = { el: card, it, sx: e.clientX, sy: e.clientY, ox: it.x, oy: it.y, moved: false, id: e.pointerId };
-    card.setPointerCapture(e.pointerId);
+    const it = itemOf(el);
+    const host = el.classList.contains('b-card') ? el : el.closest('.b-marks') && el;
+    const r0 = host.getBoundingClientRect(), cr = document.getElementById('bCanvas').getBoundingClientRect();
+    drag = { el: host, it, sx: e.clientX, sy: e.clientY, ox: (r0.left - cr.left) / zoom, oy: (r0.top - cr.top) / zoom, moved: false, id: e.pointerId };
+    el.setPointerCapture(e.pointerId);
   });
   box.addEventListener('pointermove', (e) => {
     if (!drag || e.pointerId !== drag.id) return;
     const dx = (e.clientX - drag.sx) / zoom, dy = (e.clientY - drag.sy) / zoom;
     if (!drag.moved && Math.hypot(dx, dy) < 5) return;
-    drag.moved = true;
-    drag.el.classList.add('lifted');
+    if (!drag.moved) {
+      drag.moved = true;
+      drag.el.classList.add('lifted');
+      if (drag.it.kind !== 'card') {
+        // lift the marker out of its group so it can travel freely
+        const canvas = document.getElementById('bCanvas');
+        canvas.appendChild(drag.el);
+        drag.el.style.position = 'absolute';
+      }
+      box.classList.add('dragging');
+    }
     const x = Math.max(0, drag.ox + dx), y = Math.max(0, drag.oy + dy);
     drag.el.style.left = `${x}px`;
     drag.el.style.top = `${y}px`;
-    const isAct = drag.it.kind === 'act';
-    showMarker(dropTarget(isAct ? x + 1 : x + CW / 2, isAct ? (view.mode === 'line' ? LINE_CARD_Y + CH / 2 : y + 60) : y + CH / 2, drag.it).marker);
-    // keep the card in view while dragging near the edges
+    const isCard = drag.it.kind === 'card';
+    const cell = isCard ? cellAt(x + CW / 2, y + CH / 2) : cellAt(x + 40, y + 40 + 20);
+    drag.cell = cell;
+    const sl = slotOf(cell.col, cell.row);
+    const occ = isCard && view.items.find((it) => it.kind === 'card' && it.slot === sl && it !== drag.it);
+    showTarget(cell, occ);
     const sc = document.getElementById('bScroll');
     const r = sc.getBoundingClientRect();
     if (e.clientX > r.right - 40) sc.scrollLeft += 18; else if (e.clientX < r.left + 40) sc.scrollLeft -= 18;
@@ -374,12 +431,20 @@ function wire(box) {
     if (!drag || e.pointerId !== drag.id) return;
     const d = drag;
     drag = null;
+    box.classList.remove('dragging');
     if (!d.moved) return;
     justDragged = Date.now();
-    finishDrag(d);
+    if (!d.cell) { renderBoard(true); return; }
+    if (d.it.kind === 'card') {
+      if (slotOf(d.cell.col, d.cell.row) === d.it.slot) { renderBoard(true); return; }
+      dropCard(d.it, d.cell);
+    } else {
+      if (slotOf(d.cell.col, d.cell.row) === d.it.slot) { renderBoard(true); return; }
+      dropMarker(d.it, d.cell);
+    }
   };
   box.addEventListener('pointerup', end);
-  box.addEventListener('pointercancel', (e) => { if (drag && e.pointerId === drag.id) { drag = null; renderBoard(true); } });
+  box.addEventListener('pointercancel', (e) => { if (drag && e.pointerId === drag.id) { drag = null; box.classList.remove('dragging'); renderBoard(true); } });
 }
 
 export function resetBoardDom() {

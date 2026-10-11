@@ -39,7 +39,7 @@ export function emptyProject() {
     settings: {
       scene_numbers: false, conts: true, mores: true, scene_space: 1, bold_scenes: false,
       page_size: 'letter', rev_level: 0, header: '', title_page: true, target_pages: 110,
-      board_mode: 'line', board_snap: true,
+      board_mode: 'rows', board_snap: true, board_span: 5,
     },
     notes: '', characters: [], smart: [], color_labels: {}, created: 0, modified: 0,
   };

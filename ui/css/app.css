@@ -547,3 +547,17 @@ table.report tr:hover td { background: var(--chrome-2); }
 .b-card .syn[contenteditable="true"] { -webkit-user-select: text; user-select: text; cursor: text; }
 .b-card, .b-act, .b-seq { -webkit-user-select: none; user-select: none; }
 .b-card .syn[contenteditable="true"] { -webkit-user-select: text; user-select: text; cursor: text; }
+
+/* magic snap grid */
+.b-cell { position: absolute; width: 230px; height: 150px; border-radius: 8px; border: 1.5px dashed color-mix(in srgb, var(--ink) 16%, transparent); pointer-events: none; transition: border-color .15s, background-color .15s; }
+.cards.dragging .b-cell { border-color: color-mix(in srgb, var(--ink) 32%, transparent); }
+.b-target { position: absolute; width: 242px; height: 162px; border-radius: 11px; border: 3px solid var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); pointer-events: none; z-index: 20; }
+.b-target::after { content: attr(data-tip); position: absolute; left: 10px; bottom: -24px; font: 600 11.5px var(--ui); color: var(--accent); white-space: nowrap; }
+.b-target.insert { border-style: dashed; }
+.b-marks { position: absolute; display: flex; gap: 6px; align-items: center; height: 32px; max-width: 520px; }
+.b-marks .b-act { position: static; height: 30px; padding: 0 10px; gap: 8px; max-width: 300px; }
+.b-marks .b-seq { position: static; }
+.b-act.lifted, .b-seq.lifted { position: absolute; z-index: 30; box-shadow: 0 10px 26px rgba(10,15,25,.3); cursor: grabbing; }
+.b-card { border-top: 6px solid var(--act, rgba(0,0,0,.12)); }
+.b-card footer span:last-child { white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) { .b-cell { transition: none; } }

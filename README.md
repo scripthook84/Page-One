@@ -54,15 +54,18 @@ It is free, works offline, needs no account, and the installer is about 2 MB.
 
 - **Navigator.** Scene list with numbers, length in eighths of a page, colours and synopses. Filter
   it, click to jump, and drag to reorder scenes or whole acts. Alt+Shift+↑/↓ moves the current scene.
-- **Story board.** Every scene is a card on a canvas, linked by arrows in story order, with an
-  **ACT 1 / ACT 2 …** master label over each act (pick each act's colour). Arrange the cards in one
-  **line** or **stacked in columns** by act. With **auto-snap** on, cards snap into place; turn it
-  off and cards float wherever you drop them (**Tidy up** snaps them back). Wherever you drop a card
-  decides its place in the story, and the screenplay is reordered the moment you let go. Click a
-  card's text to write its synopsis, its dot to colour it, and double-click to open the scene.
+- **Story board — a magic snap grid.** Every scene is a card in one grid, linked by arrows in story
+  order. Cards always snap to a cell, by row and by column. Choose whether the story reads in
+  **rows** (left to right, then down) or **columns** (top to bottom, then right), and how many cards
+  fit per row or column. Drop a card on an empty cell and it lands there; drop it on a card and it
+  slides in before it, nudging the cards after it along to the next free cell. Empty cells you leave
+  stay empty until **Tidy up**. The grid's reading order is the story order, so the screenplay is
+  reordered the moment you let go (Ctrl+Z puts it back). Click a card's text to write its synopsis,
+  its dot to colour it, and double-click to open the scene.
 - **Act labels** (board panel, left). Create ACT 1, ACT 2 … labels with a name, a colour and the
-  scene they start before; rename, recolour or remove them in place, or drag an act label on the
-  board to move where the act begins.
+  scene they start before; rename, recolour or remove them in place, or drag an act label to another
+  cell to change where the act begins. Acts are markers above the grid: adding, removing or moving
+  one never moves a card. Each card shows its act's colour along its top edge.
 - **Colour key** (board panel, left). The nine standard colours — red, orange, yellow, green, blue,
   indigo, violet, pink, gray, all light enough for black text. Type what each one means ("B story",
   "Flashback"); click a colour to highlight its scenes on the board.
@@ -134,7 +137,7 @@ It is free, works offline, needs no account, and the installer is about 2 MB.
 | Formats as you type (Enter/Tab flow, SmartType) | Yes | Yes | Yes |
 | Live page breaks with (MORE) / (CONT'D) | Yes | Yes | Yes |
 | Dual dialogue | Yes, side by side while you type | Yes | Yes |
-| Planning view | Story board: one line or act columns, snapping or free-floating cards, act labels, drag to reorder the script live | Beat Board, Outline Editor and index cards | Index cards |
+| Planning view | Snap-grid story board (rows or columns), act labels that never move cards, drag to reorder the script live | Beat Board, Outline Editor and index cards | Index cards |
 | Colour key with your own labels | Yes | — | — |
 | Dialogue tuner | Yes | — | Yes |
 | Revision colours | Yes | Yes | Yes |
