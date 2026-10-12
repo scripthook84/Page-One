@@ -31,6 +31,7 @@ PDF. It's free, works offline, needs no account, and the installer is about 2 MB
 <img width="1880" height="800" alt="01-script-view" src="https://github.com/user-attachments/assets/cd607966-f0fd-4fb4-b76f-cb197693b38b" />
 
 
+
 - **The page.** Courier 12 pt on US Letter: 1.5" left margin, 1" top, right and bottom, 54 lines per
   page. Dialogue runs 2.5–6.0", character cues sit at 3.7", parentheticals at 3.1–5.25", and
   transitions end at 7.5". Page numbers ("2.") start on page 2.
