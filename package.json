@@ -10,7 +10,8 @@
     "build": "tauri build --bundles deb",
     "preview": "cargo run -p pageone-core --features devserver --bin pageone-devserver -- ui 8787",
     "test": "cargo test -p pageone-core",
-    "build:mac": "tauri build --bundles dmg --target universal-apple-darwin"
+    "build:mac": "tauri build --bundles dmg --target universal-apple-darwin",
+    "build:win": "tauri build --bundles msi"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2"

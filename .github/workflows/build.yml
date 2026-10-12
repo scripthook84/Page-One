@@ -102,10 +102,35 @@ jobs:
           name: page-one-dmg
           path: target/universal-apple-darwin/release/bundle/dmg/*.dmg
 
-  # Publish both installers on the v1.0.0 release page (marked pre-release until tested on every
+  # Windows .msi (64-bit). Unsigned: Windows SmartScreen asks once ("More info" → "Run anyway").
+  # WebView2 ships with Windows 10 and 11; the installer fetches it if a PC lacks it.
+  windows-msi:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: cargo test -p pageone-core
+      - run: npx tauri build --bundles msi
+      - name: Name the installer
+        shell: bash
+        run: |
+          cd target/release/bundle/msi
+          for f in *.msi; do mv "$f" "Page-One_1.0.0_x64.msi"; done
+          ls -la
+          echo "::notice title=msi::$(ls -la | tr '\n' ' ')"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: page-one-msi
+          path: target/release/bundle/msi/*.msi
+
+  # Publish the installers on the v1.0.0 release page (marked pre-release until tested on every
   # platform). Each new build replaces the files there.
   release:
-    needs: [linux-deb, macos-dmg]
+    needs: [linux-deb, macos-dmg, windows-msi]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -124,3 +149,4 @@ jobs:
           files: |
             dist/*.deb
             dist/*.dmg
+            dist/*.msi

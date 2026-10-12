@@ -1,0 +1,8 @@
+# Keep text files LF on every platform (Windows checkouts included); binaries untouched.
+* text=auto eol=lf
+*.ttf binary
+*.png binary
+*.ico binary
+*.icns binary
+*.pageone binary
+*.pdf binary

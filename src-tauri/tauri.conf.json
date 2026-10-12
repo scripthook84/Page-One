@@ -93,6 +93,15 @@
           "y": 170
         }
       }
+    },
+    "windows": {
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper",
+        "silent": true
+      },
+      "wix": {
+        "language": "en-US"
+      }
     }
   }
 }

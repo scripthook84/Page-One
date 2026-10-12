@@ -6,7 +6,7 @@ A lightweight, open-source screenwriting app. Built by a screenwriter for screen
 standard as you type, lays your story out on a snap-to-grid story board, and exports print-ready
 PDF. It's free, works offline, needs no account, and the installer is about 2 MB.
 
-**Version 1.0.0** · Linux (.deb) · macOS (.dmg) · Apache License 2.0
+**Version 1.0.0** · Windows (.msi) · macOS (.dmg) · Linux (.deb) · Apache License 2.0
 
 ---
 
@@ -99,8 +99,10 @@ PDF. It's free, works offline, needs no account, and the installer is about 2 MB
   size, and other programs won't open it as text. The format is documented in
   [docs/FILE-FORMAT.md](docs/FILE-FORMAT.md); it's open, not encrypted.
 - Saving writes a temporary file and renames it over the original, so a crash can't leave a
-  half-written script. The last 20 versions of each script are kept in
-  `~/.local/share/app.pageone.desktop/backups`.
+  half-written script. The last 20 versions of each script are kept in a `backups` folder:
+  `%APPDATA%\app.pageone.desktop\backups` on Windows,
+  `~/Library/Application Support/app.pageone.desktop/backups` on a Mac and
+  `~/.local/share/app.pageone.desktop/backups` on Linux.
 - Autosave runs every minute once a script has a home on disk. Unsaved work — even a script that
   was never saved — is mirrored every 20 seconds, and the start screen offers to recover it after a
   crash.
@@ -118,7 +120,7 @@ PDF. It's free, works offline, needs no account, and the installer is about 2 MB
 | Price | Free, open source (Apache 2.0) | $199.99 one-time, or $99.99/year as Final Draft Suite | $79.95 one-time, updates free |
 | Linux | Yes (.deb) | No | Yes |
 | macOS | Yes (.dmg, Apple Silicon and Intel) | Yes | Yes |
-| Windows | Build from source (not yet tested) | Yes | Yes |
+| Windows | Yes (.msi, 64-bit) | Yes | Yes |
 | Phone and tablet | No | Final Draft Go for iOS, sold separately | Fade In Mobile for iOS and Android, sold separately |
 | Account or activation | None | Sign-in; two computers active at once | License key |
 | Formats as you type (element flow, suggestions) | Yes | Yes | Yes |
@@ -144,11 +146,23 @@ checked. Check each vendor's site for current details.
 - Real-time collaboration, track changes, page locking and A-pages
 - PDF import; templates for TV, multi-camera and stage formats
 - Production tagging and scheduling exports
-- Phone and tablet apps; a Windows build is possible from the same source but untested
+- Phone and tablet apps
 
 ---
 
 ## Install
+
+### Windows
+
+Windows 10 or 11, 64-bit.
+
+1. Run `Page-One_1.0.0_x64.msi`.
+2. The installer isn't code-signed yet, so Windows SmartScreen may say "Windows protected your PC":
+   click **More info**, then **Run anyway**. Follow the installer; Page One appears in the Start menu.
+
+`.pageone` files open in Page One on double-click. Page One uses Microsoft Edge WebView2, which is
+part of Windows 10 and 11; on the rare PC without it, the installer downloads it. To remove Page One,
+use **Settings → Apps → Installed apps**.
 
 ### Linux
 
@@ -186,12 +200,14 @@ sudo apt install build-essential pkg-config file patchelf libwebkit2gtk-4.1-dev 
   libgtk-3-dev libssl-dev libxdo-dev libayatana-appindicator3-dev librsvg2-dev
 ```
 
-On a Mac you need Rust, Node.js and Xcode's command-line tools (`xcode-select --install`).
+On a Mac you need Rust, Node.js and Xcode's command-line tools (`xcode-select --install`). On
+Windows you need Rust, Node.js and the Visual Studio C++ Build Tools ("Desktop development with C++").
 
 ```bash
 npm install
 npm run build      # target/release/bundle/deb/Page One_1.0.0_amd64.deb
 npm run build:mac  # on a Mac: target/universal-apple-darwin/release/bundle/dmg/Page One_1.0.0_universal.dmg
+npm run build:win  # on Windows: target/release/bundle/msi/Page One_1.0.0_x64_en-US.msi
 npm test           # core tests: file format, pagination, Fountain, FDX
 npm run preview    # the interface in a browser at http://127.0.0.1:8787
 ```
@@ -207,9 +223,9 @@ npm run preview    # the interface in a browser at http://127.0.0.1:8787
 For the Mac universal build, add both Rust targets once:
 `rustup target add aarch64-apple-darwin x86_64-apple-darwin`.
 
-**GitHub Actions.** `.github/workflows/build.yml` builds the `.deb` on Ubuntu and the universal `.dmg`
-on macOS, on every `v*` tag or when run by hand (Actions → Build → Run workflow); the installers are
-attached to the run. Without Apple credentials the Mac app is ad-hoc signed. To sign it with your
+**GitHub Actions.** `.github/workflows/build.yml` builds the `.msi` on Windows, the universal `.dmg`
+on macOS and the `.deb` on Ubuntu on every push to `main` (or by hand: Actions → Build → Run
+workflow), and publishes all three on the 1.0.0 release page. Without Apple credentials the Mac app is ad-hoc signed. To sign it with your
 Developer ID and have Apple notarize it (so it opens without a warning), add these repository
 secrets: `APPLE_CERTIFICATE` (your Developer ID Application certificate exported as .p12, base64),
 `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY` (e.g. `Developer ID Application: Name (TEAMID)`),

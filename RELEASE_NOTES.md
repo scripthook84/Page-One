@@ -1,7 +1,8 @@
 # Page One 1.0.0 — release notes
 
 **Released:** October 11, 2026
-**Platforms:** Linux (Ubuntu 22.04+, Debian 12+, Linux Mint, Pop!_OS), 64-bit `.deb`;
+**Platforms:** Windows 10 and 11, 64-bit `.msi`;
+Linux (Ubuntu 22.04+, Debian 12+, Linux Mint, Pop!_OS), 64-bit `.deb`;
 macOS 12 Monterey or later, universal `.dmg` for Apple Silicon and Intel
 **License:** Apache License 2.0
 
@@ -19,11 +20,14 @@ sudo apt install ./Page-One_1.0.0_amd64.deb
 
 Installer size is about 2 MB. Page One needs WebKitGTK 4.1, which apt installs if it's missing.
 
+**Windows:** run `Page-One_1.0.0_x64.msi`. The installer isn't code-signed yet, so SmartScreen may
+ask first: **More info → Run anyway**.
+
 **macOS:** open `Page-One_1.0.0_universal.dmg` and drag Page One onto Applications. If the build
 isn't signed with an Apple Developer ID, the first launch needs **System Settings → Privacy &
 Security → Open Anyway**.
 
-On both, `.pageone` files are registered with the system and open on double-click.
+On every platform, `.pageone` files are registered with the system and open on double-click.
 
 ---
 
@@ -106,7 +110,7 @@ On both, `.pageone` files are registered with the system and open on double-clic
 
 ## Known limitations
 
-- No Windows build yet; it uses the same source but hasn't been tested.
+- The Windows and Mac installers aren't signed yet, so each system asks once before the first launch.
 - No real-time collaboration, track changes, page locking or A-pages yet.
 - No PDF import, and no TV, multi-camera or stage templates yet.
 - Very long unsplittable blocks (a dual-dialogue exchange longer than a page) run past the bottom

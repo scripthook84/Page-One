@@ -228,11 +228,20 @@ fn mac_menu(app: &tauri::App) -> tauri::Result<()> {
     Ok(())
 }
 
+/// Absolute form of a path given on the command line. Windows' canonical form starts with
+/// `\\?\` (e.g. `\\?\C:\Scripts\x.pageone`); drop that so paths read normally.
+fn absolute(a: String) -> String {
+    let Ok(p) = std::fs::canonicalize(&a) else { return a };
+    let s = p.to_string_lossy().into_owned();
+    match s.strip_prefix(r"\\?\") {
+        Some(rest) if rest.starts_with(r"UNC\") => format!(r"\\{}", &rest[4..]),
+        Some(rest) => rest.to_string(),
+        None => s,
+    }
+}
+
 fn main() {
-    let launch = std::env::args()
-        .skip(1)
-        .find(|a| !a.starts_with('-'))
-        .map(|a| std::fs::canonicalize(&a).map(|p| p.to_string_lossy().into_owned()).unwrap_or(a));
+    let launch = std::env::args().skip(1).find(|a| !a.starts_with('-')).map(absolute);
 
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())

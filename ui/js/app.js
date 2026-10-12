@@ -829,6 +829,8 @@ function matchKeys(e, keys) {
   const key = parts.pop();
   const want = { Ctrl: false, Shift: false, Alt: false };
   for (const p of parts) want[p] = true;
+  // AltGr (Windows/Linux European keyboards) reports Ctrl+Alt; it types characters, not shortcuts
+  if (e.getModifierState && e.getModifierState('AltGraph')) return false;
   if ((e.ctrlKey || e.metaKey) !== want.Ctrl || e.shiftKey !== want.Shift || e.altKey !== want.Alt) return false;
   if (/^F\d+$/.test(key)) return e.key === key;
   if (/^\d$/.test(key)) return e.code === 'Digit' + key;
@@ -840,6 +842,8 @@ function matchKeys(e, keys) {
 }
 
 document.addEventListener('keydown', (e) => {
+  // the desktop window must never reload (F5, Ctrl+R): it would drop unsaved work
+  if (isDesktop && (e.key === 'F5' || ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'r'))) { e.preventDefault(); return; }
   if (e.defaultPrevented) return;
   if (e.key === 'Escape') {
     if (!$('#findbar').hidden && $('#findbar').contains(document.activeElement)) { closeFind(); return; }

@@ -104,7 +104,21 @@ pub fn save_to_path(project: &Project, path: &std::path::Path) -> std::io::Resul
         f.write_all(&bytes)?;
         f.sync_all()?;
     }
-    std::fs::rename(&tmp, path)
+    // On Windows a sync client or virus scanner can hold the old file for a moment; retry briefly.
+    let mut tries = 0;
+    loop {
+        match std::fs::rename(&tmp, path) {
+            Ok(()) => return Ok(()),
+            Err(e) if tries < 10 && e.kind() == std::io::ErrorKind::PermissionDenied => {
+                tries += 1;
+                std::thread::sleep(std::time::Duration::from_millis(100));
+            }
+            Err(e) => {
+                let _ = std::fs::remove_file(&tmp);
+                return Err(e);
+            }
+        }
+    }
 }
 
 pub fn load_from_path(path: &std::path::Path) -> Result<Project, String> {
