@@ -25,7 +25,7 @@ PDF. It's free, works offline, needs no account, and the installer is about 2 MB
   in and out.
 
 ---
-<img width="1880" height="800" alt="01-script-view" src="https://github.com/user-attachments/assets/cd607966-f0fd-4fb4-b76f-cb197693b38b" />
+<img width="2880" height="1800" alt="01-script-view" src="https://github.com/user-attachments/assets/655acf88-85ac-4f9e-86eb-6163b4617c03" />
 
 ## Writing
 
