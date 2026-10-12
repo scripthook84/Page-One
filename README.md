@@ -25,12 +25,9 @@ PDF. It's free, works offline, needs no account, and the installer is about 2 MB
   in and out.
 
 ---
-
-## Writing
-
 <img width="1880" height="800" alt="01-script-view" src="https://github.com/user-attachments/assets/cd607966-f0fd-4fb4-b76f-cb197693b38b" />
 
-
+## Writing
 
 - **The page.** Courier 12 pt on US Letter: 1.5" left margin, 1" top, right and bottom, 54 lines per
   page. Dialogue runs 2.5–6.0", character cues sit at 3.7", parentheticals at 3.1–5.25", and
@@ -58,10 +55,9 @@ PDF. It's free, works offline, needs no account, and the installer is about 2 MB
 - Unlimited undo, find and replace, go to page, spell checking from your system dictionary, and a
   command palette (Ctrl+K) that finds every command.
 
-## Storyboard
-
 <img width="2880" height="1800" alt="06-storyboard" src="https://github.com/user-attachments/assets/25196abe-b33d-4b63-9309-7e4c47e6014c" />
 
+## Storyboard
 
 - **One grid.** Every scene is a card that snaps to a cell, by row and by column, linked to the next
   scene by an arrow. Inside each act the story reads left to right, then down; set how many cards
@@ -99,6 +95,8 @@ PDF. It's free, works offline, needs no account, and the installer is about 2 MB
 - **Production.** Scene numbers in both margins, omitted scenes, revision mode in the standard
   colour order (Blue, Pink, Yellow, Green, Goldenrod, Buff, Salmon, Cherry) with asterisks and a
   revision header, a title page laid out to standard metrics, and watermarked PDFs.
+
+<img width="2880" height="1800" alt="10-export" src="https://github.com/user-attachments/assets/98297632-fc20-4c00-9b1e-98741e3b8705" />
 
 ## Files
 
