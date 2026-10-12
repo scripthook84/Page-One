@@ -14,6 +14,7 @@ PDF. It's free, works offline, needs no account, and the installer is about 2 MB
 
 - **Industry-standard pages, live.** Page breaks, (MORE) and (CONT'D), and dual dialogue appear in
   the editor exactly as they print.
+
 - **Writes the format for you.** Enter and Tab move through scene heading, action, character,
   parenthetical, dialogue and transition; suggestions fill in names, locations and times of day.
 - **A story board that snaps.** Scenes are cards on one grid. Drag a card and the script reorders
@@ -26,6 +27,9 @@ PDF. It's free, works offline, needs no account, and the installer is about 2 MB
 ---
 
 ## Writing
+
+<img width="800" height="800" alt="01-script-view" src="https://github.com/user-attachments/assets/644e450f-a822-497b-8589-d3357b3f8b3d" />
+
 
 - **The page.** Courier 12 pt on US Letter: 1.5" left margin, 1" top, right and bottom, 54 lines per
   page. Dialogue runs 2.5–6.0", character cues sit at 3.7", parentheticals at 3.1–5.25", and
