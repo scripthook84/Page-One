@@ -28,7 +28,7 @@ PDF. It's free, works offline, needs no account, and the installer is about 2 MB
 
 ## Writing
 
-<img width="800" height="800" alt="01-script-view" src="https://github.com/user-attachments/assets/644e450f-a822-497b-8589-d3357b3f8b3d" />
+<img width="1880" height="800" alt="01-script-view" src="https://github.com/user-attachments/assets/cd607966-f0fd-4fb4-b76f-cb197693b38b" />
 
 
 - **The page.** Courier 12 pt on US Letter: 1.5" left margin, 1" top, right and bottom, 54 lines per
