@@ -6,7 +6,7 @@ A lightweight, open-source screenwriting app. Built by a screenwriter for screen
 standard as you type, lays your story out on a snap-to-grid story board, and exports print-ready
 PDF. It's free, works offline, needs no account, and the installer is about 2 MB.
 
-**Version 1.0.0** · Windows (.msi) · macOS (.dmg) · Linux (.deb) · Apache License 2.0
+**Version 1.0.0** · Windows (.msi)  macOS (.dmg) · Linux (.deb) · Apache License 2.0
 
 ---
 
