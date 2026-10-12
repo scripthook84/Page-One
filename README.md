@@ -59,7 +59,10 @@ PDF. It's free, works offline, needs no account, and the installer is about 2 MB
   command palette (Ctrl+K) that finds every command.
 
 ## Storyboard
+
 <img width="2880" height="1800" alt="06-storyboard" src="https://github.com/user-attachments/assets/25196abe-b33d-4b63-9309-7e4c47e6014c" />
+
+
 - **One grid.** Every scene is a card that snaps to a cell, by row and by column, linked to the next
   scene by an arrow. Inside each act the story reads left to right, then down; set how many cards
   fit per row. The act lanes give the board its columns.
@@ -118,7 +121,7 @@ PDF. It's free, works offline, needs no account, and the installer is about 2 MB
 
 ---
 
-## How Page One compares
+## How Page One Compares
 
 | | **Page One** | **Final Draft 13** | **Fade In** |
 |---|---|---|---|
