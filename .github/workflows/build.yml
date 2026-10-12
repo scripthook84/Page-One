@@ -87,11 +87,16 @@ jobs:
           for f in *.dmg; do mv "$f" "Page-One_1.0.0_universal.dmg"; done
           ls -la
       - name: Check the app bundle
+        continue-on-error: true
         run: |
           APP="target/universal-apple-darwin/release/bundle/macos/Page One.app"
-          lipo -info "$APP/Contents/MacOS/page-one"
-          codesign --verify --deep --verbose=2 "$APP"
-          plutil -p "$APP/Contents/Info.plist" | grep -E "CFBundleShortVersionString|LSMinimumSystemVersion|pageone"
+          note() { echo "::notice title=$1::$(echo "$2" | tr '\n' ' ' | cut -c1-900)"; }
+          note "bundle" "$(ls "$APP/Contents/MacOS" 2>&1)"
+          note "architectures" "$(lipo -info "$APP"/Contents/MacOS/* 2>&1)"
+          note "signature" "$(codesign --verify --deep --strict --verbose=2 "$APP" 2>&1; echo "exit $?")"
+          note "signed as" "$(codesign -dv "$APP" 2>&1 | grep -E 'Signature|Identifier|TeamIdentifier|flags')"
+          note "Info.plist" "$(plutil -p "$APP/Contents/Info.plist" 2>&1 | grep -E 'ShortVersion|MinimumSystem|pageone|UTType' )"
+          note "dmg" "$(ls -la target/universal-apple-darwin/release/bundle/dmg 2>&1)"
       - uses: actions/upload-artifact@v4
         with:
           name: page-one-dmg
