@@ -136,12 +136,8 @@ PDF. It's free, works offline, needs no account, and the installer is about 2 MB
 | Final Draft .fdx | Opens and saves | Native format | Opens and saves |
 | Own file format | `.pageone`: compact binary, documented | `.fdx` (XML) | `.fadein` (zipped XML) |
 
-Prices and platforms are as published by each vendor in October 2026 (the Final Draft store and
-knowledge base, and Fade In's product listing). Final Draft feature entries come from the
-Final Draft 13 User Guide. "—" means the feature isn't offered or wasn't found in the sources
-checked. Check each vendor's site for current details.
 
-### Not in Page One yet
+### Future Improvements
 
 - Real-time collaboration, track changes, page locking and A-pages
 - PDF import; templates for TV, multi-camera and stage formats
