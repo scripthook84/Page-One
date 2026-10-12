@@ -6,7 +6,7 @@ A lightweight, open-source screenwriting app. Built by a screenwriter for screen
 standard as you type, lays your story out on a snap-to-grid story board, and exports print-ready
 PDF. It's free, works offline, needs no account, and the installer is about 2 MB.
 
-**Version 1.0.0** · Windows (.msi) · macOS (.dmg) · Linux (.deb) · Apache License 2.0
+**Version 1.0.0** · Windows (.msi)  macOS (.dmg) · Linux (.deb) · Apache License 2.0
 
 ---
 
@@ -14,6 +14,7 @@ PDF. It's free, works offline, needs no account, and the installer is about 2 MB
 
 - **Industry-standard pages, live.** Page breaks, (MORE) and (CONT'D), and dual dialogue appear in
   the editor exactly as they print.
+
 - **Writes the format for you.** Enter and Tab move through scene heading, action, character,
   parenthetical, dialogue and transition; suggestions fill in names, locations and times of day.
 - **A story board that snaps.** Scenes are cards on one grid. Drag a card and the script reorders
@@ -26,6 +27,10 @@ PDF. It's free, works offline, needs no account, and the installer is about 2 MB
 ---
 
 ## Writing
+
+<img width="1880" height="800" alt="01-script-view" src="https://github.com/user-attachments/assets/cd607966-f0fd-4fb4-b76f-cb197693b38b" />
+
+
 
 - **The page.** Courier 12 pt on US Letter: 1.5" left margin, 1" top, right and bottom, 54 lines per
   page. Dialogue runs 2.5–6.0", character cues sit at 3.7", parentheticals at 3.1–5.25", and
@@ -54,6 +59,9 @@ PDF. It's free, works offline, needs no account, and the installer is about 2 MB
   command palette (Ctrl+K) that finds every command.
 
 ## Storyboard
+
+<img width="2880" height="1800" alt="06-storyboard" src="https://github.com/user-attachments/assets/25196abe-b33d-4b63-9309-7e4c47e6014c" />
+
 
 - **One grid.** Every scene is a card that snaps to a cell, by row and by column, linked to the next
   scene by an arrow. Inside each act the story reads left to right, then down; set how many cards
@@ -113,7 +121,7 @@ PDF. It's free, works offline, needs no account, and the installer is about 2 MB
 
 ---
 
-## How Page One compares
+## How Page One Compares
 
 | | **Page One** | **Final Draft 13** | **Fade In** |
 |---|---|---|---|
@@ -136,12 +144,8 @@ PDF. It's free, works offline, needs no account, and the installer is about 2 MB
 | Final Draft .fdx | Opens and saves | Native format | Opens and saves |
 | Own file format | `.pageone`: compact binary, documented | `.fdx` (XML) | `.fadein` (zipped XML) |
 
-Prices and platforms are as published by each vendor in October 2026 (the Final Draft store and
-knowledge base, and Fade In's product listing). Final Draft feature entries come from the
-Final Draft 13 User Guide. "—" means the feature isn't offered or wasn't found in the sources
-checked. Check each vendor's site for current details.
 
-### Not in Page One yet
+### Future Improvements
 
 - Real-time collaboration, track changes, page locking and A-pages
 - PDF import; templates for TV, multi-camera and stage formats
