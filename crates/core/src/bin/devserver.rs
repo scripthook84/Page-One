@@ -44,9 +44,16 @@ fn serve(server: &tiny_http::Server, root: &std::path::Path) {
                 Ok(p) => bytes_resp(codec::encode(&p), "application/octet-stream"),
                 Err(e) => json(serde_json::json!({ "error": e.to_string() })),
             },
+            u if u.starts_with("/api/board") => match parse() {
+                Ok(p) => {
+                    let what = pageone_core::board_pdf::BoardPrint { board: !u.contains("what=outline"), outline: u.contains("outline") };
+                    bytes_resp(pageone_core::board_pdf::render_board_pdf(&p, what), "application/pdf")
+                }
+                Err(e) => json(serde_json::json!({ "error": e.to_string() })),
+            },
             "/api/pdf" => match parse() {
                 Ok(p) => {
-                    let opts = pdf::PdfOptions { title_page: p.settings.title_page, watermark: String::new() };
+                    let opts = pdf::PdfOptions { title_page: p.settings.title_page, watermark: String::new(), rev_pages: p.settings.rev_pages };
                     bytes_resp(pdf::render_pdf(&p, &opts), "application/pdf")
                 }
                 Err(e) => json(serde_json::json!({ "error": e.to_string() })),
@@ -73,14 +80,21 @@ fn serve(server: &tiny_http::Server, root: &std::path::Path) {
             _ => {
                 let rel = url.split('?').next().unwrap().trim_start_matches('/');
                 let rel = if rel.is_empty() { "index.html" } else { rel };
+                // voice assets live beside the desktop shell (bundled as resources there)
+                let path = match rel.strip_prefix("voice/") {
+                    Some(v) => root.parent().unwrap_or(root).join("src-tauri").join("voice").join(v),
+                    None => root.join(rel),
+                };
                 if rel.contains("..") {
                     tiny_http::Response::from_string("no").with_status_code(403)
                 } else {
-                    match std::fs::read(root.join(rel)) {
+                    match std::fs::read(path) {
                         Ok(b) => {
                             let ct = match rel.rsplit('.').next().unwrap_or("") {
                                 "html" => "text/html; charset=utf-8",
-                                "js" => "text/javascript",
+                                "js" | "mjs" => "text/javascript",
+                                "wasm" => "application/wasm",
+                                "json" => "application/json",
                                 "css" => "text/css",
                                 "ttf" => "font/ttf",
                                 "png" => "image/png",
@@ -94,6 +108,10 @@ fn serve(server: &tiny_http::Server, root: &std::path::Path) {
                 }
             }
         };
+        // cross-origin isolation, as in the desktop app, so the voice engine can use threads
+        let res = res
+            .with_header("Cross-Origin-Opener-Policy: same-origin".parse::<tiny_http::Header>().unwrap())
+            .with_header("Cross-Origin-Embedder-Policy: require-corp".parse::<tiny_http::Header>().unwrap());
         let _ = req.respond(res);
     }
 }

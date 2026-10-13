@@ -101,7 +101,9 @@ export const api = {
   },
 
   async exportAs(kind, project, suggested, opts = {}) {
-    const ext = { pdf: 'pdf', fountain: 'fountain', fdx: 'fdx', text: 'txt' }[kind];
+    const board = ['board', 'outline', 'board+outline'].includes(kind);
+    const ext = board ? 'pdf' : { pdf: 'pdf', fountain: 'fountain', fdx: 'fdx', text: 'txt' }[kind];
+    if (board) suggested = `${suggested || 'Untitled'} - ${kind === 'outline' ? 'Outline' : kind === 'board' ? 'Story board' : 'Board and outline'}`;
     if (isDesktop) {
       let path = await withDialog('pick_save', { kind, suggested: suggested || 'Untitled' });
       if (!path) return null;
@@ -109,9 +111,9 @@ export const api = {
       await invoke('export_file', { path, kind, project, watermark: opts.watermark || '' });
       return path;
     }
-    const as = kind === 'pdf' ? 'bytes' : 'text';
-    const data = await post('/api/' + kind, project, as);
-    download(`${suggested || 'Untitled'}.${ext}`, data, kind === 'pdf' ? 'application/pdf' : 'text/plain');
+    const as = ext === 'pdf' ? 'bytes' : 'text';
+    const data = await post(board ? '/api/board?what=' + encodeURIComponent(kind) : '/api/' + kind, project, as);
+    download(`${suggested || 'Untitled'}.${ext}`, data, ext === 'pdf' ? 'application/pdf' : 'text/plain');
     return suggested + '.' + ext;
   },
 

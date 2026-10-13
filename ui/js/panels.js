@@ -5,6 +5,7 @@ import { esc, textOf } from './editor.js';
 import { SCENE_COLORS, ELEMS, COLORS, colorLabel, keyText } from './elements.js';
 import * as dialogs from './dialogs.js';
 import { renderBoard } from './board.js';
+import { splitEnding, trimBlock, finishReorder } from './reorder.js';
 
 const $ = (s) => document.querySelector(s);
 let curScene = -1;
@@ -102,14 +103,20 @@ function blockRange(paras, a) {
 }
 
 export function moveBlock(from, before) {
-  const paras = S.editor.paras();
+  const all = S.editor.paras();
+  const { body: paras, ending } = splitEnding(all);
+  if (from >= paras.length) return false;
   const [a, b] = blockRange(paras, from);
+  before = Math.min(before, paras.length);
   if (before >= a && before <= b) return false;
-  const block = paras.slice(a, b);
+  const block = trimBlock(paras.slice(a, b));
   const rest = paras.slice(0, a).concat(paras.slice(b));
   const at = before > a ? before - (b - a) : before;
   rest.splice(at, 0, ...block);
-  S.editor.replaceAll(rest, [at, 0, at, 0]);
+  const out = finishReorder(rest, ending);
+  // keep the cursor on the moved heading
+  const head = out.indexOf(block[0]);
+  S.editor.replaceAll(out, [Math.max(0, head), 0, Math.max(0, head), 0]);
   S.app.toast('Scene moved in the script. Ctrl+Z puts it back.');
   return true;
 }
@@ -174,7 +181,7 @@ function renderCharacters() {
         <span class="hint">${c.words.toLocaleString()} words of dialogue. First speaks on page ${c.firstPage || 1}.</span>
         <div class="swatches">${SCENE_COLORS.map((x) => `<button data-c="${x}" style="--c:${x || 'transparent'}" class="${(card.color || '') === x ? 'on' : ''}" title="${x ? 'Colour' : 'No colour'}"></button>`).join('')}</div>
         <textarea rows="4" data-bio placeholder="Who they are, what they want, how they talk…">${esc(card.bio || '')}</textarea>
-        <div class="btns"><button class="btn" data-act="tuner">Dialogue tuner</button><button class="btn" data-act="rename">Rename…</button><button class="btn" data-act="first">Go to first line</button></div>
+        <div class="btns"><button class="btn" data-act="tuner">Dialogue tuner</button><button class="btn" data-act="rename">Rename…</button><button class="btn" data-act="first">Go to first line</button><button class="btn" data-act="voice" title="Choose the voice that reads ${esc(c.name)} in a table read">Voice…</button></div>
       </div>` : ''}
     </li>`;
   }).join('');
@@ -197,6 +204,7 @@ $('#charList').addEventListener('click', (e) => {
   if (act) {
     if (act.dataset.act === 'tuner') dialogs.tunerDialog(name);
     if (act.dataset.act === 'rename') dialogs.renameDialog(name);
+    if (act.dataset.act === 'voice') dialogs.voicesDialog();
     if (act.dataset.act === 'first') {
       const c = S.derived.characters.find((x) => x.name === name);
       S.app.setView('script');

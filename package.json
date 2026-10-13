@@ -11,9 +11,11 @@
     "preview": "cargo run -p pageone-core --features devserver --bin pageone-devserver -- ui 8787",
     "test": "cargo test -p pageone-core",
     "build:mac": "tauri build --bundles dmg --target universal-apple-darwin",
-    "build:win": "tauri build --bundles msi"
+    "build:win": "tauri build --bundles msi",
+    "postinstall": "node scripts/copy-ort.mjs"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2"
+    "@tauri-apps/cli": "^2",
+    "onnxruntime-web": "1.20.1"
   }
 }

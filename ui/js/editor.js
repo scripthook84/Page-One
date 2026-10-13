@@ -1105,6 +1105,41 @@ export class Editor {
     for (const el of this.root.querySelectorAll('[data-contd]')) if (!contd.has(el)) delete el.dataset.contd;
     for (const el of contd) el.dataset.contd = '1';
     this.scheduleDual();
+    this.paintRevPages(lay, settings);
+  }
+
+  /** Revised pages in their revision colour, the whole page, as they will print. */
+  paintRevPages(lay, settings) {
+    const paper = this.root.closest('.paper');
+    if (!paper) return;
+    let layer = paper.querySelector(':scope > .rev-pages');
+    if (!layer) {
+      layer = document.createElement('div');
+      layer.className = 'rev-pages';
+      layer.setAttribute('aria-hidden', 'true');
+      paper.prepend(layer);
+    }
+    for (const el of this.root.querySelectorAll('[style*="--pg-"]')) { el.style.removeProperty('--pg-above'); el.style.removeProperty('--pg-below'); }
+    if (!settings.rev_pages || !lay.pages.some((p) => p.rev)) { layer.innerHTML = ''; return; }
+    const els = this.root.children;
+    const pr = paper.getBoundingClientRect();
+    const em = parseFloat(getComputedStyle(paper).fontSize) || 16;
+    // a page runs from just below the gap above its first line to just above the gap below its last
+    const brk = lay.breaks.map((pi) => els[pi]);
+    let html = '';
+    lay.pages.forEach((pg, k) => {
+      if (!pg.rev) return;
+      const col = `var(--rev-page-${Math.min(pg.rev, 8)})`;
+      const a = k ? brk[k - 1] : null, b = brk[k] || null;
+      // a page that starts or ends inside a long speech has no paragraph edge to paint from
+      if ((k && !a) || (k < lay.pages.length - 1 && !b)) return;
+      const top = a ? (a.getBoundingClientRect().top - pr.top) / em - 5.1 : 0;
+      const bottom = b ? (b.getBoundingClientRect().top - pr.top) / em - 7.1 : pr.height / em;
+      html += `<div style="top:${top.toFixed(3)}em;height:${Math.max(0, bottom - top).toFixed(3)}em;background:${col}"></div>`;
+      if (a) a.style.setProperty('--pg-below', col);
+      if (b) b.style.setProperty('--pg-above', col);
+    });
+    layer.innerHTML = html;
   }
 
   focusPara(i, off = 0) {

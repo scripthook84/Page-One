@@ -46,6 +46,7 @@ fn texts(runs: &[Run]) -> String {
 }
 
 fn para_xml(p: &Para, number: Option<&str>) -> String {
+    let omitted = p.t == Elem::Scene && p.meta.as_ref().map(|m| m.omitted).unwrap_or(false);
     let ty = match (p.t, p.lvl) {
         (Elem::Section, 2) => "Outline 2",
         (Elem::Section, 3) => "Outline 3",
@@ -73,15 +74,73 @@ fn para_xml(p: &Para, number: Option<&str>) -> String {
             }
         }
     }
-    let text = p.runs.clone();
+    // an omitted scene keeps its number and prints OMITTED, as on the page
+    let text = if omitted { vec![Run { x: "OMITTED".into(), s: 0 }] } else { p.runs.clone() };
     format!("    <Paragraph {attrs}>{inner}{}</Paragraph>\n", texts(&text))
+}
+
+const FONT: &str = r##"<FontSpec AdornmentStyle="0" Background="#FFFFFFFFFFFF" Color="#000000000000" Font="Courier Final Draft" RevisionID="0" Size="12" Style="{style}"/>"##;
+
+/// Page layout, page-number header and element settings in Final Draft's own form, carrying
+/// Page One's industry-standard metrics so Final Draft opens the script exactly as it prints here.
+fn settings_xml(p: &Project) -> String {
+    let s = &p.settings;
+    let font = |style: &str| FONT.replace("{style}", style);
+    let mut o = String::new();
+    o.push_str("  <HeaderAndFooter FooterFirstPage=\"Yes\" FooterVisible=\"No\" HeaderFirstPage=\"No\" HeaderVisible=\"Yes\" StartingPage=\"1\">\n");
+    o.push_str("    <Header>\n      <Paragraph Alignment=\"Right\" FirstIndent=\"0.00\" Leading=\"Regular\" LeftIndent=\"1.50\" RightIndent=\"-1.00\" SpaceBefore=\"0\" Spacing=\"1\" StartsNewPage=\"No\">\n");
+    if !s.header.trim().is_empty() {
+        o.push_str(&format!("        <Text Style=\"\">{}    </Text>\n", esc(s.header.trim())));
+    }
+    o.push_str("        <DynamicLabel Type=\"Page #\"/>\n        <Text Style=\"\">.</Text>\n      </Paragraph>\n    </Header>\n");
+    o.push_str("    <Footer>\n      <Paragraph Alignment=\"Right\" FirstIndent=\"0.00\" Leading=\"Regular\" LeftIndent=\"1.50\" RightIndent=\"-1.00\" SpaceBefore=\"0\" Spacing=\"1\" StartsNewPage=\"No\">\n        <Text Style=\"\"></Text>\n      </Paragraph>\n    </Footer>\n  </HeaderAndFooter>\n");
+    // 1" top and bottom, page number 0.5" from the top, US Letter or A4
+    let (w, h) = if s.page_size == "a4" { ("8.27", "11.69") } else { ("8.50", "11.00") };
+    o.push_str(&format!(
+        "  <PageLayout BackgroundColor=\"#FFFFFFFFFFFF\" BottomMargin=\"72\" BreakDialogueAndActionAtSentences=\"Yes\" DocumentLeading=\"Normal\" FooterMargin=\"36\" ForegroundColor=\"#000000000000\" HeaderMargin=\"36\" InvisiblesColor=\"#808080808080\" TopMargin=\"72\" UsesSmartQuotes=\"Yes\">\n    <AutoCastList AddParentheses=\"Yes\" AutomaticallyGenerate=\"No\" CastListElement=\"Cast List\"/>\n  </PageLayout>\n  <PageSize Height=\"{h}\" Width=\"{w}\"/>\n"
+    ));
+    let scene_style = if s.bold_scenes { "Bold+AllCaps" } else { "AllCaps" };
+    let scene_before = (12 * s.scene_space.clamp(1, 2) as u32).to_string();
+    // (type, style, alignment, first indent, left, right, space before, return key, shortcut)
+    let elems: [(&str, &str, &str, &str, &str, &str, &str, &str, &str); 9] = [
+        ("General", "", "Left", "0.00", "1.50", "7.50", "0", "General", "0"),
+        ("Scene Heading", scene_style, "Left", "0.00", "1.50", "7.50", &scene_before, "Action", "1"),
+        ("Action", "", "Left", "0.00", "1.50", "7.50", "12", "Action", "2"),
+        ("Character", "AllCaps", "Left", "0.00", "3.70", "7.50", "12", "Dialogue", "3"),
+        ("Parenthetical", "", "Left", "-0.10", "3.20", "5.25", "0", "Dialogue", "4"),
+        ("Dialogue", "", "Left", "0.00", "2.50", "6.00", "0", "Action", "5"),
+        ("Transition", "AllCaps", "Right", "0.00", "5.50", "7.50", "12", "Scene Heading", "6"),
+        ("Shot", "AllCaps", "Left", "0.00", "1.50", "7.50", "12", "Action", "7"),
+        ("Lyrics", "Italic", "Left", "0.00", "2.50", "6.00", "0", "Lyrics", "9"),
+    ];
+    for (ty, style, align, first, left, right, before, ret, key) in elems {
+        o.push_str(&format!(
+            "  <ElementSettings Type=\"{ty}\">\n    {}\n    <ParagraphSpec Alignment=\"{align}\" FirstIndent=\"{first}\" Leading=\"Regular\" LeftIndent=\"{left}\" RightIndent=\"{right}\" SpaceBefore=\"{before}\" Spacing=\"1\" StartsNewPage=\"No\"/>\n    <Behavior PaginateAs=\"{ty}\" ReturnKey=\"{ret}\" Shortcut=\"{key}\"/>\n  </ElementSettings>\n",
+            font(style)
+        ));
+    }
+    o
+}
+
+/// (MORE)/(CONT'D) and scene-number placement, after the title page as Final Draft writes them.
+fn options_xml(p: &Project) -> String {
+    let s = &p.settings;
+    let yn = |b: bool| if b { "Yes" } else { "No" };
+    format!(
+        "  <MoresAndContinueds>\n    {}\n    <DialogueBreaks AutomaticCharacterContinueds=\"{}\" BottomOfPage=\"{}\" DialogueBottom=\"(MORE)\" DialogueTop=\"(CONT'D)\" TopOfNext=\"{}\"/>\n    <SceneBreaks ContinuedNumber=\"No\" SceneBottom=\"(CONTINUED)\" SceneBottomOfPage=\"No\" SceneTop=\"CONTINUED:\" SceneTopOfNext=\"No\"/>\n  </MoresAndContinueds>\n  <SceneNumberOptions LeftLocation=\"0.90\" NumberScheme=\"1A\" RightLocation=\"7.80\" ShowNumbersOnLeft=\"Yes\" ShowNumbersOnRight=\"Yes\"/>\n",
+        FONT.replace("{style}", ""),
+        yn(s.conts),
+        yn(s.mores),
+        yn(s.mores)
+    )
 }
 
 pub fn export(p: &Project) -> String {
     let mut o = String::from(
         "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>\n<FinalDraft DocumentType=\"Script\" Template=\"No\" Version=\"5\">\n  <Content>\n",
     );
-    let mut scene_no = 0;
+    // the same numbers the printed page carries (locked numbers such as 12A included)
+    let nums = crate::layout::scene_numbers(&p.paras);
     let mut i = 0;
     while i < p.paras.len() {
         let para = &p.paras[i];
@@ -99,17 +158,14 @@ pub fn export(p: &Project) -> String {
                 continue;
             }
         }
-        let num = if para.t == Elem::Scene {
-            scene_no += 1;
-            let m = para.meta.as_ref().map(|m| m.num.clone()).unwrap_or_default();
-            Some(if m.is_empty() { scene_no.to_string() } else { m })
-        } else {
-            None
-        };
-        o.push_str(&para_xml(para, if p.settings.scene_numbers { num.as_deref() } else { None }));
+        let locked = para.meta.as_ref().map(|m| !m.num.trim().is_empty()).unwrap_or(false);
+        let num = if para.t == Elem::Scene && (p.settings.scene_numbers || locked) { nums[i].as_deref() } else { None };
+        o.push_str(&para_xml(para, num));
         i += 1;
     }
-    o.push_str("  </Content>\n  <TitlePage>\n    <Content>\n");
+    o.push_str("  </Content>\n");
+    o.push_str(&settings_xml(p));
+    o.push_str("  <TitlePage>\n    <Content>\n");
     let tp = &p.title_page;
     let center = |o: &mut String, s: &str| {
         o.push_str(&format!("      <Paragraph Alignment=\"Center\" Type=\"Title\"><Text>{}</Text></Paragraph>\n", esc(s)));
@@ -139,7 +195,9 @@ pub fn export(p: &Project) -> String {
     for l in tp.contact.lines().chain(tp.draft.lines()) {
         o.push_str(&format!("      <Paragraph Alignment=\"Left\" Type=\"Title\"><Text>{}</Text></Paragraph>\n", esc(l)));
     }
-    o.push_str("    </Content>\n  </TitlePage>\n</FinalDraft>\n");
+    o.push_str("    </Content>\n  </TitlePage>\n");
+    o.push_str(&options_xml(p));
+    o.push_str("</FinalDraft>\n");
     o
 }
 
@@ -222,7 +280,9 @@ fn read_para(node: roxmltree::Node, out: &mut Vec<Para>, in_dual: &mut Option<us
     if t == Elem::Scene {
         let mut meta = SceneMeta::default();
         if let Some(n) = node.attribute("Number") {
-            let _ = n; // automatic numbering is kept; manual numbers are not forced
+            // kept for now; after the whole file is read, numbers that match the automatic
+            // sequence are released and only locked ones (12A, or out of sequence) stay
+            meta.num = n.trim().to_string();
         }
         if let Some(sp) = node.children().find(|c| c.has_tag_name("SceneProperties")) {
             if let Some(c) = sp.attribute("Color") {
@@ -280,10 +340,58 @@ pub fn import(xml: &str) -> Result<Project, String> {
         }
         p.title_page.contact = it.collect::<Vec<_>>().join("\n");
     }
+    release_auto_numbers(&mut p);
+    // spacing before scene headings, as the file sets it (24 pt = two blank lines)
+    for es in root.children().filter(|c| c.has_tag_name("ElementSettings") && c.attribute("Type") == Some("Scene Heading")) {
+        if let Some(ps) = es.children().find(|c| c.has_tag_name("ParagraphSpec")) {
+            if let Some(sb) = ps.attribute("SpaceBefore").and_then(|v| v.parse::<u32>().ok()) {
+                p.settings.scene_space = if sb >= 24 { 2 } else { 1 };
+            }
+        }
+        if let Some(fs) = es.children().find(|c| c.has_tag_name("FontSpec")) {
+            p.settings.bold_scenes = fs.attribute("Style").map(|v| v.contains("Bold")).unwrap_or(false);
+        }
+    }
     if p.paras.is_empty() {
         p.paras.push(Para::new(Elem::Scene, ""));
     }
     Ok(p)
+}
+
+/// Final Draft stores a number on every scene once numbering is on. Keep only the numbers that
+/// differ from the automatic sequence (locked ones such as 12A), so the rest renumber as usual.
+fn release_auto_numbers(p: &mut Project) {
+    let mut any = false;
+    let mut last = 0u32;
+    for para in p.paras.iter_mut().filter(|x| x.t == Elem::Scene) {
+        let Some(m) = para.meta.as_mut() else {
+            last += 1;
+            continue;
+        };
+        if m.num.is_empty() {
+            last += 1;
+            continue;
+        }
+        any = true;
+        let expected = (last + 1).to_string();
+        if m.num == expected {
+            m.num.clear();
+            last += 1;
+        } else {
+            let digits: String = m.num.chars().take_while(|c| c.is_ascii_digit()).collect();
+            if let Ok(v) = digits.parse::<u32>() {
+                last = v;
+            }
+        }
+    }
+    if any {
+        p.settings.scene_numbers = true;
+    }
+    for para in p.paras.iter_mut() {
+        if para.meta.as_ref().map(|m| *m == SceneMeta::default()).unwrap_or(false) {
+            para.meta = None;
+        }
+    }
 }
 
 #[cfg(test)]
@@ -311,5 +419,43 @@ mod tests {
         assert_eq!(q.paras[1].runs, p.paras[1].runs);
         assert_eq!(q.title_page.title, "TEST & CO");
         assert_eq!(q.title_page.author, "A. Writer");
+    }
+
+    #[test]
+    fn scene_numbers_and_settings() {
+        let mut p = Project::default();
+        p.settings.scene_numbers = true;
+        let mut locked = Para::new(Elem::Scene, "INT. B - DAY");
+        locked.meta = Some(SceneMeta { num: "12A".into(), ..Default::default() });
+        let mut omitted = Para::new(Elem::Scene, "INT. C - DAY");
+        omitted.meta = Some(SceneMeta { omitted: true, ..Default::default() });
+        p.paras = vec![
+            Para::new(Elem::Scene, "INT. A - DAY"),
+            Para::new(Elem::Action, "One."),
+            locked,
+            Para::new(Elem::Action, "Two."),
+            omitted,
+            Para::new(Elem::Scene, "EXT. D - NIGHT"),
+        ];
+        let x = export(&p);
+        // numbers as printed: 1, 12A, 13 (omitted keeps its number), 14
+        assert!(x.contains(r#"<Paragraph Type="Scene Heading" Number="1">"#), "{x}");
+        assert!(x.contains(r#"Number="12A""#));
+        assert!(x.contains(r#"Number="13"><Text>OMITTED</Text>"#), "{x}");
+        assert!(x.contains(r#"Number="14""#));
+        assert!(x.contains("<SceneNumberOptions"));
+        assert!(x.contains(r#"<ElementSettings Type="Scene Heading">"#));
+        assert!(x.contains(r#"SpaceBefore="24""#)); // two blank lines, Final Draft's default
+        assert!(x.contains(r#"LeftIndent="2.50" RightIndent="6.00""#)); // dialogue
+        let q = import(&x).unwrap();
+        assert!(q.settings.scene_numbers);
+        assert_eq!(q.settings.scene_space, 2);
+        let nums: Vec<String> = q.paras.iter().filter(|x| x.t == Elem::Scene).map(|x| x.meta.as_ref().map(|m| m.num.clone()).unwrap_or_default()).collect();
+        // only the locked number stays; the rest number themselves
+        assert_eq!(nums, vec!["", "12A", "", ""]);
+        // without numbering switched on, no numbers are written
+        p.settings.scene_numbers = false;
+        p.paras[2].meta = None;
+        assert!(!export(&p).contains(" Number=\""));
     }
 }

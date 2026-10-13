@@ -3,6 +3,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use pageone_core::{codec, fdx, fountain, layout, pdf, text, Project};
+
+mod voice;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Mutex;
@@ -41,7 +43,7 @@ async fn pick_open(app: tauri::AppHandle, kind: String) -> Option<String> {
 #[tauri::command]
 async fn pick_save(app: tauri::AppHandle, kind: String, suggested: String) -> Option<String> {
     let (label, ext) = match kind.as_str() {
-        "pdf" => ("PDF", "pdf"),
+        "pdf" | "board" | "outline" | "board+outline" => ("PDF", "pdf"),
         "fountain" => ("Fountain", "fountain"),
         "fdx" => ("Final Draft", "fdx"),
         "text" => ("Plain text", "txt"),
@@ -112,7 +114,12 @@ fn save_file(app: tauri::AppHandle, path: String, project: Project) -> Result<()
 #[tauri::command]
 fn export_file(path: String, kind: String, project: Project, watermark: String) -> Result<(), String> {
     let bytes = match kind.as_str() {
-        "pdf" => pdf::render_pdf(&project, &pdf::PdfOptions { title_page: project.settings.title_page, watermark }),
+        "pdf" => pdf::render_pdf(&project, &pdf::PdfOptions { title_page: project.settings.title_page, watermark, rev_pages: project.settings.rev_pages }),
+        // story board and/or outline, landscape
+        "board" | "outline" | "board+outline" => pageone_core::board_pdf::render_board_pdf(
+            &project,
+            pageone_core::board_pdf::BoardPrint { board: kind != "outline", outline: kind != "board" },
+        ),
         "fountain" => fountain::export(&project).into_bytes(),
         "fdx" => fdx::export(&project).into_bytes(),
         "text" => text::export(&project).into_bytes(),
@@ -246,6 +253,7 @@ fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .manage(Launch(Mutex::new(launch)))
+        .manage(voice::VoiceState::default())
         .setup(|app| {
             enable_spellcheck(app);
             #[cfg(target_os = "macos")]
@@ -261,7 +269,10 @@ fn main() {
             save_file,
             export_file,
             initial_file,
-            quit_app
+            quit_app,
+            voice::voice_init,
+            voice::voice_synth,
+            voice::voice_lexicon
         ])
         .on_window_event(|window, event| {
             if let WindowEvent::CloseRequested { api, .. } = event {

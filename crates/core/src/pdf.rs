@@ -7,9 +7,9 @@ use crate::model::*;
 use flate2::{write::ZlibEncoder, Compression};
 use std::io::Write;
 
-const REGULAR: &[u8] = include_bytes!("../fonts/CourierPrime-Regular.ttf");
-const BOLD_F: &[u8] = include_bytes!("../fonts/CourierPrime-Bold.ttf");
-const ITALIC_F: &[u8] = include_bytes!("../fonts/CourierPrime-Italic.ttf");
+pub(crate) const REGULAR: &[u8] = include_bytes!("../fonts/CourierPrime-Regular.ttf");
+pub(crate) const BOLD_F: &[u8] = include_bytes!("../fonts/CourierPrime-Bold.ttf");
+pub(crate) const ITALIC_F: &[u8] = include_bytes!("../fonts/CourierPrime-Italic.ttf");
 const BOLDITALIC_F: &[u8] = include_bytes!("../fonts/CourierPrime-BoldItalic.ttf");
 
 /// 10 characters per inch.
@@ -24,9 +24,25 @@ const TOP_MARGIN: f64 = 72.0;
 pub struct PdfOptions {
     pub title_page: bool,
     pub watermark: String,
+    /// Print revised pages on their revision colour (solid page background).
+    pub rev_pages: bool,
 }
 
-fn zip(data: &[u8]) -> Vec<u8> {
+/// Revision paper colours in the standard order (index 0 = white), as RGB 0–1. Light enough that
+/// black text prints legibly, like the coloured paper revision pages are issued on.
+pub const REV_PAPER: [(f64, f64, f64); 9] = [
+    (1.0, 1.0, 1.0),
+    (0.780, 0.866, 1.000), // Blue
+    (1.000, 0.835, 0.902), // Pink
+    (1.000, 0.957, 0.659), // Yellow
+    (0.800, 0.941, 0.784), // Green
+    (0.957, 0.847, 0.522), // Goldenrod
+    (0.945, 0.890, 0.741), // Buff
+    (1.000, 0.808, 0.741), // Salmon
+    (0.957, 0.698, 0.729), // Cherry
+];
+
+pub(crate) fn zip(data: &[u8]) -> Vec<u8> {
     let mut e = ZlibEncoder::new(Vec::new(), Compression::default());
     e.write_all(data).unwrap();
     e.finish().unwrap()
@@ -70,7 +86,7 @@ fn winansi(c: char) -> u8 {
     }
 }
 
-fn pdf_string(s: &str) -> Vec<u8> {
+pub(crate) fn pdf_string(s: &str) -> Vec<u8> {
     let mut out = vec![b'('];
     for c in s.chars() {
         let b = winansi(c);
@@ -83,28 +99,28 @@ fn pdf_string(s: &str) -> Vec<u8> {
     out
 }
 
-struct Writer {
-    buf: Vec<u8>,
-    offsets: Vec<usize>,
+pub(crate) struct Writer {
+    pub(crate) buf: Vec<u8>,
+    pub(crate) offsets: Vec<usize>,
 }
 
 impl Writer {
-    fn new() -> Self {
+    pub(crate) fn new() -> Self {
         let mut buf = Vec::new();
         buf.extend_from_slice(b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n");
         Writer { buf, offsets: vec![0] }
     }
-    fn reserve(&mut self) -> usize {
+    pub(crate) fn reserve(&mut self) -> usize {
         self.offsets.push(0);
         self.offsets.len() - 1
     }
-    fn obj(&mut self, id: usize, body: &[u8]) {
+    pub(crate) fn obj(&mut self, id: usize, body: &[u8]) {
         self.offsets[id] = self.buf.len();
         self.buf.extend_from_slice(format!("{id} 0 obj\n").as_bytes());
         self.buf.extend_from_slice(body);
         self.buf.extend_from_slice(b"\nendobj\n");
     }
-    fn stream(&mut self, id: usize, dict_extra: &str, data: &[u8]) {
+    pub(crate) fn stream(&mut self, id: usize, dict_extra: &str, data: &[u8]) {
         let z = zip(data);
         let mut body = format!("<< /Length {} /Filter /FlateDecode {} >>\nstream\n", z.len(), dict_extra).into_bytes();
         body.extend_from_slice(&z);
@@ -291,6 +307,11 @@ pub fn render_pdf(project: &Project, opts: &PdfOptions) -> Vec<u8> {
     }
     for p in &lay.pages {
         let mut c = Canvas { ops: Vec::new(), height: h };
+        if opts.rev_pages && p.rev > 0 {
+            // the whole page in its revision colour, under the text
+            let (r, g, b) = REV_PAPER[(p.rev as usize).min(REV_PAPER.len() - 1)];
+            c.ops.extend_from_slice(format!("q {r:.3} {g:.3} {b:.3} rg 0 0 {w:.2} {h:.2} re f Q\n").as_bytes());
+        }
         body_page_ops(p, project, &mut c);
         canvases.push(c);
     }

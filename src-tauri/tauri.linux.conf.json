@@ -1,0 +1,7 @@
+{
+  "bundle": {
+    "resources": {
+      "voice/libonnxruntime.so": "voice/libonnxruntime.so"
+    }
+  }
+}

@@ -88,6 +88,9 @@ pub struct Line {
 pub struct Page {
     pub n: u32,
     pub lines: Vec<Line>,
+    /// Latest revision colour of any change on this page (0 = unrevised). Revised pages are issued
+    /// on that colour of paper.
+    pub rev: u8,
 }
 
 #[derive(Serialize, Clone, Debug, Default)]
@@ -330,12 +333,10 @@ fn speech_end(paras: &[Para], i: usize) -> usize {
     j
 }
 
-pub fn layout(project: &Project) -> Layout {
-    let s = &project.settings;
-    let paras = &project.paras;
-    let lines_per_page = if s.page_size == "a4" { A4_LINES } else { LETTER_LINES };
-
-    // ---- scene numbers
+/// Scene number of every scene heading (None for other paragraphs): automatic 1, 2, 3…, with a
+/// locked number (such as 12A) kept as typed and numbering continuing from it. Shared by the page,
+/// the PDF and the Final Draft export so they always agree.
+pub fn scene_numbers(paras: &[Para]) -> Vec<Option<String>> {
     let mut scene_nums: Vec<Option<String>> = vec![None; paras.len()];
     let mut n = 0u32;
     for (i, p) in paras.iter().enumerate() {
@@ -345,13 +346,25 @@ pub fn layout(project: &Project) -> Layout {
                 n += 1;
                 scene_nums[i] = Some(n.to_string());
             } else {
-                if let Ok(v) = manual.parse::<u32>() {
+                // 12A continues from 12, so the next scene is 13
+                let digits: String = manual.chars().take_while(|c| c.is_ascii_digit()).collect();
+                if let Ok(v) = digits.parse::<u32>() {
                     n = v;
                 }
                 scene_nums[i] = Some(manual);
             }
         }
     }
+    scene_nums
+}
+
+pub fn layout(project: &Project) -> Layout {
+    let s = &project.settings;
+    let paras = &project.paras;
+    let lines_per_page = if s.page_size == "a4" { A4_LINES } else { LETTER_LINES };
+
+    // ---- scene numbers
+    let scene_nums = scene_numbers(paras);
 
     // ---- build blocks
     let mut blocks: Vec<Block> = Vec::new();
@@ -552,17 +565,20 @@ pub fn layout(project: &Project) -> Layout {
         let reserve = if is_dialogue && s.mores { 1 } else { 0 };
         if b.splittable && !fits_self && b.rows.len() >= 4 && avail >= 2 + reserve {
             let max_k = (avail - reserve).min(b.rows.len() - 2);
-            // prefer a sentence boundary
+            // prefer a sentence boundary that keeps at least half of the room used; otherwise break
+            // at the last line that fits (a speech is never pushed whole to the next page, which
+            // would strand its character cue)
             let mut k = max_k;
-            let mut found = false;
             for cand in (2..=max_k).rev() {
+                if cand * 2 < max_k {
+                    break;
+                }
                 if b.rows[cand - 1].iter().any(|l| l.sentence_end) {
                     k = cand;
-                    found = true;
                     break;
                 }
             }
-            if found || !is_dialogue || used == 0 {
+            {
                 let start = pages.last().unwrap().len();
                 used += before;
                 for r in &b.rows[..k] {
@@ -675,7 +691,13 @@ pub fn layout(project: &Project) -> Layout {
         if pi > 0 {
             breaks.push(first_para_on_page.unwrap_or(usize::MAX));
         }
-        out_pages.push(Page { n: pi as u32 + 1, lines });
+        let rev = lines
+            .iter()
+            .filter(|l| l.para >= 0)
+            .map(|l| paras.get(l.para as usize).map(|p| p.rev).unwrap_or(0))
+            .max()
+            .unwrap_or(0);
+        out_pages.push(Page { n: pi as u32 + 1, lines, rev });
     }
     // non-printing / omitted paragraphs inherit the page of the next printed paragraph
     let last_page = out_pages.len() as u32;
@@ -772,6 +794,34 @@ pub fn runtime_minutes(layout: &Layout) -> u32 {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn long_speech_breaks_with_more_and_contd() {
+        // a speech longer than the rest of the page starts under its cue and breaks with (MORE)
+        let mut p = Project::default();
+        p.paras = vec![Para::new(Elem::Scene, "INT. ROOM - DAY")];
+        for _ in 0..8 {
+            p.paras.push(Para::new(Elem::Action, &"A man paces. ".repeat(6)));
+        }
+        p.paras.push(Para::new(Elem::Character, "BOB"));
+        p.paras.push(Para::new(Elem::Paren, "(quietly)"));
+        let speech: Vec<String> = (1..40).map(|i| format!("This is sentence number {i} of a very long speech that keeps going.")).collect();
+        p.paras.push(Para::new(Elem::Dialogue, &speech.join(" ")));
+        let lay = layout(&p);
+        let page1 = &lay.pages[0];
+        let text1: Vec<String> = page1.lines.iter().map(|l| l.runs.iter().map(|r| r.x.clone()).collect::<String>()).collect();
+        assert!(text1.iter().any(|t| t == "BOB"), "cue stays on page 1: {text1:?}");
+        assert!(text1.iter().any(|t| t == "(quietly)"));
+        assert_eq!(text1.last().unwrap(), "(MORE)");
+        let first2: String = lay.pages[1].lines[0].runs.iter().map(|r| r.x.clone()).collect();
+        assert_eq!(first2, "BOB (CONT'D)");
+        // every continuation page starts with the cue and carries a real share of the speech
+        for pg in &lay.pages[1..] {
+            let first: String = pg.lines[0].runs.iter().map(|r| r.x.clone()).collect();
+            assert_eq!(first, "BOB (CONT'D)");
+            assert!(pg.lines.len() >= 3);
+        }
+
+    }
     use super::*;
 
     fn proj(paras: Vec<Para>) -> Project {

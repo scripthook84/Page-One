@@ -153,6 +153,8 @@ pub struct Settings {
     pub page_size: String,
     /// Active revision colour index (0 = revisions off).
     pub rev_level: u8,
+    /// Revised pages shown and printed in their revision colour.
+    pub rev_pages: bool,
     pub header: String,
     pub title_page: bool,
     pub target_pages: u32,
@@ -162,6 +164,13 @@ pub struct Settings {
     pub board_snap: bool,
     /// Cards per row (rows mode) or per column (columns mode).
     pub board_span: u32,
+    /// Table read: narrator voice, and which elements the narrator reads aloud.
+    pub narrator_voice: String,
+    pub read_headings: bool,
+    pub read_parens: bool,
+    pub read_transitions: bool,
+    /// Playback speed, 0.7–1.5.
+    pub read_speed: f32,
 }
 
 impl Default for Settings {
@@ -170,16 +179,22 @@ impl Default for Settings {
             scene_numbers: false,
             conts: true,
             mores: true,
-            scene_space: 1,
+            scene_space: 2,
             bold_scenes: false,
             page_size: "letter".into(),
             rev_level: 0,
+            rev_pages: true,
             header: String::new(),
             title_page: true,
             target_pages: 110,
             board_mode: "rows".into(),
             board_snap: true,
             board_span: 5,
+            narrator_voice: "narrator".into(),
+            read_headings: true,
+            read_parens: false,
+            read_transitions: true,
+            read_speed: 1.0,
         }
     }
 }
@@ -190,6 +205,9 @@ pub struct CharacterCard {
     pub name: String,
     pub color: String,
     pub bio: String,
+    /// Built-in voice for table-read playback ("" = chosen automatically).
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub voice: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]

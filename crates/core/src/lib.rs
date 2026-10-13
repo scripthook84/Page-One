@@ -5,6 +5,7 @@ pub mod fdx;
 pub mod fountain;
 pub mod layout;
 pub mod model;
+pub mod board_pdf;
 pub mod pdf;
 pub mod text;
 

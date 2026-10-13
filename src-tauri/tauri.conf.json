@@ -92,7 +92,8 @@
           "x": 410,
           "y": 170
         }
-      }
+      },
+      "entitlements": "Entitlements.plist"
     },
     "windows": {
       "webviewInstallMode": {
@@ -102,6 +103,12 @@
       "wix": {
         "language": "en-US"
       }
+    },
+    "resources": {
+      "voice/model.onnx": "voice/model.onnx",
+      "voice/voices.bin": "voice/voices.bin",
+      "voice/voices.json": "voice/voices.json",
+      "voice/lexicon.json": "voice/lexicon.json"
     }
   }
 }

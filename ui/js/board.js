@@ -5,14 +5,16 @@
 // act reads as a coloured lane running down the board. Drag a label to move it along the header, or
 // its right edge to stretch it across more columns — it snaps column by column.
 //
-// Story order: acts left to right; inside each act the cards read in rows (left→right, then
-// down). Drop a card on an empty cell and it lands there; drop it on
-// a card and it slides in before it, nudging the following cards of that act along. The screenplay
-// is reordered to match as soon as anything is dropped (one undo step).
+// Story order: acts left to right; inside each act the cards flow in story order through the lane,
+// left to right across its columns, then down, with no gaps. A one-column label stacks its cards in
+// a column; stretching the label lays them out across more columns. Drop a card anywhere in a lane
+// and it takes that place in the sequence; the screenplay is reordered to match at once (one undo
+// step).
 //
 // Stored per scene: meta.cell = [column, row]; per act: meta.band = [first column, width].
 
 import { S, eighths } from './state.js';
+import { splitEnding, trimBlock, finishReorder } from './reorder.js';
 import { esc, textOf } from './editor.js';
 import { COLORS, colorLabel } from './elements.js';
 import * as dialogs from './dialogs.js';
@@ -50,49 +52,20 @@ function groupOfCol(ivs, col) {
   return 0;
 }
 
-/** Reading sequence of one group: cell ↔ position, in rows or columns order. */
-function seqGeom(iv, cells) {
-  const m = mode();
-  const finite = Number.isFinite(iv.end);
-  const width = finite ? iv.end - iv.start + 1 : 0;
-  if (m === 'rows') {
-    const W = finite ? width : Math.max(span(), ...cells.map((c) => c[0] - iv.start + 1));
-    return {
-      toIndex: (c) => c[1] * W + (c[0] - iv.start),
-      toCell: (i) => [iv.start + (i % W), Math.floor(i / W)],
-    };
-  }
-  const H = Math.max(span(), ...cells.map((c) => c[1] + 1));
-  const cap = finite ? width * H : Infinity;
-  return {
-    toIndex: (c) => (c[1] < H ? (c[0] - iv.start) * H + c[1] : cap + (c[1] - H) * width + (c[0] - iv.start)),
-    toCell: (i) => (i < cap ? [iv.start + Math.floor(i / H), i % H] : [iv.start + ((i - cap) % width), H + Math.floor((i - cap) / width)]),
-  };
-}
-
 function readKey(c) { return mode() === 'rows' ? [c[1], c[0]] : [c[0], c[1]]; }
 function cmpCells(a, b) { const x = readKey(a), y = readKey(b); return x[0] - y[0] || x[1] - y[1]; }
-
-/** Longest increasing run of positions, so scenes moved in the script keep their neighbours put. */
-function lisKeep(idx) {
-  const n = idx.length, best = new Array(n).fill(0), prev = new Array(n).fill(-1);
-  let top = -1;
-  for (let k = 0; k < n; k++) {
-    if (idx[k] === null) continue;
-    best[k] = 1;
-    for (let j = 0; j < k; j++) if (idx[j] !== null && idx[j] < idx[k] && best[j] + 1 > best[k]) { best[k] = best[j] + 1; prev[k] = j; }
-    if (top < 0 || best[k] > best[top]) top = k;
-  }
-  const keep = new Set();
-  for (let k = top; k >= 0; k = prev[k]) keep.add(k);
-  return keep;
-}
 
 // ------------------------------------------------------------------ model: script → board
 
 function legacyCell(slot) {
   const n = span();
   return mode() === 'rows' ? [slot % n, Math.floor(slot / n)] : [Math.floor(slot / n), slot % n];
+}
+
+/** Columns a lane has: the act label's width (the first, unlabelled lane: up to the first act). */
+function laneWidth(gi, bands) {
+  if (gi === 0) return Math.max(1, bands.length ? bands[0][0] : span());
+  return Math.max(1, bands[gi - 1][1] | 0);
 }
 
 function buildModel() {
@@ -108,44 +81,33 @@ function buildModel() {
     if (it.kind === 'act') groups.push({ act: it, cards: [] });
     else if (it.kind === 'card') groups[groups.length - 1].cards.push(it);
   }
-  // bands: stored, or the next free columns; never overlapping, always in act order
-  const preMax = Math.max(-1, ...groups[0].cards.filter((c) => c.cell).map((c) => c.cell[0]));
-  let prevEnd = groups[0].cards.length ? Math.max(preMax, 0) : -1;
+  // bands: stored, or laid out after the previous lane, as wide as "cards per row" allows
+  const fit = (n) => Math.max(1, Math.min(span(), n));
+  let cursor = groups[0].cards.length ? fit(groups[0].cards.length) : 0;
+  let prevStart = -1;
   const bands = [];
-  // acts tile the columns: each runs up to the next act, so every card sits under its act's label
-  let prevStart = groups[0].cards.length ? prevEnd : -1;
-  groups.slice(1).forEach((g, k) => {
+  groups.slice(1).forEach((g) => {
     const b = g.act.sc.meta && Array.isArray(g.act.sc.meta.band) ? g.act.sc.meta.band : null;
-    let start = b ? b[0] | 0 : (k === 0 ? prevEnd + 1 : prevStart + 1);
+    let start = b ? b[0] | 0 : cursor;
     if (start <= prevStart) start = prevStart + 1;
-    g.act.band = [start, b ? Math.max(1, b[1] | 0) : 1];
+    const width = b ? Math.max(1, b[1] | 0) : fit(g.cards.length);
+    g.act.band = [start, width];
     bands.push(g.act.band);
     prevStart = start;
+    cursor = start + width;
   });
   const ivs = intervals(bands);
-  // cards: keep stored cells that sit in their act's lane in order; place the rest after their neighbours
+  // widths: each act runs up to the next; the last act keeps the width of its label
+  bands.forEach((b, k) => { if (k + 1 < bands.length) b[1] = bands[k + 1][0] - b[0]; });
+  // cards flow through their act's lane in story order: left to right across the lane, then down
   groups.forEach((g, gi) => {
-    const iv = ivs[gi];
-    const taken = new Set();
-    const valid = (c) => c && c[0] >= iv.start && c[0] <= iv.end && !taken.has(c.join()) && (taken.add(c.join()), true);
-    const ok = g.cards.map((c) => (valid(c.cell) ? c.cell : null));
-    const geo = seqGeom(iv, ok.filter(Boolean));
-    const idx = ok.map((c) => (c ? geo.toIndex(c) : null));
-    const keep = lisKeep(idx);
-    let last = -1;
+    const W = laneWidth(gi, bands);
+    const start = gi === 0 ? 0 : bands[gi - 1][0];
     g.cards.forEach((c, k) => {
-      const i = keep.has(k) && idx[k] > last ? idx[k] : last + 1;
-      last = i;
-      c.cell = geo.toCell(i);
+      c.cell = [start + (k % W), Math.floor(k / W)];
       c.group = gi;
       c.act = g.act;
     });
-  });
-  // widths: up to the next act; the last act covers its stored width and all of its cards
-  bands.forEach((b, k) => {
-    if (k + 1 < bands.length) { b[1] = bands[k + 1][0] - b[0]; return; }
-    const g = groups[k + 1];
-    b[1] = Math.max(b[1], ...g.cards.map((c) => c.cell[0] - b[0] + 1), 1);
   });
   // sequences/beats ride above the next scene in their act
   for (let k = 0; k < items.length; k++) {
@@ -179,12 +141,12 @@ function commit(model, message) {
   acts.forEach((a, k) => { order.push(a); (byGroup[k + 1] || []).forEach(pushCard); });
   for (const q of seqs) if (!q.anchor || !order.includes(q.anchor)) order.push(q);
 
-  const paras = S.editor.paras();
+  const { body: paras, ending } = splitEnding(S.editor.paras());
   const byStart = [...items].sort((a, b) => a.sc.i - b.sc.i);
   const blocks = new Map();
   byStart.forEach((it, k) => {
     const end = k + 1 < byStart.length ? byStart[k + 1].sc.i : paras.length;
-    const block = paras.slice(it.sc.i, end).map((p) => ({ ...p }));
+    const block = trimBlock(paras.slice(it.sc.i, Math.min(end, paras.length)).map((p) => ({ ...p })));
     const meta = { ...(block[0].meta || {}) };
     delete meta.slot; delete meta.pos;
     if (it.kind === 'card') meta.cell = [...it.cell];
@@ -193,7 +155,7 @@ function commit(model, message) {
     blocks.set(it, block);
   });
   const first = items.length ? Math.min(...items.map((it) => it.sc.i)) : paras.length;
-  S.editor.replaceAll(paras.slice(0, first).concat(...order.map((it) => blocks.get(it))));
+  S.editor.replaceAll(finishReorder(paras.slice(0, first).concat(...order.map((it) => blocks.get(it))), ending));
   if (message) S.app.toast(message);
   S.app.refresh().then(() => renderBoard(true));
 }
@@ -206,24 +168,18 @@ function cloneModel() {
   return { items, bands };
 }
 
-/** Drop a card: land in a free cell, or slide in and nudge that act's following cards along. */
+/** Drop a card: it takes that place in the act's sequence and the lane closes up around it. */
 function dropCard(item, cell) {
   const model = cloneModel();
   const me = model.items.find((x) => x.si === item.si);
   const ivs = intervals(model.bands);
   const g = groupOfCol(ivs, cell[0]);
-  const others = model.items.filter((x) => x.kind === 'card' && x !== me && groupOfCol(ivs, x.cell[0]) === g);
-  const occupied = others.find((x) => x.cell[0] === cell[0] && x.cell[1] === cell[1]);
-  me.cell = [...cell];
-  if (occupied) {
-    const geo = seqGeom(ivs[g], [...others.map((x) => x.cell), cell]);
-    const list = others.map((x) => ({ x, i: geo.toIndex(x.cell) })).sort((a, b) => a.i - b.i);
-    let cur = geo.toIndex(cell);
-    for (const o of list) {
-      if (o.i < cur) continue;
-      if (o.i === cur) { o.x.cell = geo.toCell(cur + 1); cur++; } else break;
-    }
-  }
+  const W = laneWidth(g, model.bands);
+  const start = g === 0 ? 0 : model.bands[g - 1][0];
+  const list = model.items.filter((x) => x.kind === 'card' && x !== me && groupOfCol(ivs, x.cell[0]) === g).sort((a, b) => cmpCells(a.cell, b.cell));
+  const at = Math.max(0, Math.min(list.length, cell[1] * W + Math.min(W - 1, cell[0] - start)));
+  list.splice(at, 0, me);
+  list.forEach((c, k) => { c.cell = [start + (k % W), Math.floor(k / W)]; });
   commit(model, 'Scene moved in the script. Ctrl+Z puts it back.');
 }
 
@@ -244,17 +200,6 @@ function dropSeq(item, targetCard) {
   commit(model, 'Moved.');
 }
 
-function tidy() {
-  const model = cloneModel();
-  const ivs = intervals(model.bands);
-  ivs.forEach((iv, g) => {
-    const list = model.items.filter((x) => x.kind === 'card' && groupOfCol(ivs, x.cell[0]) === g).sort((a, b) => cmpCells(a.cell, b.cell));
-    const geo = seqGeom(iv, []);
-    list.forEach((c, k) => { c.cell = geo.toCell(k); });
-  });
-  commit(model, 'Gaps closed.');
-}
-
 /** Neighbouring acts of an act label (acts tile the columns, so moving one moves a boundary). */
 function neighbours(item) {
   const acts = view.items.filter((x) => x.kind === 'act');
@@ -267,10 +212,9 @@ function neighbours(item) {
 function toolbar() {
   return `<div class="board-tools">
     <span class="seg" title="Cards per row before wrapping"><button id="bSpanLess" aria-label="Fewer per row">−</button><span class="zoomv" id="bSpan">5 per row</span><button id="bSpanMore" aria-label="More per row">+</button></span>
-    <button class="btn" id="bTidy" title="Close the empty cells inside each act">Tidy up</button>
     <button class="btn" id="bAct" title="Create an act label (left panel)">+ Act label</button>
     <span class="seg"><button id="bZo" aria-label="Zoom out">−</button><span class="zoomv" id="bZv">100%</span><button id="bZi" aria-label="Zoom in">+</button></span>
-    <span class="hint">Drag an act label along the top, or its right edge to cover more columns. Cards take the colour of the act above them.</span>
+    <span class="hint">Cards follow each other in story order inside their act's colour. Stretch an act label by its right edge to lay its cards across more columns.</span>
   </div>
   <div class="board-scroll" id="bScroll"><div class="board-sizer" id="bSizer"><div class="board-canvas" id="bCanvas"></div></div></div>`;
 }
@@ -319,7 +263,6 @@ export function renderBoard(force = false) {
   const w = colX(cols - 1) + CW + PAD * 2, h = rowY(rows - 1) + CH + PAD * 2;
   view.cols = cols;
   view.rows = rows;
-  box.querySelector('#bTidy').disabled = !cards.length;
 
   // act lanes (behind everything) and header labels
   let lanes = '', heads = '';
@@ -363,14 +306,19 @@ export function renderBoard(force = false) {
   }).join('');
 
   // sequences / beats: a small tag above the scene they start at
+  // several labels on one scene sit side by side in a row above it
   const stack = new Map();
+  const perCard = new Map();
+  for (const q of model.items) if (q.kind === 'seq' && q.anchor && q.anchor.cell) perCard.set(q.anchor.cell.join(), (perCard.get(q.anchor.cell.join()) || 0) + 1);
   let seqHtml = '';
   for (const q of model.items.filter((it) => it.kind === 'seq')) {
     const at = q.anchor ? q.anchor.cell : null;
     if (!at) continue;
     const k = stack.get(at.join()) || 0;
     stack.set(at.join(), k + 1);
-    seqHtml += `<div class="b-seq" data-si="${q.si}" style="left:${colX(at[0]) + k * 8}px;top:${rowY(at[1]) - 30 - k * 4}px" title="${q.sc.lvl === 2 ? 'Sequence' : 'Beat'}: drag onto another scene to move it; click to edit">${esc(q.sc.text || 'Untitled')}</div>`;
+    const qc = (q.sc.meta && q.sc.meta.color) || '';
+    const tagW = Math.floor((CW - 6) / Math.min(3, perCard.get(at.join()))) - 3;
+    seqHtml += `<div class="b-seq${qc ? ' tinted' : ''}" data-si="${q.si}" style="left:${colX(at[0]) + k * (tagW + 3)}px;top:${rowY(at[1]) - 30}px;max-width:${tagW}px;${qc ? `--c:${esc(qc)}` : ''}" title="${q.sc.lvl === 2 ? 'Sequence' : 'Beat'}: drag onto another scene to move it; click to edit">${esc(q.sc.text || 'Untitled')}</div>`;
   }
 
   const canvas = box.querySelector('#bCanvas');
@@ -452,7 +400,6 @@ function wire(box) {
       S.app.setSetting('board_span', Math.max(1, Math.min(12, span() + (e.target.id === 'bSpanMore' ? 1 : -1))));
       return;
     }
-    if (e.target.id === 'bTidy') { tidy(); return; }
     if (e.target.id === 'bAct') { document.getElementById('actName').focus(); return; }
     if (e.target.id === 'bZi' || e.target.id === 'bZo') {
       zoom = Math.min(1.5, Math.max(0.4, Math.round((zoom + (e.target.id === 'bZi' ? 0.1 : -0.1)) * 10) / 10));
@@ -605,23 +552,54 @@ export function resetBoardDom() {
 function sideEl(id) { return document.getElementById(id); }
 let newActColor = '#f9e48f';
 
+const NUM = ['ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN', 'EIGHT'];
+
+/** Fit the new-label form to the chosen type: act, sequence or beat. */
+function syncTypeFields(actCount) {
+  const lvl = +sideEl('actType').value || 1;
+  const name = sideEl('actName');
+  name.placeholder = lvl === 1 ? `ACT ${NUM[actCount] || actCount + 1}` : lvl === 2 ? 'The heist' : 'Midpoint';
+  sideEl('actNameLabel').textContent = lvl === 1 ? 'Act name' : lvl === 2 ? 'Sequence name' : 'Beat name';
+  sideEl('actAdd').textContent = lvl === 1 ? 'Add act label' : lvl === 2 ? 'Add sequence label' : 'Add beat label';
+  const wrap = sideEl('actAtWrap');
+  wrap.hidden = lvl === 1;
+  if (lvl > 1) {
+    const sel = sideEl('actAt');
+    const prev = sel.value;
+    const scenes = S.derived.scenes.filter((sc) => sc.t === 'scene');
+    const cur = S.derived.scenes[S.app.currentSceneIndex(S.curPara)];
+    // options are scene positions (1st, 2nd…), which stay put when a label is inserted above a scene
+    sel.innerHTML = scenes.map((sc, k) => `<option value="${k}">${k + 1}. ${esc((sc.text || 'Untitled scene').slice(0, 42))}</option>`).join('');
+    if (prev !== '' && +prev < scenes.length) sel.value = prev;
+    else if (cur && cur.t === 'scene') sel.value = String(scenes.indexOf(cur));
+  }
+}
+
 function renderSide() {
   const els = S.editor.els();
   const scenes = S.derived.scenes;
   const acts = scenes.filter((sc) => sc.t === 'section' && sc.lvl === 1);
+  const labels = scenes.filter((sc) => sc.t === 'section');
   const list = sideEl('actList');
   // only hold off while the writer is typing an act's name; buttons never block a redraw
   const typing = (box) => box.contains(document.activeElement) && /^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement.tagName);
   if (!typing(list)) {
-    list.innerHTML = acts.length ? acts.map((a, n) => `<li data-i="${a.i}" style="--c:${esc((a.meta && a.meta.color) || DEFAULT_ACT)}">
-        <button type="button" class="dot" title="Change colour" aria-label="Change colour"></button><b>ACT ${n + 1}</b>
-        <input type="text" value="${esc(a.text)}" aria-label="Act ${n + 1} name" title="${(() => { const it = view && view.items.find((x) => x.sc === a); return it && it.band ? `Columns ${it.band[0] + 1}${it.band[1] > 1 ? '–' + (it.band[0] + it.band[1]) : ''}` : ''; })()}">
-        <button type="button" class="del" title="Remove this act label (its scenes stay)" aria-label="Remove act ${n + 1}">✕</button></li>`).join('')
-      : '<li class="empty-hint">No acts yet. Add the first one below; it appears on the board as ACT 1.</li>';
+    let n = 0;
+    list.innerHTML = labels.length ? labels.map((a) => {
+      const lvl = a.lvl || 1;
+      const tag = lvl === 1 ? `ACT ${++n}` : lvl === 2 ? 'SEQ' : 'BEAT';
+      const kind = lvl === 1 ? 'act' : lvl === 2 ? 'sequence' : 'beat';
+      const col = (a.meta && a.meta.color) || (lvl === 1 ? DEFAULT_ACT : '');
+      return `<li data-i="${a.i}" data-lvl="${lvl}" class="lvl${lvl}" style="--c:${esc(col || '#e7e9ed')}">
+        <button type="button" class="dot" title="Change colour" aria-label="Change colour"></button><b>${tag}</b>
+        <input type="text" value="${esc(a.text)}" aria-label="${kind} name" title="${(() => { const it = view && view.items.find((x) => x.sc === a); return it && it.band ? `Columns ${it.band[0] + 1}${it.band[1] > 1 ? '–' + (it.band[0] + it.band[1]) : ''}` : ''; })()}">
+        <button type="button" class="del" title="Remove this ${kind} label (its scenes stay)" aria-label="Remove ${kind} ${esc(a.text)}">✕</button></li>`;
+    }).join('')
+      : '<li class="empty-hint">No labels yet. Choose a type below and add the first one; an act appears on the board as ACT 1.</li>';
   }
   const form = sideEl('actNew');
   if (!typing(form)) {
-    sideEl('actName').placeholder = `ACT ${['ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX'][acts.length] || acts.length + 1}`;
+    syncTypeFields(acts.length);
     sideEl('actColors').innerHTML = COLORS.map((k) => `<button type="button" data-c="${k.c}" style="--c:${k.c}" class="${newActColor === k.c ? 'on' : ''}" title="${esc(colorLabel(S.project, k.c))}"></button>`).join('');
   }
   renderLegend();
@@ -670,8 +648,9 @@ function wireSide() {
       el.remove();
       // gone from the side panel and the grid at once; remaining acts renumber
       li.remove();
-      list.querySelectorAll('li[data-i] b').forEach((b, n) => { b.textContent = `ACT ${n + 1}`; });
-      if (!list.querySelector('li')) list.innerHTML = '<li class="empty-hint">No acts yet. Add the first one below; it appears on the board as ACT 1.</li>';
+      list.querySelectorAll('li[data-lvl="1"] b').forEach((b, n) => { b.textContent = `ACT ${n + 1}`; });
+      if (!list.querySelector('li')) list.innerHTML = '<li class="empty-hint">No labels yet. Choose a type below and add the first one; an act appears on the board as ACT 1.</li>';
+      document.querySelectorAll('#bCanvas .b-seq[data-si]').forEach((m) => { if (S.derived.scenes[+m.dataset.si] && S.derived.scenes[+m.dataset.si].i === +li.dataset.i) m.remove(); });
       document.querySelectorAll(`#bCanvas .b-act[data-si]`).forEach((m) => { if (S.derived.scenes[+m.dataset.si] && S.derived.scenes[+m.dataset.si].i === +li.dataset.i) m.remove(); });
       document.querySelectorAll('#bCanvas .b-act b').forEach((b, n) => { b.textContent = `ACT ${n + 1}`; });
       S.editor.changed(true);
@@ -696,10 +675,29 @@ function wireSide() {
     newActColor = b.dataset.c;
     for (const x of sideEl('actColors').querySelectorAll('button')) x.classList.toggle('on', x === b);
   });
+  sideEl('actType').addEventListener('change', () => {
+    syncTypeFields(S.derived.scenes.filter((sc) => sc.t === 'section' && sc.lvl === 1).length);
+    sideEl('actName').focus();
+  });
   sideEl('actNew').addEventListener('submit', (e) => {
     e.preventDefault();
     const input = sideEl('actName');
     const name = input.value.trim() || input.placeholder;
+    const lvl = +sideEl('actType').value || 1;
+    if (lvl > 1) {
+      // a sequence or beat starts at the chosen scene; it never moves a card
+      const sc = S.derived.scenes.filter((x) => x.t === 'scene')[+sideEl('actAt').value];
+      const target = sc ? S.editor.els()[sc.i] : null;
+      if (!target) { S.app.toast('Add a scene first: sequences and beats start at a scene.'); return; }
+      S.editor.pushUndo();
+      const el = S.editor.makeEl({ t: 'section', lvl, runs: [{ x: name }], meta: newActColor ? { color: newActColor } : {} });
+      target.before(el);
+      S.editor.changed(true);
+      input.value = '';
+      S.app.toast(`${lvl === 2 ? 'Sequence' : 'Beat'} “${name}” added above ${textOf(target) || 'the scene'}.`);
+      S.app.refresh().then(() => renderBoard(true));
+      return;
+    }
     const items = view ? view.items : [];
     const cards = items.filter((x) => x.kind === 'card');
     const acts = items.filter((x) => x.kind === 'act');

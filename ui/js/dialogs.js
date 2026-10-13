@@ -3,6 +3,9 @@
 import { S, eighths, projectNow } from './state.js';
 import { esc, textOf } from './editor.js';
 import { ELEMS, cueName, sceneParts, SCENE_COLORS, colorLabel, keyText } from './elements.js';
+import { checkScript } from './check.js';
+import * as engine from './voice/engine.js';
+import * as playback from './playback.js';
 
 const root = () => document.getElementById('modalRoot');
 
@@ -133,11 +136,12 @@ export async function setupDialog() {
       <label class="chk"><input type="checkbox" data-k="bold_scenes" ${st.bold_scenes ? 'checked' : ''}> Bold scene headings</label>
       <label class="chk"><input type="checkbox" data-k="conts" ${st.conts ? 'checked' : ''}> Automatic (CONT'D) when a character keeps talking after action</label>
       <label class="chk"><input type="checkbox" data-k="mores" ${st.mores ? 'checked' : ''}> (MORE) and (CONT'D) when dialogue breaks across pages</label>
+      <label class="chk"><input type="checkbox" data-k="rev_pages" ${st.rev_pages !== false ? 'checked' : ''}> Revised pages in their revision colour (on screen and in PDFs)</label>
       <h3 style="margin:8px 0 0;font-size:13px">App</h3>
       <label class="chk"><input type="checkbox" data-pref="autosave" ${p.autosave ? 'checked' : ''}> Save automatically every minute</label>
     </div>
   </div>
-  <p class="hint">Industry-standard layout: Courier 12 pt, 1.5 in left margin, 1 in right, top and bottom margins, 54 lines per page; dialogue 2.5–6.0 in, character cues at 3.7 in, parentheticals 3.1–5.25 in, transitions end at 7.5 in.</p>`;
+  <p class="hint">Industry-standard layout, matching Final Draft: Courier 12 pt, 1.5 in left margin, 1 in right, top and bottom margins, 54 lines per page; two blank lines before scene headings; dialogue 2.5–6.0 in, character cues at 3.7 in, parentheticals 3.1–5.25 in, transitions end at 7.5 in.</p>`;
   await modal({
     title: 'Document setup', body, wide: true,
     buttons: [{ label: 'Done', value: 'ok', primary: true }],
@@ -176,6 +180,11 @@ export async function exportDialog(doExport, preset = 'pdf') {
       <label><input type="radio" name="fmt" value="fdx"><span>Final Draft<small>.fdx for Final Draft, Fade In, WriterDuet</small></span></label>
       <label><input type="radio" name="fmt" value="fountain"><span>Fountain<small>Plain-text screenplay markup</small></span></label>
       <label><input type="radio" name="fmt" value="text"><span>Plain text<small>Formatted pages as .txt</small></span></label>
+      <label><input type="radio" name="fmt" value="board"><span>Board &amp; outline<small>Scene cards and outline, landscape PDF</small></span></label>
+    </div>
+    <div class="opts" id="boardOpts" hidden>
+      <label class="chk"><input type="checkbox" id="xCards" checked> Story board (scene cards by act)</label>
+      <label class="chk"><input type="checkbox" id="xOutline" checked> Outline (acts, sequences, beats and scenes with synopses)</label>
     </div>
     <div class="opts" id="pdfOpts">
       <label class="chk"><input type="checkbox" id="xTitle" ${st.title_page ? 'checked' : ''}> Include title page</label>
@@ -186,8 +195,14 @@ export async function exportDialog(doExport, preset = 'pdf') {
   const v = await modal({
     title: 'Export', body,
     buttons: [{ label: 'Cancel', value: null }, { label: 'Export', value: 'ok', primary: true, validate: (b) => {
+      let kind = b.querySelector('input[name="fmt"]:checked').value;
+      if (kind === 'board') {
+        const c = b.querySelector('#xCards').checked, o = b.querySelector('#xOutline').checked;
+        if (!c && !o) return false;
+        kind = c && o ? 'board+outline' : c ? 'board' : 'outline';
+      }
       opts = {
-        kind: b.querySelector('input[name="fmt"]:checked').value,
+        kind,
         titlePage: b.querySelector('#xTitle').checked,
         sceneNumbers: b.querySelector('#xNums').checked,
         watermark: b.querySelector('#xWm').value.trim(),
@@ -195,8 +210,13 @@ export async function exportDialog(doExport, preset = 'pdf') {
       return true;
     } }],
     onOpen: (b) => {
-      b.querySelector(`input[value="${preset}"]`).checked = true;
-      const sync = () => { b.querySelector('#pdfOpts').hidden = !['pdf', 'text'].includes(b.querySelector('input[name="fmt"]:checked').value); b.querySelector('#xWm').parentElement.hidden = b.querySelector('input[name="fmt"]:checked').value !== 'pdf'; };
+      b.querySelector(`input[name="fmt"][value="${preset}"]`).checked = true;
+      const sync = () => {
+        const f = b.querySelector('input[name="fmt"]:checked').value;
+        b.querySelector('#pdfOpts').hidden = !['pdf', 'text'].includes(f);
+        b.querySelector('#xWm').parentElement.hidden = f !== 'pdf';
+        b.querySelector('#boardOpts').hidden = f !== 'board';
+      };
       b.addEventListener('change', sync);
       sync();
     },
@@ -283,6 +303,147 @@ export async function gotoDialog() {
   const idx = lay.para_page.findIndex((p) => p >= n);
   S.app.setView('script');
   S.editor.focusPara(idx < 0 ? lay.para_page.length - 1 : idx);
+}
+
+// ------------------------------------------------------------------ voices (table read)
+
+export function voiceOptions(selected, { auto = false } = {}) {
+  const groups = [['narrator', 'Narrator'], ['female', 'Women'], ['male', 'Men'], ['child', 'Children']];
+  const list = engine.voiceList();
+  return (auto ? `<option value="" ${!selected ? 'selected' : ''}>Automatic</option>` : '') + groups.map(([g, label]) => {
+    const vs = list.filter((v) => v.group === g);
+    return vs.length ? `<optgroup label="${label}">${vs.map((v) => `<option value="${v.id}" ${v.id === selected ? 'selected' : ''}>${esc(v.label)}</option>`).join('')}</optgroup>` : '';
+  }).join('');
+}
+
+export async function voicesDialog() {
+  const st = S.project.settings;
+  const box = document.createElement('div');
+  box.innerHTML = '<p class="hint" style="margin:0">Loading the voices…</p>';
+  const p = modal({ title: 'Voices', wide: true, body: box, buttons: [{ label: 'Done', primary: true, value: null }] });
+  try {
+    await engine.ready();
+  } catch (e) {
+    box.innerHTML = `<p style="margin:0">The built-in voices aren't available: ${esc(String(e.message || e))}</p>`;
+    return p;
+  }
+  const cast = playback.castVoices();
+  const cards = new Map((S.project.characters || []).map((c) => [c.name, c]));
+  const firstLine = (name) => {
+    const ps = S.editor.paras();
+    for (let i = 0; i < ps.length - 1; i++) {
+      if (ps[i].t === 'character' && cueName(ps[i].runs.map((r) => r.x).join('')) === name) {
+        const d = ps.slice(i + 1).find((q) => q.t === 'dialogue');
+        if (d) return d.runs.map((r) => r.x).join('').slice(0, 160);
+      }
+    }
+    return '';
+  };
+  box.innerHTML = `<p class="hint" style="margin:0 0 10px">Every voice runs on this computer. Characters get a voice automatically until you choose one.</p>
+    <table class="report voices-table"><tbody>
+      <tr><td><b>Narrator</b><br><small class="hint">Scene headings, action, transitions</small></td><td><select data-who="__narrator">${voiceOptions(st.narrator_voice || 'narrator')}</select></td><td><button class="btn small" data-try="__narrator">▶ Listen</button></td></tr>
+      ${[...cast.keys()].map((name) => `<tr><td><b>${esc(name)}</b></td><td><select data-who="${esc(name)}">${voiceOptions((cards.get(name) || {}).voice || '', { auto: true })}</select>
+        ${(cards.get(name) || {}).voice ? '' : `<small class="hint">Automatic: ${esc((engine.voiceById(cast.get(name)) || {}).label || '')}</small>`}</td><td><button class="btn small" data-try="${esc(name)}">▶ Listen</button></td></tr>`).join('')}
+    </tbody></table>
+    <div class="opts" style="margin-top:12px">
+      <label class="chk"><input type="checkbox" data-k="read_headings" ${st.read_headings !== false ? 'checked' : ''}> Narrator reads scene headings</label>
+      <label class="chk"><input type="checkbox" data-k="read_transitions" ${st.read_transitions !== false ? 'checked' : ''}> Narrator reads transitions</label>
+      <label class="chk"><input type="checkbox" data-k="read_parens" ${st.read_parens ? 'checked' : ''}> Narrator reads parentheticals</label>
+    </div>`;
+  box.addEventListener('change', (e) => {
+    const sel = e.target.closest('select[data-who]');
+    if (sel) {
+      if (sel.dataset.who === '__narrator') st.narrator_voice = sel.value;
+      else {
+        S.project.characters = S.project.characters || [];
+        let c = S.project.characters.find((x) => x.name === sel.dataset.who);
+        if (!c) { c = { name: sel.dataset.who, color: '', bio: '' }; S.project.characters.push(c); }
+        c.voice = sel.value;
+        const hint = sel.parentElement.querySelector('small');
+        if (hint) hint.hidden = !!sel.value;
+      }
+      S.app.markDirty();
+    }
+    const k = e.target.dataset && e.target.dataset.k;
+    if (k) { st[k] = e.target.checked; S.app.markDirty(); }
+  });
+  box.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-try]');
+    if (!b) return;
+    const who = b.dataset.try;
+    const sel = box.querySelector(`select[data-who="${CSS.escape(who)}"]`);
+    const id = sel.value || playback.castVoices().get(who);
+    playback.preview(id, who === '__narrator' ? 'The sun is high now. June sits on the tailgate of the pickup.' : firstLine(who)).catch((err) => S.app.toast(String(err.message || err)));
+  });
+  return p;
+}
+
+// ------------------------------------------------------------------ script check
+
+const LEVEL = { error: 'Problem', warn: 'Check', tip: 'Tip' };
+
+export async function scriptCheckDialog() {
+  let issues = [];
+  const where = (i) => {
+    const page = (S.layout && S.layout.para_page[i]) || 1;
+    const scenes = S.derived.scenes.filter((x) => x.t === 'scene');
+    let sn = 0;
+    for (let k = 0; k < scenes.length; k++) if (scenes[k].i <= i) sn = k + 1;
+    return `p. ${page}${sn ? ` · scene ${sn}` : ''}`;
+  };
+  const snippet = (i) => esc((textOf(S.editor.els()[i]) || '').trim().slice(0, 60) || '(blank)');
+  const render = (box) => {
+    issues = checkScript(S.editor.paras());
+    const n = { error: 0, warn: 0, tip: 0 };
+    for (const x of issues) n[x.level]++;
+    const blanks = issues.filter((x) => x.kind === 'blank').length;
+    box.innerHTML = issues.length
+      ? `<p class="hint" style="margin:0 0 10px">${n.error} problem${n.error === 1 ? '' : 's'}, ${n.warn} to check, ${n.tip} tip${n.tip === 1 ? '' : 's'}.${blanks > 1 ? ` <button class="btn small" data-fixall="blank">Remove all ${blanks} blank lines</button>` : ''}</p>
+        <ul class="checks">${issues.map((x, k) => `<li class="lv-${x.level}">
+          <span class="lv">${LEVEL[x.level]}</span>
+          <div><b>${esc(x.msg)}</b><small>${where(x.i)} — <code>${snippet(x.i)}</code></small></div>
+          <span class="acts">${x.fix ? `<button class="btn small" data-fix="${k}">${x.fix.type === 'rename' ? `Change to ${esc(x.fix.to)}` : 'Remove'}</button>` : ''}<button class="btn small" data-go="${k}">Go</button></span></li>`).join('')}</ul>`
+      : '<p style="margin:0">No formatting problems found. Scene headings, cues, dialogue and transitions all check out.</p>';
+  };
+  const apply = (x) => {
+    const el = S.editor.els()[x.i];
+    if (!el) return;
+    if (x.fix.type === 'delete') el.remove();
+    if (x.fix.type === 'rename') {
+      const t = textOf(el);
+      const at = t.toUpperCase().indexOf(x.fix.from);
+      S.editor.setRuns(el, [{ x: at >= 0 ? t.slice(0, at) + x.fix.to + t.slice(at + x.fix.from.length) : x.fix.to }]);
+    }
+  };
+  await modal({
+    title: 'Script check',
+    wide: true,
+    body: '<div id="ck"></div>',
+    buttons: [{ label: 'Close', primary: true, value: null }],
+    onOpen: (body, done) => {
+      const box = body.querySelector('#ck');
+      render(box);
+      box.addEventListener('click', (e) => {
+        const go = e.target.closest('[data-go]');
+        if (go) {
+          const x = issues[+go.dataset.go];
+          done(null);
+          S.app.setView('script');
+          S.editor.focusPara(Math.min(x.i, S.editor.els().length - 1));
+          return;
+        }
+        const fix = e.target.closest('[data-fix]'), all = e.target.closest('[data-fixall]');
+        if (!fix && !all) return;
+        S.editor.pushUndo();
+        const list = fix ? [issues[+fix.dataset.fix]] : issues.filter((x) => x.kind === all.dataset.fixall);
+        // from the end, so earlier positions stay valid
+        list.sort((a, b) => b.i - a.i).forEach(apply);
+        S.editor.changed(true);
+        // keep keyboard focus in the dialog (Esc closes it) after the list redraws
+        S.app.refresh().then(() => { render(box); const c = box.closest('.modal').querySelector('[data-go], footer .primary'); if (c) c.focus(); });
+      });
+    },
+  });
 }
 
 // ------------------------------------------------------------------ reports
@@ -488,6 +649,7 @@ export function shortcutsDialog() {
       ['Ctrl+Alt+D', 'Dual dialogue for the speech under the cursor'],
       ['Ctrl+Alt+T', 'Dialogue tuner'],
       ['Ctrl+Shift+R', 'Reports'],
+      ['Ctrl+Shift+K', 'Script check: formatting slips to fix'],
       ['Ctrl+Shift+A', 'Select the current scene'],
       ['Ctrl+F / Ctrl+H', 'Find / find and replace'],
       ['Ctrl+G', 'Go to page'],

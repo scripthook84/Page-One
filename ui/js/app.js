@@ -6,6 +6,7 @@ import { ELEMS, REVISIONS, cueName, sceneParts, IS_MAC, keyText, platformKeys } 
 import { S, savePrefs, emptyProject, projectNow } from './state.js';
 import * as panels from './panels.js';
 import * as dialogs from './dialogs.js';
+import * as playback from './playback.js';
 
 const $ = (s) => document.querySelector(s);
 
@@ -51,6 +52,7 @@ export function markDirty() {
 }
 
 function loadProject(project, { path = null, name = 'Untitled', imported = false, focus = 0 } = {}) {
+  playback.stop();
   const base = emptyProject();
   S.project = {
     ...base, ...project,
@@ -69,6 +71,7 @@ function loadProject(project, { path = null, name = 'Untitled', imported = false
   applySettingsUI();
   $('#projNotes').value = S.project.notes || '';
   $('#welcome').hidden = true;
+  document.body.classList.remove('welcome-open');
   setView('script');
   setSaveState();
   refresh().then(() => {
@@ -170,6 +173,7 @@ async function save(as = false) {
 }
 
 async function closeDoc() {
+  playback.stop();
   if (!(await guardUnsaved())) return;
   S.project = null;
   S.dirty = false;
@@ -204,6 +208,7 @@ function showWelcome() {
   document.title = 'Page One';
   api.setWindowTitle('Page One');
   $('#welcome').hidden = false;
+  document.body.classList.add('welcome-open');
   $('#wNew').focus();
 }
 
@@ -707,6 +712,7 @@ export const COMMANDS = [
   { sep: true, menu: 'File' },
   { id: 'export', menu: 'File', label: 'Export…', keys: 'Ctrl+Shift+E', run: () => dialogs.exportDialog(doExport), when: need },
   { id: 'pdf', menu: 'File', label: 'Export PDF…', keys: 'Ctrl+P', run: () => dialogs.exportDialog(doExport, 'pdf'), when: need },
+  { id: 'printboard', menu: 'File', label: 'Print board & outline…', run: () => dialogs.exportDialog(doExport, 'board'), when: need, hint: 'Landscape PDF of the scene cards and outline' },
   { sep: true, menu: 'File' },
   { id: 'titlepage', menu: 'File', label: 'Title page…', keys: 'Ctrl+Shift+T', run: () => dialogs.titlePageDialog(), when: need },
   { id: 'setup', menu: 'File', label: 'Document setup…', run: () => dialogs.setupDialog(), when: need },
@@ -761,6 +767,9 @@ export const COMMANDS = [
   { id: 'rename', menu: 'Script', label: 'Rename character…', run: () => dialogs.renameDialog(), when: need },
   { id: 'tuner', menu: 'Script', label: 'Dialogue tuner…', keys: 'Ctrl+Alt+T', run: () => dialogs.tunerDialog(), when: need },
   { id: 'reports', menu: 'Script', label: 'Reports…', keys: 'Ctrl+Shift+R', run: () => dialogs.reportsDialog(), when: need },
+  { id: 'play', menu: 'Script', label: 'Table read (play from cursor)', keys: 'Ctrl+Shift+P', run: () => playback.play(), when: need, hint: 'Built-in voices read the script aloud' },
+  { id: 'voices', menu: 'Script', label: 'Voices…', run: () => dialogs.voicesDialog(), when: need, hint: 'Choose the narrator and each character’s voice' },
+  { id: 'check', menu: 'Script', label: 'Script check…', keys: 'Ctrl+Shift+K', run: () => dialogs.scriptCheckDialog(), when: need, hint: 'Find formatting slips' },
   // Production
   { id: 'scenenums', menu: 'Production', label: 'Scene numbers', run: () => setSetting('scene_numbers', !S.project.settings.scene_numbers), check: () => S.project && S.project.settings.scene_numbers, when: need },
   { id: 'omit', menu: 'Production', label: 'Omit current scene', run: omitScene, when: need },
@@ -768,6 +777,7 @@ export const COMMANDS = [
   ...REVISIONS.map(([name, color], i) => ({
     id: 'rev-' + i, menu: 'Production', label: i === 0 ? 'Revisions off' : `${name} revision`, color: i ? color : null, run: () => setRevision(i), check: () => S.project && (S.project.settings.rev_level || 0) === i, when: need,
   })),
+  { id: 'revpages', menu: 'Production', label: 'Revised pages in colour', run: () => setSetting('rev_pages', !S.project.settings.rev_pages), check: () => S.project && S.project.settings.rev_pages !== false, when: need },
   { id: 'clearrev', menu: 'Production', label: 'Clear revision marks', run: clearRevisions, when: need },
   // Help
   { id: 'shortcuts', menu: 'Help', label: 'Keyboard shortcuts', keys: 'F1', run: () => dialogs.shortcutsDialog() },
@@ -873,6 +883,8 @@ function wire() {
   for (const b of document.querySelectorAll('.views button')) b.addEventListener('click', () => setView(b.dataset.view));
   $('#cmdBtn').addEventListener('click', () => dialogs.palette(COMMANDS));
   $('#themeBtn').addEventListener('click', toggleDark);
+  $('#playBtn').addEventListener('click', () => playback.play());
+  playback.wire();
   $('#focusBtn').addEventListener('click', () => toggleFocus());
   $('#focusExit').addEventListener('click', () => toggleFocus(false));
   $('#fzFit').addEventListener('click', () => setFocusZoom('fit'));
@@ -938,7 +950,7 @@ export function toast(msg) {
 }
 
 // exported for panels/dialogs
-S.app = { refresh, scheduleRefresh, markDirty, toast, setView, applySettingsUI, setSetting, setPref, onCaret, currentSceneIndex, save, doExport, setTitleUI };
+S.app = { refresh, scheduleRefresh, markDirty, toast, setView, applySettingsUI, setSetting, setPref, onCaret, currentSceneIndex, save, doExport, setTitleUI, voicesDialog: () => dialogs.voicesDialog() };
 
 /** Mac: show ⌘ ⌥ ⇧ in the labels written into the page itself. */
 function platformLabels() {
