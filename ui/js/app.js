@@ -769,7 +769,7 @@ export const COMMANDS = [
   { id: 'reports', menu: 'Script', label: 'Reports…', keys: 'Ctrl+Shift+R', run: () => dialogs.reportsDialog(), when: need },
   { id: 'play', menu: 'Script', label: 'Table Read (from the cursor)', keys: 'Ctrl+Shift+P', run: () => playback.play(), when: need, hint: 'Built-in voices read the script aloud, starting at the cursor' },
   { id: 'voices', menu: 'Script', label: 'Table Read settings…', run: () => dialogs.voicesDialog(), when: need, hint: 'Choose the narrator and a voice for each character' },
-  { id: 'trlive', menu: 'Script', label: 'Table Read live mode', check: () => !!S.prefs.trLive, run: () => playback.setLive(!S.prefs.trLive), when: need, hint: 'Room reverb and a page turn at the start of each page' },
+  { id: 'trlive', menu: 'Script', label: 'Table Read live mode', check: () => !!S.prefs.trLive, run: () => playback.setLive(!S.prefs.trLive), when: need, hint: 'Room reverb, with the cast seated around a table' },
   { id: 'check', menu: 'Script', label: 'Script check…', keys: 'Ctrl+Shift+K', run: () => dialogs.scriptCheckDialog(), when: need, hint: 'Find formatting slips' },
   // Production
   { id: 'scenenums', menu: 'Production', label: 'Scene numbers', run: () => setSetting('scene_numbers', !S.project.settings.scene_numbers), check: () => S.project && S.project.settings.scene_numbers, when: need },

@@ -52,14 +52,12 @@ export function castVoices() {
 
 // ------------------------------------------------------------------ the room
 // Every sound goes into `bus`, which feeds a dry path and a convolution reverb. Live mode turns
-// the reverb up, spreads the cast a little left and right as if around a table, and turns a page
-// at the start of each page. The waveform box reads the loudness straight from the line's samples,
+// the reverb up and spreads the cast a little left and right as if around a table. The waveform box reads the loudness straight from the line's samples,
 // so it adds no work to the audio thread.
 
 let ctx = null;
 let bus, dry, wet;
 let env = null;     // loudness of the line now playing, every 20 ms, for the waveform box
-let turns = null;   // a few page-turn sounds, made once
 
 function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 
@@ -83,65 +81,6 @@ function roomImpulse(ac) {
     }
   }
   return buf;
-}
-
-/** One page turn: the sheet sliding up with a little crackle, then the flap as it lands. */
-export async function pageTurn(sr, seed) {
-  const r = rng(seed);
-  const dur = 1.0;
-  const oc = new OfflineAudioContext(2, Math.ceil(sr * dur), sr);
-  const n = oc.length;
-  const noise = oc.createBuffer(1, n, sr);
-  { const d = noise.getChannelData(0); for (let i = 0; i < n; i++) d[i] = r() * 2 - 1; }
-  const slideEnd = 0.30 + r() * 0.08, flap = slideEnd + 0.025 + r() * 0.02;
-  const pan = oc.createStereoPanner(); pan.pan.value = 0.18; pan.connect(oc.destination);
-
-  // the slide: band-passed noise sweeping upward
-  const s1 = oc.createBufferSource(); s1.buffer = noise;
-  const bp = oc.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 0.9;
-  bp.frequency.setValueAtTime(650, 0); bp.frequency.exponentialRampToValueAtTime(3300 + r() * 600, slideEnd);
-  const g1 = oc.createGain();
-  g1.gain.setValueAtTime(0, 0); g1.gain.linearRampToValueAtTime(0.16, 0.09); g1.gain.linearRampToValueAtTime(0.34, slideEnd - 0.05); g1.gain.linearRampToValueAtTime(0, slideEnd + 0.05);
-  s1.connect(bp).connect(g1).connect(pan); s1.start(0);
-
-  // the crackle of paper: short, sparse ticks that follow the slide
-  const cr = oc.createBuffer(1, n, sr);
-  { const d = cr.getChannelData(0);
-    for (let i = 0; i < sr * (slideEnd + 0.08); i++) {
-      const t = i / sr, env = Math.min(1, t / 0.12) * (t < slideEnd ? 1 : Math.max(0, 1 - (t - slideEnd) / 0.08));
-      if (r() < 0.0016 * env) {
-        const L = Math.floor(sr * (0.0012 + r() * 0.003)), a = 0.25 + r() * 0.55;
-        for (let j = 0; j < L && i + j < n; j++) d[i + j] += a * (r() * 2 - 1) * Math.exp(-5 * j / L);
-      }
-    } }
-  const s2 = oc.createBufferSource(); s2.buffer = cr;
-  const hp = oc.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 2200;
-  const g2 = oc.createGain(); g2.gain.value = 0.42;
-  s2.connect(hp).connect(g2).connect(pan); s2.start(0);
-
-  // the flap: a soft, low burst of air and paper as the sheet lands
-  const s3 = oc.createBufferSource(); s3.buffer = noise;
-  const lp = oc.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1100; lp.Q.value = 0.5;
-  const g3 = oc.createGain();
-  g3.gain.setValueAtTime(0, 0); g3.gain.setValueAtTime(0, flap); g3.gain.linearRampToValueAtTime(0.85, flap + 0.006); g3.gain.exponentialRampToValueAtTime(0.002, flap + 0.17);
-  s3.connect(lp).connect(g3).connect(pan); s3.start(0, 0.31);
-  const th = oc.createOscillator(); th.frequency.value = 80 + r() * 20;
-  const g4 = oc.createGain();
-  g4.gain.setValueAtTime(0, 0); g4.gain.setValueAtTime(0, flap); g4.gain.linearRampToValueAtTime(0.3, flap + 0.004); g4.gain.exponentialRampToValueAtTime(0.001, flap + 0.12);
-  th.connect(g4).connect(pan); th.start(0);
-
-  // the sheet settling
-  const s5 = oc.createBufferSource(); s5.buffer = noise;
-  const bp5 = oc.createBiquadFilter(); bp5.type = 'bandpass'; bp5.frequency.value = 1800; bp5.Q.value = 0.7;
-  const g5 = oc.createGain(); const st = flap + 0.1 + r() * 0.04;
-  g5.gain.setValueAtTime(0, 0); g5.gain.setValueAtTime(0, st); g5.gain.linearRampToValueAtTime(0.12, st + 0.02); g5.gain.exponentialRampToValueAtTime(0.001, st + 0.16);
-  s5.connect(bp5).connect(g5).connect(pan); s5.start(0, 0.57);
-
-  const out = await oc.startRendering();
-  let peak = 0;
-  for (let ch = 0; ch < 2; ch++) for (const x of out.getChannelData(ch)) peak = Math.max(peak, Math.abs(x));
-  if (peak > 0) for (let ch = 0; ch < 2; ch++) { const d = out.getChannelData(ch); for (let i = 0; i < d.length; i++) d[i] *= 0.42 / peak; }
-  return out;
 }
 
 function audio() {
@@ -188,14 +127,6 @@ function playBuffer(buf, rate = 1, pan = 0) {
     src.start();
     env = envelope(buf, rate, src);
   });
-}
-
-async function turnPage() {
-  if (!turns) turns = Promise.all([11, 23, 37].map((s) => pageTurn(ctx.sampleRate, s)));
-  const all = await turns;
-  const b = all[Math.floor(Math.random() * all.length)];
-  const src = ctx.createBufferSource(); src.buffer = b; src.connect(bus); src.start();
-  await new Promise((res) => setTimeout(res, 640));
 }
 
 // ------------------------------------------------------------------ the waveform box
@@ -291,7 +222,6 @@ let source = null;
 const cache = new Map(); // index -> Promise<rendered>
 let speakingEl = null;
 let runId = 0;
-let lastPage = null;
 
 function buildQueue(from) {
   const paras = S.editor.paras();
@@ -374,12 +304,6 @@ async function playFrom(k, run) {
     }
     if (run !== runId) return;
     const page = S.layout ? S.layout.para_page[q.i] || 1 : null;
-    if (live() && page != null && page !== lastPage) {
-      status(`Page ${page}`);
-      await turnPage();
-      if (run !== runId) return;
-    }
-    lastPage = page;
     highlight(q.i);
     waveLine(q);
     status(`${q.who}${page ? ` · p. ${page}` : ''}`);
@@ -420,7 +344,6 @@ export async function play(fromPara) {
   await ctx.resume();
   queue = buildQueue(start);
   cache.clear();
-  lastPage = null;
   if (!queue.length) { stop(); S.app.toast('Nothing to read from here.'); return; }
   playFrom(0, ++runId);
 }
@@ -449,7 +372,6 @@ export function isPlaying() { return playing; }
 export function setLive(on) {
   S.prefs.trLive = !!on; savePrefs();
   applyLive();
-  if (on && ctx && !turns) turns = Promise.all([11, 23, 37].map((s) => pageTurn(ctx.sampleRate, s)));
   syncBar();
 }
 

@@ -44,8 +44,8 @@ Installing 1.1 over 1.0 keeps your scripts, settings and backups.
 - Click **Table Read** at the top centre, above the page (Ctrl+Shift+P), and Page One reads the
   script aloud starting where the cursor is, with the line being read highlighted and kept in view.
   While reading, the bar has pause, previous and next line, stop and speed (0.8–1.5×).
-- **Live mode** (a checkbox in the bar): a touch of room reverb, the cast seated a little left and
-  right as if around a table, and a page turning at the start of each page.
+- **Live mode** (a checkbox in the bar): a touch of room reverb and the cast seated a little left
+  and right as if around a table.
 - **Waveform** (a checkbox in the bar): a listening box over the page with the speaker, the line and
   its waveform, with its own play controls.
 - A narrator reads scene headings, action and transitions; each character speaks in their own voice.

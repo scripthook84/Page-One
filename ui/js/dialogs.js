@@ -349,7 +349,7 @@ export async function voicesDialog() {
       <label class="chk"><input type="checkbox" data-k="read_headings" ${st.read_headings !== false ? 'checked' : ''}> Narrator reads scene headings</label>
       <label class="chk"><input type="checkbox" data-k="read_transitions" ${st.read_transitions !== false ? 'checked' : ''}> Narrator reads transitions</label>
       <label class="chk"><input type="checkbox" data-k="read_parens" ${st.read_parens ? 'checked' : ''}> Narrator reads parentheticals</label>
-      <label class="chk"><input type="checkbox" data-pref="trLive" ${S.prefs.trLive ? 'checked' : ''}> Live mode: room reverb and a page turn at the start of each page</label>
+      <label class="chk"><input type="checkbox" data-pref="trLive" ${S.prefs.trLive ? 'checked' : ''}> Live mode: room reverb, with the cast seated around a table</label>
       <label class="chk"><input type="checkbox" data-pref="trWave" ${S.prefs.trWave ? 'checked' : ''}> Show the waveform box over the page while reading</label>
     </div>`;
   box.addEventListener('change', (e) => {

@@ -22,8 +22,8 @@ PDF. It's free, works offline, needs no account, and reads your script aloud wit
 - **Acts off the page.** Act labels live on the board and in the navigator, never in the script.
 - **Focus mode.** One click for a full-screen blank page, sized to fit or from 100 to 200 %.
 - **Table Read.** Built-in, natural-sounding voices read the script aloud from the cursor: a narrator
-  for action and a voice for every character, men, women and children. Live mode adds a room and a
-  page turn at each new page. Everything runs on your computer.
+  for action and a voice for every character, men, women and children. Live mode puts the read in a
+  room. Everything runs on your computer.
 - **Script check.** Finds formatting slips before a reader does, and fixes many in one click.
 - **Your files, your format.** Compact `.pageone` files, plus Fountain and Final Draft (`.fdx`)
   in and out.
@@ -112,8 +112,8 @@ PDF. It's free, works offline, needs no account, and reads your script aloud wit
 - Click **Table Read** at the top centre, above the page (Ctrl+Shift+P), and the script is read aloud
   starting where the cursor is. The line being read is highlighted and kept in view. While reading,
   the bar has pause, previous and next line, stop, speed (0.8–1.5×), **Live mode** and **Waveform**.
-- **Live mode** puts the read in a small room: a touch of reverb, the cast seated a little left and
-  right as if around a table, and the sound of a page turning at the start of each page.
+- **Live mode** puts the read in a small room: a touch of reverb and the cast seated a little left and
+  right as if around a table.
 - **Waveform** opens a listening box over the page with the speaker's name, the line being read and
   its waveform, plus its own play controls. Close it and the read carries on.
 - **A voice for everyone.** A narrator reads scene headings, action and transitions; every character
