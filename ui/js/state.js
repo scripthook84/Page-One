@@ -1,7 +1,7 @@
 // Shared application state.
 
 export const PREFS_DEFAULT = {
-  theme: 'day', zoom: 1, focusZoom: 'fit', autosave: true, typewriter: false, nav: true, insp: true, showNotes: true, recent: [],
+  theme: 'day', zoom: 1, focusZoom: 'fit', autosave: true, typewriter: false, nav: true, insp: true, showNotes: true, recent: [], trLive: false, trWave: false,
 };
 
 function loadPrefs() {

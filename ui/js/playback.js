@@ -1,8 +1,8 @@
-// Table read: plays the script aloud with the built-in voices, from the cursor on.
+// Table Read: plays the script aloud with the built-in voices, from the cursor on.
 // The narrator reads scene headings, action and transitions; each character speaks their
 // dialogue in the voice assigned to them (chosen automatically until the writer picks one).
 
-import { S } from './state.js';
+import { S, savePrefs } from './state.js';
 import { cueName } from './elements.js';
 import * as engine from './voice/engine.js';
 
@@ -50,10 +50,240 @@ export function castVoices() {
   return out;
 }
 
-// ------------------------------------------------------------------ the read
+// ------------------------------------------------------------------ the room
+// Every sound goes into `bus`, which feeds a dry path and a convolution reverb. Live mode turns
+// the reverb up, spreads the cast a little left and right as if around a table, and turns a page
+// at the start of each page. The waveform box reads the loudness straight from the line's samples,
+// so it adds no work to the audio thread.
 
 let ctx = null;
-let queue = [];      // [{i, text, element, voice}]
+let bus, dry, wet;
+let env = null;     // loudness of the line now playing, every 20 ms, for the waveform box
+let turns = null;   // a few page-turn sounds, made once
+
+function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+
+/** A small, warm room: early reflections and a darkening tail of about 1.2 seconds. */
+function roomImpulse(ac) {
+  const sr = ac.sampleRate, len = Math.floor(sr * 1.6);
+  const buf = ac.createBuffer(2, len, sr);
+  const r = rng(7);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = buf.getChannelData(ch);
+    let lp = 0;
+    for (let i = 0; i < len; i++) {
+      const t = i / sr;
+      const k = 0.62 - 0.5 * Math.min(1, t / 1.2);      // the tail loses its highs as it dies
+      lp += k * ((r() * 2 - 1) - lp);
+      d[i] = lp * Math.exp(-5.6 * t) * Math.min(1, t / 0.008);
+    }
+    for (const [ms, a] of [[6, .55], [11, .42], [17, .34], [24, .27], [33, .2], [45, .14]]) {
+      const at = Math.floor(sr * (ms + (ch ? 1.7 : 0)) / 1000);
+      d[at] += (ch ^ (ms & 1) ? -a : a);
+    }
+  }
+  return buf;
+}
+
+/** One page turn: the sheet sliding up with a little crackle, then the flap as it lands. */
+export async function pageTurn(sr, seed) {
+  const r = rng(seed);
+  const dur = 1.0;
+  const oc = new OfflineAudioContext(2, Math.ceil(sr * dur), sr);
+  const n = oc.length;
+  const noise = oc.createBuffer(1, n, sr);
+  { const d = noise.getChannelData(0); for (let i = 0; i < n; i++) d[i] = r() * 2 - 1; }
+  const slideEnd = 0.30 + r() * 0.08, flap = slideEnd + 0.025 + r() * 0.02;
+  const pan = oc.createStereoPanner(); pan.pan.value = 0.18; pan.connect(oc.destination);
+
+  // the slide: band-passed noise sweeping upward
+  const s1 = oc.createBufferSource(); s1.buffer = noise;
+  const bp = oc.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 0.9;
+  bp.frequency.setValueAtTime(650, 0); bp.frequency.exponentialRampToValueAtTime(3300 + r() * 600, slideEnd);
+  const g1 = oc.createGain();
+  g1.gain.setValueAtTime(0, 0); g1.gain.linearRampToValueAtTime(0.16, 0.09); g1.gain.linearRampToValueAtTime(0.34, slideEnd - 0.05); g1.gain.linearRampToValueAtTime(0, slideEnd + 0.05);
+  s1.connect(bp).connect(g1).connect(pan); s1.start(0);
+
+  // the crackle of paper: short, sparse ticks that follow the slide
+  const cr = oc.createBuffer(1, n, sr);
+  { const d = cr.getChannelData(0);
+    for (let i = 0; i < sr * (slideEnd + 0.08); i++) {
+      const t = i / sr, env = Math.min(1, t / 0.12) * (t < slideEnd ? 1 : Math.max(0, 1 - (t - slideEnd) / 0.08));
+      if (r() < 0.0016 * env) {
+        const L = Math.floor(sr * (0.0012 + r() * 0.003)), a = 0.25 + r() * 0.55;
+        for (let j = 0; j < L && i + j < n; j++) d[i + j] += a * (r() * 2 - 1) * Math.exp(-5 * j / L);
+      }
+    } }
+  const s2 = oc.createBufferSource(); s2.buffer = cr;
+  const hp = oc.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 2200;
+  const g2 = oc.createGain(); g2.gain.value = 0.42;
+  s2.connect(hp).connect(g2).connect(pan); s2.start(0);
+
+  // the flap: a soft, low burst of air and paper as the sheet lands
+  const s3 = oc.createBufferSource(); s3.buffer = noise;
+  const lp = oc.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1100; lp.Q.value = 0.5;
+  const g3 = oc.createGain();
+  g3.gain.setValueAtTime(0, 0); g3.gain.setValueAtTime(0, flap); g3.gain.linearRampToValueAtTime(0.85, flap + 0.006); g3.gain.exponentialRampToValueAtTime(0.002, flap + 0.17);
+  s3.connect(lp).connect(g3).connect(pan); s3.start(0, 0.31);
+  const th = oc.createOscillator(); th.frequency.value = 80 + r() * 20;
+  const g4 = oc.createGain();
+  g4.gain.setValueAtTime(0, 0); g4.gain.setValueAtTime(0, flap); g4.gain.linearRampToValueAtTime(0.3, flap + 0.004); g4.gain.exponentialRampToValueAtTime(0.001, flap + 0.12);
+  th.connect(g4).connect(pan); th.start(0);
+
+  // the sheet settling
+  const s5 = oc.createBufferSource(); s5.buffer = noise;
+  const bp5 = oc.createBiquadFilter(); bp5.type = 'bandpass'; bp5.frequency.value = 1800; bp5.Q.value = 0.7;
+  const g5 = oc.createGain(); const st = flap + 0.1 + r() * 0.04;
+  g5.gain.setValueAtTime(0, 0); g5.gain.setValueAtTime(0, st); g5.gain.linearRampToValueAtTime(0.12, st + 0.02); g5.gain.exponentialRampToValueAtTime(0.001, st + 0.16);
+  s5.connect(bp5).connect(g5).connect(pan); s5.start(0, 0.57);
+
+  const out = await oc.startRendering();
+  let peak = 0;
+  for (let ch = 0; ch < 2; ch++) for (const x of out.getChannelData(ch)) peak = Math.max(peak, Math.abs(x));
+  if (peak > 0) for (let ch = 0; ch < 2; ch++) { const d = out.getChannelData(ch); for (let i = 0; i < d.length; i++) d[i] *= 0.42 / peak; }
+  return out;
+}
+
+function audio() {
+  if (!ctx) {
+    // larger buffers: a busy computer never makes the read stutter
+    ctx = new AudioContext({ latencyHint: 'playback' });
+    const master = ctx.createGain(); master.connect(ctx.destination);
+    dry = ctx.createGain(); dry.connect(master);
+    const conv = ctx.createConvolver(); conv.buffer = roomImpulse(ctx);
+    wet = ctx.createGain(); conv.connect(wet); wet.connect(master);
+    bus = ctx.createGain(); bus.connect(dry); bus.connect(conv);
+    applyLive(true);
+  }
+  return ctx;
+}
+
+const live = () => !!S.prefs.trLive;
+
+function applyLive(now) {
+  if (!ctx) return;
+  const t = ctx.currentTime, tc = now ? 0.001 : 0.15;
+  wet.gain.setTargetAtTime(live() ? 0.34 : 0, t, tc);
+  dry.gain.setTargetAtTime(live() ? 0.9 : 1, t, tc);
+}
+
+/** Where each voice sits around the table in live mode: narrator centre, the cast spread out. */
+function seat(who) {
+  if (!live() || !who || who === 'Narrator') return 0;
+  const k = castOrder.indexOf(who);
+  if (k < 0) return 0;
+  const spots = [-0.3, 0.3, -0.16, 0.16, -0.42, 0.42, -0.06, 0.06];
+  return spots[k % spots.length];
+}
+
+function playBuffer(buf, rate = 1, pan = 0) {
+  return new Promise((resolve) => {
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.playbackRate.value = rate;
+    const p = ctx.createStereoPanner(); p.pan.value = pan;
+    src.connect(p).connect(bus);
+    src.onended = () => { if (source === src) source = null; if (env && env.src === src) env = null; resolve(); };
+    source = src;
+    src.start();
+    env = envelope(buf, rate, src);
+  });
+}
+
+async function turnPage() {
+  if (!turns) turns = Promise.all([11, 23, 37].map((s) => pageTurn(ctx.sampleRate, s)));
+  const all = await turns;
+  const b = all[Math.floor(Math.random() * all.length)];
+  const src = ctx.createBufferSource(); src.buffer = b; src.connect(bus); src.start();
+  await new Promise((res) => setTimeout(res, 640));
+}
+
+// ------------------------------------------------------------------ the waveform box
+
+let raf = 0;
+const levels = new Array(40).fill(0);
+let level = 0;
+
+function envelope(buf, rate, src) {
+  const d = buf.getChannelData(0), hop = Math.round(buf.sampleRate * 0.02), out = new Float32Array(Math.ceil(d.length / hop));
+  for (let k = 0; k < out.length; k++) {
+    let sum = 0;
+    const end = Math.min(d.length, (k + 1) * hop);
+    for (let i = k * hop; i < end; i++) sum += d[i] * d[i];
+    out[k] = Math.sqrt(sum / hop);
+  }
+  return { src, levels: out, t0: ctx.currentTime, step: 0.02 / rate };
+}
+
+function whoColor(who) {
+  if (!who || who === 'Narrator') return '';
+  const c = (S.project.characters || []).find((x) => x.name === who);
+  return (c && c.color) || '';
+}
+
+function sizeWave() {
+  const desk = $('#desk');
+  desk.style.setProperty('--desk-h', `${desk.clientHeight}px`);
+}
+
+// a dozen frames a second, on a timer rather than every display frame: the read itself stays
+// smooth on modest computers
+const FRAME = 80;
+let drawnQuiet = false;
+let waveColor = '#c93b36';
+function draw() {
+  raf = 0;
+  const box = $('#trWaveBox');
+  if (box.hidden) return;
+  const cv = $('#twCanvas'), g = cv.getContext('2d');
+  if (ctx && !paused) {
+    let rms = 0;
+    if (env) { const k = Math.floor((ctx.currentTime - env.t0) / env.step); rms = k >= 0 && k < env.levels.length ? env.levels[k] : 0; }
+    const target = playing ? Math.min(1, rms * 5.2) : 0;
+    level += (target - level) * (target > level ? 0.75 : 0.4);
+  }
+  levels.push(level); levels.shift();
+  if (levels.every((v) => v < 0.004) && drawnQuiet) { raf = setTimeout(draw, FRAME); return; }   // nothing new to show
+  drawnQuiet = levels.every((v) => v < 0.004);
+  if (cv.width !== Math.round(cv.clientWidth * devicePixelRatio)) { cv.width = Math.round(cv.clientWidth * devicePixelRatio); cv.height = Math.round(cv.clientHeight * devicePixelRatio); }
+  const W = cv.width, H = cv.height;
+  g.clearRect(0, 0, W, H);
+  const step = W / levels.length, bw = Math.max(3, step * 0.58), mid = H / 2;
+  g.fillStyle = waveColor;
+  for (let k = 0; k < levels.length; k++) {
+    const v = levels[k];
+    const h = Math.max(bw, v * (H - 16));
+    g.globalAlpha = 0.25 + 0.75 * (k / levels.length);
+    const x = k * step + (step - bw) / 2;
+    if (g.roundRect) { g.beginPath(); g.roundRect(x, mid - h / 2, bw, h, bw / 2); g.fill(); } else g.fillRect(x, mid - h / 2, bw, h);
+  }
+  g.globalAlpha = 1;
+  raf = setTimeout(draw, FRAME);
+}
+
+function showWave(on) {
+  const box = $('#trWaveBox');
+  box.hidden = !on;
+  if (on) { sizeWave(); if (!raf) raf = setTimeout(draw, 0); }
+  else if (raf) { clearTimeout(raf); raf = 0; }
+}
+
+function waveLine(q) {
+  if (!q) return;
+  const card = $('.tr-wave-card');
+  const col = whoColor(q.who);
+  if (col) card.style.setProperty('--who', col); else card.style.removeProperty('--who');
+  waveColor = col || getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || waveColor;
+  $('#twWho').textContent = q.who === 'Narrator' ? 'Narrator' : q.who || 'Narrator';
+  const page = S.layout && S.layout.para_page[q.i];
+  $('#twWhere').textContent = `${page ? `Page ${page} · ` : ''}line ${pos + 1} of ${queue.length}`;
+  $('#twLine').textContent = q.text;
+}
+
+// ------------------------------------------------------------------ the read
+
+let queue = [];      // [{i, text, element, voice, who}]
+let castOrder = [];
 let pos = 0;
 let playing = false;
 let paused = false;
@@ -61,12 +291,14 @@ let source = null;
 const cache = new Map(); // index -> Promise<rendered>
 let speakingEl = null;
 let runId = 0;
+let lastPage = null;
 
 function buildQueue(from) {
   const paras = S.editor.paras();
   const st = S.project.settings;
   const narrator = st.narrator_voice || 'narrator';
   const cast = castVoices();
+  castOrder = [...cast.keys()];
   // the speaker in effect where the read starts
   let speaker = null;
   for (let k = from; k >= 0; k--) {
@@ -83,8 +315,9 @@ function buildQueue(from) {
     if (p.t === 'paren' && !st.read_parens) continue;
     if (p.t === 'transition' && !st.read_transitions) continue;
     if (p.meta && p.meta.omitted) continue;
-    const voice = (p.t === 'dialogue' || p.t === 'lyric') && speaker ? cast.get(speaker) || narrator : narrator;
-    out.push({ i, text: p.t === 'paren' ? text.replace(/^\(|\)$/g, '') : text, element: p.t, voice, who: (p.t === 'dialogue' || p.t === 'lyric') ? speaker : 'Narrator' });
+    const spoken = (p.t === 'dialogue' || p.t === 'lyric') && speaker;
+    const voice = spoken ? cast.get(speaker) || narrator : narrator;
+    out.push({ i, text: p.t === 'paren' ? text.replace(/^\(|\)$/g, '') : text, element: p.t, voice, who: spoken ? speaker : 'Narrator' });
   }
   return out;
 }
@@ -105,17 +338,22 @@ function highlight(i) {
   if (speakingEl) {
     speakingEl.classList.add('speaking');
     const r = speakingEl.getBoundingClientRect(), desk = $('#desk').getBoundingClientRect();
-    if (r.top < desk.top + 40 || r.bottom > desk.bottom - 90) speakingEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    if (r.top < desk.top + 70 || r.bottom > desk.bottom - 60) speakingEl.scrollIntoView({ block: 'center', behavior: $('#trWaveBox').hidden ? 'smooth' : 'auto' });
   }
 }
 
 function status(text) { const s = $('#plStatus'); if (s) s.textContent = text; }
 
 function syncBar() {
-  const bar = $('#player');
-  bar.hidden = !playing && !paused;
-  $('#plPlay').textContent = playing && !paused ? '❚❚' : '▶';
-  $('#plPlay').setAttribute('aria-label', playing && !paused ? 'Pause' : 'Play');
+  const on = playing || paused;
+  $('#trDock').classList.toggle('on', on);
+  $('#trControls').hidden = !on;
+  const icon = playing && !paused ? '❚❚' : '▶';
+  const label = playing && !paused ? 'Pause' : 'Play';
+  for (const id of ['#plPlay', '#twPlay']) { $(id).textContent = icon; $(id).setAttribute('aria-label', label); }
+  $('#trLive').checked = live();
+  $('#trWave').checked = !!S.prefs.trWave;
+  showWave(on && !!S.prefs.trWave);
   document.body.classList.toggle('reading', playing);
 }
 
@@ -130,25 +368,25 @@ async function playFrom(k, run) {
       r = await renderAt(k);
     } catch (e) {
       status(String(e.message || e));
-      stop(false);
-      S.app.toast(`Playback stopped: ${e.message || e}`);
+      stop();
+      S.app.toast(`Table Read stopped: ${e.message || e}`);
       return;
     }
     if (run !== runId) return;
+    const page = S.layout ? S.layout.para_page[q.i] || 1 : null;
+    if (live() && page != null && page !== lastPage) {
+      status(`Page ${page}`);
+      await turnPage();
+      if (run !== runId) return;
+    }
+    lastPage = page;
     highlight(q.i);
-    status(`${q.who}${S.layout ? ` · p. ${S.layout.para_page[q.i] || 1}` : ''}`);
+    waveLine(q);
+    status(`${q.who}${page ? ` · p. ${page}` : ''}`);
     if (r.samples.length) {
       const buf = ctx.createBuffer(1, r.samples.length, r.rate);
       buf.copyToChannel(r.samples, 0);
-      await new Promise((resolve) => {
-        source = ctx.createBufferSource();
-        source.buffer = buf;
-        source.playbackRate.value = r.playbackRate;
-        source.connect(ctx.destination);
-        source.onended = resolve;
-        source.start();
-      });
-      source = null;
+      await playBuffer(buf, r.playbackRate, seat(q.who));
     }
     cache.delete(k - 2);
     if (run !== runId) return;
@@ -157,9 +395,10 @@ async function playFrom(k, run) {
     await new Promise((res) => setTimeout(res, nextEl && nextEl.element === 'scene' ? 600 : q.element === 'scene' ? 350 : 220));
     k++;
   }
-  if (run === runId) { stop(false); S.app.toast('End of the script.'); }
+  if (run === runId) { stop(); S.app.toast('End of the script.'); }
 }
 
+/** Start reading from the cursor (or a paragraph); while reading, pause or resume. */
 export async function play(fromPara) {
   if (!S.project) return;
   if (paused) { paused = false; await ctx.resume(); syncBar(); return; }
@@ -169,7 +408,7 @@ export async function play(fromPara) {
   sp.value = [...sp.options].some((o) => +o.value === +(S.project.settings.read_speed || 1)) ? String(+(S.project.settings.read_speed || 1)) : '1';
   playing = true; paused = false;
   syncBar();
-  status('Loading the voices… (a few seconds the first time)');
+  status('Loading the voices…');
   try {
     await engine.ready();
   } catch (e) {
@@ -177,21 +416,22 @@ export async function play(fromPara) {
     S.app.toast(`Voices aren't available: ${e.message || e}`);
     return;
   }
-  ctx = ctx || new AudioContext();
+  audio();
   await ctx.resume();
   queue = buildQueue(start);
   cache.clear();
-  if (!queue.length) { stop(false); S.app.toast('Nothing to read from here.'); return; }
+  lastPage = null;
+  if (!queue.length) { stop(); S.app.toast('Nothing to read from here.'); return; }
   playFrom(0, ++runId);
 }
 
-export function stop(clearHighlight = true) {
+export function stop() {
   runId++;
   playing = false; paused = false;
   if (source) { try { source.onended = null; source.stop(); } catch { /* already ended */ } source = null; }
   if (ctx && ctx.state === 'suspended') ctx.resume();
   cache.clear();
-  if (clearHighlight || true) highlight(null);
+  highlight(null);
   syncBar();
 }
 
@@ -206,24 +446,46 @@ function jump(d) {
 
 export function isPlaying() { return playing; }
 
+export function setLive(on) {
+  S.prefs.trLive = !!on; savePrefs();
+  applyLive();
+  if (on && ctx && !turns) turns = Promise.all([11, 23, 37].map((s) => pageTurn(ctx.sampleRate, s)));
+  syncBar();
+}
+
+export function setWave(on) {
+  S.prefs.trWave = !!on; savePrefs();
+  syncBar();
+  if (on && queue[pos] && (playing || paused)) waveLine(queue[pos]);
+}
+
 /** Speak one sample line in a voice (for choosing voices). */
 export async function preview(voiceId, line) {
   await engine.ready();
-  ctx = ctx || new AudioContext();
+  audio();
   await ctx.resume();
   const r = await engine.render(line || 'This is how I sound reading your script.', 'dialogue', voiceId, S.project.settings.read_speed || 1);
   const buf = ctx.createBuffer(1, r.samples.length, r.rate);
   buf.copyToChannel(r.samples, 0);
   const src = ctx.createBufferSource();
-  src.buffer = buf; src.playbackRate.value = r.playbackRate; src.connect(ctx.destination); src.start();
+  src.buffer = buf; src.playbackRate.value = r.playbackRate; src.connect(bus); src.start();
 }
 
 export function wire() {
-  $('#plPlay').addEventListener('click', () => play());
-  $('#plStop').addEventListener('click', () => stop());
-  $('#plPrev').addEventListener('click', () => jump(-1));
-  $('#plNext').addEventListener('click', () => jump(1));
+  $('#trStart').addEventListener('click', () => play());
+  for (const [a, b] of [['#plPlay', '#twPlay'], ['#plStop', '#twStop'], ['#plPrev', '#twPrev'], ['#plNext', '#twNext']]) {
+    const fn = { '#plPlay': () => play(), '#plStop': () => stop(), '#plPrev': () => jump(-1), '#plNext': () => jump(1) }[a];
+    $(a).addEventListener('click', fn);
+    $(b).addEventListener('click', fn);
+  }
   $('#plSpeed').addEventListener('change', (e) => { S.project.settings.read_speed = +e.target.value; S.app.markDirty(); cache.clear(); });
   $('#plVoices').addEventListener('click', () => S.app.voicesDialog());
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && playing && !document.querySelector('.scrim')) stop(); });
+  $('#trLive').addEventListener('change', (e) => setLive(e.target.checked));
+  $('#trWave').addEventListener('change', (e) => setWave(e.target.checked));
+  $('#twClose').addEventListener('click', () => setWave(false));
+  window.addEventListener('resize', () => { if (!$('#trWaveBox').hidden) sizeWave(); });
+  // keep the cursor where it was: pressing a dock button shouldn't move the start point
+  $('#trDock').addEventListener('mousedown', (e) => { if (e.target.closest('button')) e.preventDefault(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && (playing || paused) && !document.querySelector('.scrim')) stop(); });
+  syncBar();
 }

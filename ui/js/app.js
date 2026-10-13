@@ -767,8 +767,9 @@ export const COMMANDS = [
   { id: 'rename', menu: 'Script', label: 'Rename character…', run: () => dialogs.renameDialog(), when: need },
   { id: 'tuner', menu: 'Script', label: 'Dialogue tuner…', keys: 'Ctrl+Alt+T', run: () => dialogs.tunerDialog(), when: need },
   { id: 'reports', menu: 'Script', label: 'Reports…', keys: 'Ctrl+Shift+R', run: () => dialogs.reportsDialog(), when: need },
-  { id: 'play', menu: 'Script', label: 'Table read (play from cursor)', keys: 'Ctrl+Shift+P', run: () => playback.play(), when: need, hint: 'Built-in voices read the script aloud' },
-  { id: 'voices', menu: 'Script', label: 'Voices…', run: () => dialogs.voicesDialog(), when: need, hint: 'Choose the narrator and each character’s voice' },
+  { id: 'play', menu: 'Script', label: 'Table Read (from the cursor)', keys: 'Ctrl+Shift+P', run: () => playback.play(), when: need, hint: 'Built-in voices read the script aloud, starting at the cursor' },
+  { id: 'voices', menu: 'Script', label: 'Table Read settings…', run: () => dialogs.voicesDialog(), when: need, hint: 'Choose the narrator and a voice for each character' },
+  { id: 'trlive', menu: 'Script', label: 'Table Read live mode', check: () => !!S.prefs.trLive, run: () => playback.setLive(!S.prefs.trLive), when: need, hint: 'Room reverb and a page turn at the start of each page' },
   { id: 'check', menu: 'Script', label: 'Script check…', keys: 'Ctrl+Shift+K', run: () => dialogs.scriptCheckDialog(), when: need, hint: 'Find formatting slips' },
   // Production
   { id: 'scenenums', menu: 'Production', label: 'Scene numbers', run: () => setSetting('scene_numbers', !S.project.settings.scene_numbers), check: () => S.project && S.project.settings.scene_numbers, when: need },
@@ -883,7 +884,6 @@ function wire() {
   for (const b of document.querySelectorAll('.views button')) b.addEventListener('click', () => setView(b.dataset.view));
   $('#cmdBtn').addEventListener('click', () => dialogs.palette(COMMANDS));
   $('#themeBtn').addEventListener('click', toggleDark);
-  $('#playBtn').addEventListener('click', () => playback.play());
   playback.wire();
   $('#focusBtn').addEventListener('click', () => toggleFocus());
   $('#focusExit').addEventListener('click', () => toggleFocus(false));

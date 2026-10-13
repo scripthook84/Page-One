@@ -21,8 +21,9 @@ PDF. It's free, works offline, needs no account, and reads your script aloud wit
   the moment you let go.
 - **Acts off the page.** Act labels live on the board and in the navigator, never in the script.
 - **Focus mode.** One click for a full-screen blank page, sized to fit or from 100 to 200 %.
-- **Table read.** Built-in, natural-sounding voices read the script aloud: a narrator for action and
-  a voice for every character, men, women and children. Everything runs on your computer.
+- **Table Read.** Built-in, natural-sounding voices read the script aloud from the cursor: a narrator
+  for action and a voice for every character, men, women and children. Live mode adds a room and a
+  page turn at each new page. Everything runs on your computer.
 - **Script check.** Finds formatting slips before a reader does, and fixes many in one click.
 - **Your files, your format.** Compact `.pageone` files, plus Fountain and Final Draft (`.fdx`)
   in and out.
@@ -106,17 +107,22 @@ PDF. It's free, works offline, needs no account, and reads your script aloud wit
   Salmon, Cherry) with asterisks, a revision header and revised pages shown and printed in their
   revision colour, a title page laid out to standard metrics, and watermarked PDFs.
 
-## Table read
+## Table Read
 
-- Press ▶ at the top right (Ctrl+Shift+P) and the script is read aloud from the cursor. The line
-  being read is highlighted and kept in view; a small player has pause, previous and next line,
-  stop and speed (0.8–1.5×).
+- Click **Table Read** at the top centre, above the page (Ctrl+Shift+P), and the script is read aloud
+  starting where the cursor is. The line being read is highlighted and kept in view. While reading,
+  the bar has pause, previous and next line, stop, speed (0.8–1.5×), **Live mode** and **Waveform**.
+- **Live mode** puts the read in a small room: a touch of reverb, the cast seated a little left and
+  right as if around a table, and the sound of a page turning at the start of each page.
+- **Waveform** opens a listening box over the page with the speaker's name, the line being read and
+  its waveform, plus its own play controls. Close it and the read carries on.
 - **A voice for everyone.** A narrator reads scene headings, action and transitions; every character
   speaks in their own voice. Seventeen character voices are built in (eight women and seven men
   with American and British accents, and a girl and a boy, made by raising an adult voice's pitch)
   plus two narrator voices. Characters are cast
-  automatically (YOUNG JUNE gets a child's voice) until you choose; pick and audition voices in
-  Script → Voices… or from a character in the Characters panel. Choices are saved with the script.
+  automatically (YOUNG JUNE gets a child's voice) until you choose; pick and audition a voice for
+  each character in **Settings**, next to Table Read, or from a character in the Characters panel.
+  Choices are saved with the script.
 - Choose whether the narrator reads scene headings, transitions and parentheticals.
 - The voices run entirely on your computer, with no account and no internet connection. They use the
   open-source Kokoro voice model.

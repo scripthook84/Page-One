@@ -11,12 +11,12 @@ and outline, and brings pages, spacing and Final Draft files even closer to the 
 
 | Platform | File | Requires |
 |---|---|---|
-| Windows | `Page-One_1.1.0_x64.msi` (about 175 MB) | Windows 10 or 11, 64-bit |
-| macOS | `Page-One_1.1.0_universal.dmg` (about 175 MB) | macOS 12 Monterey or later, Apple Silicon or Intel |
 | Linux | `Page-One_1.1.0_amd64.deb` (about 172 MB) | Ubuntu 22.04+, Debian 12+, Linux Mint, Pop!_OS (64-bit) |
 
-The installers are larger than 1.0's because the voices are built in, so the table read works
-offline from the first launch.
+This build is Linux only. Windows (`.msi`) and macOS (`.dmg`) installers for 1.1 will follow.
+
+The installer is larger than 1.0's because the voices are built in, so Table Read works offline
+from the first launch.
 
 ## Install
 
@@ -39,17 +39,22 @@ Installing 1.1 over 1.0 keeps your scripts, settings and backups.
 
 ## What's new in 1.1
 
-### Table read with built-in voices
+### Table Read with built-in voices
 
-- Press ▶ at the top right (Ctrl+Shift+P) and Page One reads the script aloud from the cursor, with
-  the line being read highlighted and kept in view. A small player has pause, previous and next
-  line, stop and speed (0.8–1.5×).
+- Click **Table Read** at the top centre, above the page (Ctrl+Shift+P), and Page One reads the
+  script aloud starting where the cursor is, with the line being read highlighted and kept in view.
+  While reading, the bar has pause, previous and next line, stop and speed (0.8–1.5×).
+- **Live mode** (a checkbox in the bar): a touch of room reverb, the cast seated a little left and
+  right as if around a table, and a page turning at the start of each page.
+- **Waveform** (a checkbox in the bar): a listening box over the page with the speaker, the line and
+  its waveform, with its own play controls.
 - A narrator reads scene headings, action and transitions; each character speaks in their own voice.
   Seventeen character voices (eight women and seven men, American and British, plus a girl and a
   boy) and two narrator voices are built in.
 - Characters are cast automatically, with a child's voice for names like YOUNG JUNE and distinct
-  voices for everyone else, until you choose. Pick and audition voices in **Script → Voices…** or
-  from a character in the Characters panel; choices are saved with the script.
+  voices for everyone else, until you choose. Pick and audition a voice for each character in
+  **Settings**, next to Table Read, or from a character in the Characters panel; choices are saved
+  with the script.
 - Choose whether the narrator reads scene headings, transitions and parentheticals.
 - Everything runs on your computer: no account, no internet, nothing uploaded.
 

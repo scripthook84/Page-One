@@ -320,7 +320,7 @@ export async function voicesDialog() {
   const st = S.project.settings;
   const box = document.createElement('div');
   box.innerHTML = '<p class="hint" style="margin:0">Loading the voices…</p>';
-  const p = modal({ title: 'Voices', wide: true, body: box, buttons: [{ label: 'Done', primary: true, value: null }] });
+  const p = modal({ title: 'Table Read settings', wide: true, body: box, buttons: [{ label: 'Done', primary: true, value: null }] });
   try {
     await engine.ready();
   } catch (e) {
@@ -339,7 +339,7 @@ export async function voicesDialog() {
     }
     return '';
   };
-  box.innerHTML = `<p class="hint" style="margin:0 0 10px">Every voice runs on this computer. Characters get a voice automatically until you choose one.</p>
+  box.innerHTML = `<p class="hint" style="margin:0 0 10px">Pick a voice for each character. Every voice runs on this computer; characters get one automatically until you choose.</p>
     <table class="report voices-table"><tbody>
       <tr><td><b>Narrator</b><br><small class="hint">Scene headings, action, transitions</small></td><td><select data-who="__narrator">${voiceOptions(st.narrator_voice || 'narrator')}</select></td><td><button class="btn small" data-try="__narrator">▶ Listen</button></td></tr>
       ${[...cast.keys()].map((name) => `<tr><td><b>${esc(name)}</b></td><td><select data-who="${esc(name)}">${voiceOptions((cards.get(name) || {}).voice || '', { auto: true })}</select>
@@ -349,6 +349,8 @@ export async function voicesDialog() {
       <label class="chk"><input type="checkbox" data-k="read_headings" ${st.read_headings !== false ? 'checked' : ''}> Narrator reads scene headings</label>
       <label class="chk"><input type="checkbox" data-k="read_transitions" ${st.read_transitions !== false ? 'checked' : ''}> Narrator reads transitions</label>
       <label class="chk"><input type="checkbox" data-k="read_parens" ${st.read_parens ? 'checked' : ''}> Narrator reads parentheticals</label>
+      <label class="chk"><input type="checkbox" data-pref="trLive" ${S.prefs.trLive ? 'checked' : ''}> Live mode: room reverb and a page turn at the start of each page</label>
+      <label class="chk"><input type="checkbox" data-pref="trWave" ${S.prefs.trWave ? 'checked' : ''}> Show the waveform box over the page while reading</label>
     </div>`;
   box.addEventListener('change', (e) => {
     const sel = e.target.closest('select[data-who]');
@@ -366,6 +368,9 @@ export async function voicesDialog() {
     }
     const k = e.target.dataset && e.target.dataset.k;
     if (k) { st[k] = e.target.checked; S.app.markDirty(); }
+    const pref = e.target.dataset && e.target.dataset.pref;
+    if (pref === 'trLive') playback.setLive(e.target.checked);
+    if (pref === 'trWave') playback.setWave(e.target.checked);
   });
   box.addEventListener('click', (e) => {
     const b = e.target.closest('[data-try]');

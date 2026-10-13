@@ -605,16 +605,51 @@ body.welcome-open #docTitle, body.welcome-open #saveState { visibility: hidden; 
 .btn.small { padding: 3px 9px; font-size: 12.5px; }
 
 /* table read */
-.player { position: fixed; left: 50%; bottom: 52px; transform: translateX(-50%); z-index: 60; display: flex; align-items: center; gap: 6px;
-  background: var(--chrome); border: 1px solid var(--line); border-radius: 12px; padding: 6px 8px; box-shadow: 0 12px 34px rgba(15, 20, 30, .22); }
-.player button { border: 0; background: none; color: var(--ink); min-width: 32px; height: 32px; border-radius: 8px; font-size: 14px; padding: 0 8px; }
-.player button:hover { background: var(--chrome-2); }
-.player button.main { background: var(--accent); color: var(--accent-ink); }
-.player .status { min-width: 160px; max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 12.5px; padding: 0 6px; }
-.player select { height: 30px; padding: 0 4px; }
+/* the Table Read dock: top centre of the page area, above the page */
+.tr-dock { position: sticky; top: 12px; left: 0; z-index: 26; height: 0; width: 100%; display: flex; justify-content: center; pointer-events: none; }
+.tr-pill { pointer-events: auto; display: flex; align-items: center; gap: 4px; height: 40px; padding: 4px; border-radius: 999px;
+  background: color-mix(in srgb, var(--chrome) 92%, transparent); border: 1px solid var(--line);
+  box-shadow: 0 6px 22px rgba(15, 20, 30, .16); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); white-space: nowrap; }
+.tr-pill button { border: 0; background: none; color: var(--ink); height: 32px; min-width: 32px; padding: 0 9px; border-radius: 999px; font-size: 13.5px; display: inline-flex; align-items: center; gap: 7px; }
+.tr-pill button:hover { background: var(--chrome-2); }
+.tr-pill svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.tr-pill .tr-start { background: var(--accent); color: var(--accent-ink); font-weight: 600; padding: 0 15px 0 12px; }
+.tr-pill .tr-start:hover { background: color-mix(in srgb, var(--accent) 86%, #000); }
+.tr-pill .tr-start svg path { fill: currentColor; stroke: none; }
+.tr-pill .tr-settings { color: var(--muted); }
+.tr-pill .tr-settings:hover { color: var(--ink); }
+.tr-controls { display: inline-flex; align-items: center; gap: 2px; }
+.tr-controls[hidden] { display: none; }
+.tr-controls button.main { background: var(--accent); color: var(--accent-ink); }
+.tr-controls .status { width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 12.5px; padding: 0 8px; }
+.tr-controls select { height: 28px; padding: 0 4px; border-radius: 6px; }
+.tr-chk { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; color: var(--ink); padding: 0 6px; cursor: pointer; }
+.tr-chk input { accent-color: var(--accent); margin: 0; }
+.tr-dock.on .tr-start { display: none; }
+.paper-wrap { padding-top: 66px; }
+body.welcome-open .tr-dock, body.welcome-open .tr-wave { display: none; }
+body.focus .tr-dock:not(.on) { opacity: .25; transition: opacity .2s; }
+body.focus .tr-dock:hover { opacity: 1; }
+
+/* the listening box with the waveform, over the page */
+.tr-wave { position: sticky; top: 0; left: 0; z-index: 25; height: 0; width: 100%; }
+.tr-wave[hidden] { display: none; }
+.tr-wave::before { content: ''; position: absolute; left: 0; top: 0; width: 100%; height: var(--desk-h, 100vh);
+  background: color-mix(in srgb, var(--desk, #888) 80%, transparent); }
+.tr-wave-card { position: absolute; left: 50%; top: calc(var(--desk-h, 100vh) * .5 + 18px); transform: translate(-50%, -50%);
+  width: min(560px, calc(100% - 32px)); background: var(--chrome); color: var(--ink); border: 1px solid var(--line); border-radius: 18px;
+  box-shadow: 0 14px 36px rgba(10, 14, 22, .22); padding: 20px 22px 16px; }
+.tr-wave-head { display: flex; align-items: baseline; gap: 10px; padding-right: 30px; }
+.tr-wave-head b { font-size: 19px; letter-spacing: .02em; color: var(--who, var(--accent)); }
+.tr-wave-head span { color: var(--muted); font-size: 12.5px; margin-left: auto; font-variant-numeric: tabular-nums; }
+#twCanvas { display: block; width: 100%; height: 130px; margin: 14px 0 10px; }
+.tr-wave-line { margin: 0; min-height: 3.2em; max-height: 4.8em; overflow: hidden; font: 13.5px/1.6 var(--mono); color: var(--ink); opacity: .85; }
+.tr-wave-btns { display: flex; justify-content: center; gap: 6px; margin-top: 12px; }
+.tr-wave-btns button { border: 0; background: var(--chrome-2); color: var(--ink); width: 40px; height: 36px; border-radius: 10px; font-size: 14px; }
+.tr-wave-btns button.main { background: var(--accent); color: var(--accent-ink); width: 54px; }
+.tr-wave-close { position: absolute; right: 12px; top: 12px; border: 0; background: none; color: var(--muted); width: 30px; height: 30px; border-radius: 8px; }
+.tr-wave-close:hover { background: var(--chrome-2); color: var(--ink); }
 .p.speaking { background: color-mix(in srgb, var(--accent) 14%, transparent); box-shadow: -1ch 0 0 color-mix(in srgb, var(--accent) 14%, transparent), 1ch 0 0 color-mix(in srgb, var(--accent) 14%, transparent); border-radius: 2px; }
-#playBtn svg path { fill: currentColor; stroke: none; }
-body.reading #playBtn { color: var(--accent); }
 .voices-table td { padding: 5px 6px; vertical-align: middle; }
 .voices-table select { width: 100%; }
 .chars li .voice-row { display: flex; gap: 6px; align-items: center; }
