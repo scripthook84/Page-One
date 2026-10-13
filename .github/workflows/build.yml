@@ -154,6 +154,8 @@ jobs:
   # platform). Each new build replaces the files there.
   release:
     needs: [linux-deb, macos-dmg, windows-msi]
+    # publish whatever built: a busy GitHub Mac queue never holds back the other installers
+    if: ${{ !cancelled() && (needs.linux-deb.result == 'success' || needs.windows-msi.result == 'success' || needs.macos-dmg.result == 'success') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
