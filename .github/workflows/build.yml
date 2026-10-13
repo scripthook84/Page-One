@@ -1,11 +1,7 @@
 name: Build
 
+# Builds run only when started by hand (Actions → Build → Run workflow), not on every push.
 on:
-  push:
-    branches: [main]
-    tags: ["v*"]
-    # README and docs edits skip the build; RELEASE_NOTES.md is the release description, so it rebuilds
-    paths: ["**", "!README.md", "!docs/**"]
   workflow_dispatch:
 
 # a newer push replaces a build still running
