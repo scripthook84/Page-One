@@ -85,7 +85,8 @@ kbd { font: 11px var(--ui); color: var(--muted); border: 1px solid var(--line); 
   border-bottom: 1px solid var(--line);
   user-select: none;
 }
-.brand { display: flex; align-items: center; gap: 8px; height: 100%; padding: 0 16px; background: var(--accent); color: #fff; font-weight: 650; letter-spacing: .01em; }
+.brand { display: flex; align-items: center; height: 100%; padding: 0 8px 0 12px; }
+.brand img { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 1px var(--line); }
 .menus { display: flex; height: 100%; }
 .menus > div { position: relative; }
 .menus > div > button { height: 42px; padding: 0 10px; border: 0; background: none; color: var(--ink); }
