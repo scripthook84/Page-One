@@ -13,6 +13,8 @@ third-party components, each under its own licence.
 | ONNX Runtime Web 1.20.1 (Microsoft) | Runs the voice model in the browser preview | MIT |
 | ort (pyke.io) | Rust bindings to ONNX Runtime | MIT or Apache License 2.0 |
 | Tauri (The Tauri Programme) | Desktop framework | MIT or Apache License 2.0 |
+| rust_xlsxwriter (John McNamara) | Writes the Excel reports | MIT or Apache License 2.0 |
+| zip (zip-rs contributors) | Packs the Excel file | MIT |
 
 The voice files are assembled by `scripts/build_voice_assets.py` from the components above and
 bundled with the installers; they are not stored in this repository.

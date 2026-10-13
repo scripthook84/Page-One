@@ -12,6 +12,7 @@ rmp-serde = "1"
 flate2 = "1"
 roxmltree = "0.20"
 tiny_http = { version = "0.12", optional = true }
+rust_xlsxwriter = { version = "0.99", default-features = false }
 
 [features]
 devserver = ["dep:tiny_http"]

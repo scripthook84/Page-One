@@ -6,6 +6,7 @@ pub mod fountain;
 pub mod layout;
 pub mod model;
 pub mod board_pdf;
+pub mod xlsx;
 pub mod pdf;
 pub mod text;
 

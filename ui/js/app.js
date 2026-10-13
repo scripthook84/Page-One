@@ -713,6 +713,7 @@ export const COMMANDS = [
   { id: 'export', menu: 'File', label: 'Export…', keys: 'Ctrl+Shift+E', run: () => dialogs.exportDialog(doExport), when: need },
   { id: 'pdf', menu: 'File', label: 'Export PDF…', keys: 'Ctrl+P', run: () => dialogs.exportDialog(doExport, 'pdf'), when: need },
   { id: 'printboard', menu: 'File', label: 'Print board & outline…', run: () => dialogs.exportDialog(doExport, 'board'), when: need, hint: 'Landscape PDF of the scene cards and outline' },
+  { id: 'xlsx', menu: 'File', label: 'Export reports (Excel)…', run: () => dialogs.exportReports(), when: need, hint: 'Scene report, cast list, cast by scene and sets as an .xlsx workbook' },
   { sep: true, menu: 'File' },
   { id: 'titlepage', menu: 'File', label: 'Title page…', keys: 'Ctrl+Shift+T', run: () => dialogs.titlePageDialog(), when: need },
   { id: 'setup', menu: 'File', label: 'Document setup…', run: () => dialogs.setupDialog(), when: need },

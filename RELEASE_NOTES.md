@@ -79,6 +79,25 @@ Installing 1.1 over 1.0 keeps your scripts, settings and backups.
   act by act in their colours, and an outline of acts, sequences, beats and scenes with synopses,
   page numbers and lengths.
 
+### Production reports in Excel
+
+- **File → Export reports (Excel)…** (also in Script → Reports) writes an `.xlsx` workbook:
+  - **Summary:** title, draft, revision, pages, estimated screen time, and scene counts by interior,
+    exterior, day, night, dawn/dusk and omitted.
+  - **Scene report:** the one-liner in script order: scene number, I/E, set, D/N, time as written,
+    page, length in eighths, cast ID numbers, who speaks and who is named in the action, a
+    one-line description (your synopsis, or the first action line), act, sequence and beat.
+  - **Cast list:** ID numbers (1 is the part in the most scenes), scenes, speeches, words, page
+    count, first and last scene.
+  - **Cast by scene:** the chart an assistant director builds the Day Out of Days from: X where a
+    character speaks, • where they're named in the action.
+  - **Sets:** every set with its I/E, scenes, page count and times of day, longest first.
+- Page lengths are real numbers shown as eighths ("1 3/8"), so they add up; totals are live
+  formulas. Headers stay in view, every column filters, and each sheet prints landscape on US
+  Letter with the header row on every page.
+- CONTINUOUS, LATER and similar scenes take the day or night of the scene before, as a breakdown does.
+- The Reports dialog shows the same scene, cast and set tables, still copyable as CSV.
+
 ### Pages, production and Final Draft files
 
 - Two blank lines before scene headings, Final Draft's standard, for new scripts (Document setup

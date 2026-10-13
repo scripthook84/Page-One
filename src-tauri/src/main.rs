@@ -47,6 +47,7 @@ async fn pick_save(app: tauri::AppHandle, kind: String, suggested: String) -> Op
         "fountain" => ("Fountain", "fountain"),
         "fdx" => ("Final Draft", "fdx"),
         "text" => ("Plain text", "txt"),
+        "xlsx" => ("Excel workbook", "xlsx"),
         _ => ("Page One", "pageone"),
     };
     let clean: String = suggested
@@ -56,7 +57,7 @@ async fn pick_save(app: tauri::AppHandle, kind: String, suggested: String) -> Op
     let picked = app
         .dialog()
         .file()
-        .set_title(if ext == "pageone" { "Save screenplay" } else { "Export screenplay" })
+        .set_title(match ext { "pageone" => "Save screenplay", "xlsx" => "Export reports", _ => "Export screenplay" })
         .set_file_name(format!("{clean}.{ext}"))
         .add_filter(label, &[ext])
         .blocking_save_file()?;
@@ -125,6 +126,13 @@ fn export_file(path: String, kind: String, project: Project, watermark: String) 
         "text" => text::export(&project).into_bytes(),
         other => return Err(format!("Unknown export format: {other}")),
     };
+    std::fs::write(&path, bytes).map_err(|e| format!("Could not write {path}: {e}"))
+}
+
+/// Production reports as an Excel workbook (the page assembles the tables).
+#[tauri::command]
+fn export_xlsx(path: String, book: pageone_core::xlsx::Workbook) -> Result<(), String> {
+    let bytes = pageone_core::xlsx::write(&book)?;
     std::fs::write(&path, bytes).map_err(|e| format!("Could not write {path}: {e}"))
 }
 
@@ -264,6 +272,7 @@ fn main() {
             layout,
             pick_open,
             pick_save,
+            export_xlsx,
             load_file,
             import_text,
             save_file,

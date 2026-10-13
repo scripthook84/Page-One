@@ -51,6 +51,13 @@ fn serve(server: &tiny_http::Server, root: &std::path::Path) {
                 }
                 Err(e) => json(serde_json::json!({ "error": e.to_string() })),
             },
+            "/api/xlsx" => match serde_json::from_slice::<pageone_core::xlsx::Workbook>(&body) {
+                Ok(b) => match pageone_core::xlsx::write(&b) {
+                    Ok(bytes) => bytes_resp(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+                    Err(e) => json(serde_json::json!({ "error": e })),
+                },
+                Err(e) => json(serde_json::json!({ "error": e.to_string() })),
+            },
             "/api/pdf" => match parse() {
                 Ok(p) => {
                     let opts = pdf::PdfOptions { title_page: p.settings.title_page, watermark: String::new(), rev_pages: p.settings.rev_pages };

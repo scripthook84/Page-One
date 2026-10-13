@@ -6,6 +6,8 @@ import { ELEMS, cueName, sceneParts, SCENE_COLORS, colorLabel, keyText } from '.
 import { checkScript } from './check.js';
 import * as engine from './voice/engine.js';
 import * as playback from './playback.js';
+import * as reports from './reports.js';
+import { api } from './api.js';
 
 const root = () => document.getElementById('modalRoot');
 
@@ -454,35 +456,15 @@ export async function scriptCheckDialog() {
 // ------------------------------------------------------------------ reports
 
 export async function reportsDialog(tab = 'scenes') {
-  const d = S.derived;
-  const lay = S.layout;
-  const tables = {
-    scenes: {
-      head: ['#', 'Scene', 'Page', 'Length', 'Speaking'],
-      rows: d.scenes.filter((s) => s.t === 'scene').map((s) => [s.number, s.text, s.page, s.eighths, [...s.cast].join(', ')]),
-      fmt: [null, 'h', null, (v) => (v ? eighths(v) : ''), null],
-    },
-    characters: {
-      head: ['Character', 'Speeches', 'Words', 'Scenes', 'First page'],
-      rows: d.characters.map((c) => [c.name, c.speeches, c.words, c.scenes.size, c.firstPage || '']),
-      fmt: ['h', null, null, null, null],
-    },
-    locations: {
-      head: ['Location', 'Int/Ext', 'Scenes', 'Pages', 'Times of day'],
-      rows: d.locations.map((l) => {
-        const e8 = l.scenes.reduce((a, i) => a + ((lay.scenes.find((s) => s.para === i) || {}).eighths || 0), 0);
-        return [l.name, [...l.intros].join(', '), l.scenes.length, e8, [...l.times].join(', ')];
-      }),
-      fmt: ['h', null, null, (v) => (v ? eighths(v) : ''), null],
-    },
-  };
-  const totalPages = lay ? lay.pages.length : 0;
-  const ints = d.scenes.filter((s) => s.t === 'scene' && /^INT/i.test(s.text)).length;
-  const exts = d.scenes.filter((s) => s.t === 'scene' && /^EXT/i.test(s.text)).length;
-  const nights = d.scenes.filter((s) => s.t === 'scene' && /NIGHT/i.test(sceneParts(s.text).time)).length;
+  const R = reports.collect();
+  const tables = reports.tables(R);
+  if (!tables[tab]) tab = tab === 'characters' ? 'cast' : tab === 'locations' ? 'sets' : 'scenes';
+  const live = R.scenes.filter((s) => !s.omitted);
+  const ints = live.filter((s) => s.ie === 'INT').length, exts = live.filter((s) => s.ie === 'EXT').length;
+  const nights = live.filter((s) => s.dn === 'Night').length;
   const body = document.createElement('div');
-  body.innerHTML = `<p class="hint" style="margin:0">${totalPages} pages, ${d.scenes.filter((s) => s.t === 'scene').length} scenes (${ints} interior, ${exts} exterior, ${nights} night), ${d.characters.length} speaking characters, ${d.locations.length} locations.</p>
-    <div class="tabs" style="padding:0">${Object.keys(tables).map((k) => `<button data-tab="${k}" aria-selected="${k === tab}">${k[0].toUpperCase() + k.slice(1)}</button>`).join('')}</div>
+  body.innerHTML = `<p class="hint" style="margin:0">${R.totalPages} pages, ${live.length} scenes (${ints} interior, ${exts} exterior, ${nights} night), ${R.cast.length} speaking characters, ${R.sets.length} sets. Export to Excel adds a summary and a cast-by-scene chart.</p>
+    <div class="tabs" style="padding:0">${Object.entries(tables).map(([k, T]) => `<button data-tab="${k}" aria-selected="${k === tab}">${T.label}</button>`).join('')}</div>
     <div style="max-height:55vh;overflow:auto" id="rep"></div>`;
   let sort = { col: null, dir: 1 };
   const draw = () => {
@@ -493,7 +475,7 @@ export async function reportsDialog(tab = 'scenes') {
       return (typeof x === 'number' && typeof y === 'number' ? x - y : String(x).localeCompare(String(y), undefined, { numeric: true })) * sort.dir;
     });
     body.querySelector('#rep').innerHTML = `<table class="report"><thead><tr>${T.head.map((h, i) => `<th data-col="${i}">${h}${sort.col === i ? (sort.dir > 0 ? ' ▲' : ' ▼') : ''}</th>`).join('')}</tr></thead>
-      <tbody>${rows.map((r) => `<tr>${r.map((v, i) => { const f = T.fmt[i]; return `<td class="${f === 'h' ? 'h' : ''}">${esc(typeof f === 'function' ? f(v) : v ?? '')}</td>`; }).join('')}</tr>`).join('') || `<tr><td colspan="${T.head.length}" class="hint">Nothing to report yet.</td></tr>`}</tbody></table>`;
+      <tbody>${rows.map((r) => `<tr>${r.map((v, i) => { const f = T.fmt[i]; return `<td class="${f === 'h' ? 'h' : f === 'd' ? 'd' : ''}">${esc(typeof f === 'function' ? f(v) : v ?? '')}</td>`; }).join('')}</tr>`).join('') || `<tr><td colspan="${T.head.length}" class="hint">Nothing to report yet.</td></tr>`}</tbody></table>`;
   };
   body.addEventListener('click', (e) => {
     const t = e.target.closest('[data-tab]');
@@ -502,11 +484,23 @@ export async function reportsDialog(tab = 'scenes') {
     if (th) { const c = +th.dataset.col; sort = { col: c, dir: sort.col === c ? -sort.dir : 1 }; draw(); }
   });
   draw();
-  const v = await modal({ title: 'Reports', body, wide: true, buttons: [{ label: 'Copy as CSV', value: 'csv' }, { label: 'Close', value: null, primary: true }] });
+  const v = await modal({ title: 'Reports', body, wide: true, buttons: [{ label: 'Copy as CSV', value: 'csv' }, { label: 'Export to Excel…', value: 'xlsx' }, { label: 'Close', value: null, primary: true }] });
   if (v === 'csv') {
     const T = tables[tab];
-    const csv = [T.head, ...T.rows.map((r) => r.map((v, i) => (typeof T.fmt[i] === 'function' ? T.fmt[i](v) : v)))].map((r) => r.map((x) => `"${String(x ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+    const csv = [T.head, ...T.rows.map((r) => r.map((x, i) => (typeof T.fmt[i] === 'function' ? T.fmt[i](x) : x)))].map((r) => r.map((x) => `"${String(x ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
     try { await navigator.clipboard.writeText(csv); S.app.toast('Report copied. Paste it into a spreadsheet.'); } catch { S.app.toast('Could not reach the clipboard.'); }
+  }
+  if (v === 'xlsx') await exportReports(R);
+}
+
+/** Write the production reports workbook (.xlsx). */
+export async function exportReports(R) {
+  try {
+    const book = reports.workbook(R || reports.collect());
+    const where = await api.exportReports(book, book.title);
+    if (where) S.app.toast(`Reports saved: ${where.split(/[\\/]/).pop()}`);
+  } catch (e) {
+    alert('Export reports', `The reports couldn't be saved: ${e.message || e}`);
   }
 }
 

@@ -508,6 +508,7 @@ table.report { width: 100%; border-collapse: collapse; font-size: 12.5px; }
 table.report th { text-align: left; color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--line); padding: 6px 8px; position: sticky; top: 0; background: var(--chrome); cursor: pointer; }
 table.report td { padding: 5px 8px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
 table.report td.h { font-family: var(--mono); text-transform: uppercase; font-size: 12px; }
+table.report td.d { min-width: 26ch; color: var(--muted); }
 table.report tr:hover td { background: var(--chrome-2); }
 
 .tuner { display: grid; gap: 10px; }

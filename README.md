@@ -95,8 +95,12 @@ PDF. It's free, works offline, needs no account, and reads your script aloud wit
 - **Characters.** Lines, words and scenes per speaker, with a colour and bio for each.
 - **Dialogue tuner.** One character's lines on their own, editable in place.
 - **Rename character** in cues and, if you like, everywhere the name appears.
-- **Reports.** Scenes, characters and locations (interior/exterior, day/night, page eighths),
-  sortable and copyable as CSV.
+- **Production reports, in Excel.** File → Export reports (Excel) writes an `.xlsx` workbook laid
+  out the way a production office reads a script: a summary; a scene report (one-liner in script
+  order: scene number, I/E, set, D/N, page, length in eighths, cast ID numbers, description, act);
+  a cast list with ID numbers; a cast-by-scene chart for building a Day Out of Days; and every set
+  with its scenes and page count. Headers stay in view, columns filter, page counts add up in
+  eighths, and it prints in landscape. The same tables are in Script → Reports, copyable as CSV.
 - **Target length.** Progress toward your page goal, a running time estimate (1 page ≈ 1 minute)
   and the words written today.
 - **Script check** (Ctrl+Shift+K). Character cues with no dialogue, dialogue with no cue, scene

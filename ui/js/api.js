@@ -117,6 +117,22 @@ export const api = {
     return suggested + '.' + ext;
   },
 
+  /** Production reports as an Excel workbook. `book` comes from reports.js. */
+  async exportReports(book, suggested) {
+    const name = `${suggested || 'Untitled'} - Reports`;
+    if (isDesktop) {
+      let path = await withDialog('pick_save', { kind: 'xlsx', suggested: name });
+      if (!path) return null;
+      if (!path.toLowerCase().endsWith('.xlsx')) path += '.xlsx';
+      await invoke('export_xlsx', { path, book });
+      return path;
+    }
+    const r = await fetch('/api/xlsx', { method: 'POST', body: JSON.stringify(book) });
+    if (!r.ok || (r.headers.get('content-type') || '').includes('json')) throw new Error((await r.json()).error || 'Export failed');
+    download(`${name}.xlsx`, new Uint8Array(await r.arrayBuffer()), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    return name + '.xlsx';
+  },
+
   async initialFile() {
     return isDesktop ? invoke('initial_file') : null;
   },
