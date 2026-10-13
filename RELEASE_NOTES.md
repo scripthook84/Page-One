@@ -1,10 +1,9 @@
-# Page One 1.0.0 — release notes
+# Page One 1.1.0 — release notes
 
-**Released:** October 11, 2026 · **License:** Apache License 2.0
+**Released:** October 13, 2026 · **License:** Apache License 2.0
 
-The first release of Page One: a lightweight, open-source screenwriting app, built by a screenwriter
-for screenwriters. It formats to the industry standard as you type, plans the story on a snap-grid
-storyboard, and saves compact `.pageone` files. Free, offline, no account.
+Page One 1.1 reads your script aloud with built-in voices, checks your formatting, prints the board
+and outline, and brings pages, spacing and Final Draft files even closer to the industry standard.
 
 ---
 
@@ -12,34 +11,104 @@ storyboard, and saves compact `.pageone` files. Free, offline, no account.
 
 | Platform | File | Requires |
 |---|---|---|
-| Windows | `Page-One_1.0.0_x64.msi` (2.4 MB) | Windows 10 or 11, 64-bit |
-| macOS | `Page-One_1.0.0_universal.dmg` (5.3 MB) | macOS 12 Monterey or later, Apple Silicon or Intel |
-| Linux | `Page-One_1.0.0_amd64.deb` (2.3 MB) | Ubuntu 22.04+, Debian 12+, Linux Mint, Pop!_OS (64-bit) |
+| Windows | `Page-One_1.1.0_x64.msi` (about 175 MB) | Windows 10 or 11, 64-bit |
+| macOS | `Page-One_1.1.0_universal.dmg` (about 175 MB) | macOS 12 Monterey or later, Apple Silicon or Intel |
+| Linux | `Page-One_1.1.0_amd64.deb` (about 172 MB) | Ubuntu 22.04+, Debian 12+, Linux Mint, Pop!_OS (64-bit) |
+
+The installers are larger than 1.0's because the voices are built in, so the table read works
+offline from the first launch.
 
 ## Install
 
 **Windows.** Run the `.msi`. The installer isn't code-signed yet, so Windows SmartScreen may say
-"Windows protected your PC": click **More info**, then **Run anyway**. Page One appears in the Start
-menu and on the desktop. It uses Microsoft Edge WebView2, part of Windows 10 and 11; the installer
-downloads it on the rare PC without it.
+"Windows protected your PC": click **More info**, then **Run anyway**.
 
 **macOS.** Open the `.dmg` and drag **Page One** onto **Applications**. The app isn't signed with an
 Apple Developer ID yet, so the first launch needs **System Settings → Privacy & Security → Open
-Anyway**. After that it opens normally.
+Anyway**.
 
 **Linux.**
 
 ```bash
-sudo apt install ./Page-One_1.0.0_amd64.deb
+sudo apt install ./Page-One_1.1.0_amd64.deb
 ```
 
-apt installs WebKitGTK 4.1 if it's missing.
-
-On every platform, `.pageone` files open in Page One on double-click.
+Installing 1.1 over 1.0 keeps your scripts, settings and backups.
 
 ---
 
-## What's in 1.0.0
+## What's new in 1.1
+
+### Table read with built-in voices
+
+- Press ▶ at the top right (Ctrl+Shift+P) and Page One reads the script aloud from the cursor, with
+  the line being read highlighted and kept in view. A small player has pause, previous and next
+  line, stop and speed (0.8–1.5×).
+- A narrator reads scene headings, action and transitions; each character speaks in their own voice.
+  Seventeen character voices (eight women and seven men, American and British, plus a girl and a
+  boy) and two narrator voices are built in.
+- Characters are cast automatically, with a child's voice for names like YOUNG JUNE and distinct
+  voices for everyone else, until you choose. Pick and audition voices in **Script → Voices…** or
+  from a character in the Characters panel; choices are saved with the script.
+- Choose whether the narrator reads scene headings, transitions and parentheticals.
+- Everything runs on your computer: no account, no internet, nothing uploaded.
+
+### Script check
+
+- **Script → Script check…** (Ctrl+Shift+K) lists formatting slips, each with a Go button:
+  - character cues with no dialogue, and dialogue or parentheticals with no cue
+  - scene headings without INT./EXT. or a time of day, and empty scenes
+  - parentheticals not in brackets, and transitions not followed by a scene
+  - stray blank lines, and misspelled character names (OTSI for OTIS)
+- Blank lines and misspelled names are fixed in one click; there's also "Remove all blank lines".
+
+### Story board
+
+- **Labels by type.** Choose Act, Sequence or Beat first, then name and colour it. A sequence or
+  beat starts at the scene you pick, and its colour shows on the board. The side panel lists every
+  label.
+- **Cards in order.** Inside each act's colour lane the cards follow each other in story order, left
+  to right and then down, with no gaps. Drop a card anywhere in a lane to give it that place in the
+  story. The Tidy up button is gone; the board is always tidy.
+- **Print board & outline** (File menu, or Export → Board & outline): a landscape PDF of the cards,
+  act by act in their colours, and an outline of acts, sequences, beats and scenes with synopses,
+  page numbers and lengths.
+
+### Pages, production and Final Draft files
+
+- Two blank lines before scene headings, Final Draft's standard, for new scripts (Document setup
+  switches between one and two).
+- Revised pages are shown on screen and printed in their revision colour, a solid page of blue,
+  pink, yellow and so on, like revision pages issued on coloured paper. Production → Revised pages
+  in colour turns it off.
+- Final Draft (.fdx) export now carries Final Draft's page layout, header, element settings and
+  scene-number options, with the same scene numbers as the printed page. Importing an .fdx keeps
+  locked scene numbers, turns numbering on and reads the file's scene-heading spacing.
+- The start screen is a small box centred on the blank page instead of covering the window.
+
+## Fixed in 1.1
+
+- A long speech after a character cue was pushed to later pages, leaving the cue alone on a page;
+  it now starts under its cue and breaks with (MORE) and (CONT'D) as in Final Draft
+- After a locked scene number such as 12A, the next scene was numbered 2 instead of 13
+- Moving scenes could carry "THE END" into the middle of the script, or leave doubled or missing
+  gaps above scene headings
+- Several labels on one card overlapped on the board
+
+## Answering the most common Final Draft 13 complaints
+
+- **Lost work after crashes:** atomic saves, the last 20 versions as backups, autosave every minute
+  and crash recovery (since 1.0).
+- **Outline and script out of sync:** the board, navigator and outline are the script; there is
+  nothing to send back and forth, and nothing is duplicated.
+- **Can't print the planning views:** Print board & outline, in landscape.
+- **Formatting mistakes slip through:** Script check.
+- **Price, activation limits and paid upgrades:** Page One is free and open source, with no
+  activation and no account.
+
+---
+
+## Also in Page One (from 1.0)
 
 ### Writing
 
@@ -61,15 +130,11 @@ On every platform, `.pageone` files open in Page One on double-click.
 
 ### Storyboard
 
-- One snap grid: every scene is a card in a cell, linked to the next by an arrow; inside each act the
-  story reads left to right, then down, with a set number of cards per row
-- Magic snap: drop on an empty cell to land there, or on a card to slide in before it while that
-  act's later cards nudge along; empty cells stay until Tidy up
-- Act lanes: act labels sit above the grid and start one card wide (the first covers the scenes
-  already there). Stretch one across more columns by its right edge, or drag it to move where the
-  act begins; it snaps column by column
+- Every scene is a card, linked to the next by an arrow, flowing in story order through its act's
+  colour lane
+- Act lanes: act labels sit above the grid; stretch one across more columns by its right edge, or
+  drag it to move where the act begins; it snaps column by column
 - Every card takes the colour of the act label above it, and each act's columns are tinted as a lane
-- Adding, removing, moving or stretching an act never moves a card
 - The screenplay reorders as soon as anything is dropped, as a single undo step
 - Colour key with nine standard colours light enough for black text, named by you and filterable;
   a card's own colour shows as a band along its top
@@ -149,6 +214,8 @@ On every platform, `.pageone` files open in Page One on double-click.
 ## Known limitations
 
 - The Windows and Mac installers aren't signed yet, so each system asks once before the first launch.
+- The table read speaks American and British English. The child voices are adult voices raised in
+  pitch, and words outside the pronunciation dictionary are read by spelling rules.
 - The Windows and Mac builds are new; please report anything that behaves differently from Linux.
 - No real-time collaboration, track changes, page locking or A-pages yet.
 - No PDF import, and no TV, multi-camera or stage templates yet.

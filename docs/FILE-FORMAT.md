@@ -20,12 +20,16 @@ Project {
   title_page: { title, credit, author, source, draft, contact, notes },   // strings
   paras: [ Para ],
   settings: {
-    scene_numbers: bool, conts: bool, mores: bool, scene_space: 1|2, bold_scenes: bool,
-    page_size: "letter"|"a4", rev_level: 0..8, header: string, title_page: bool, target_pages: int,
-    board_mode: string (unused), board_span: int (cards per row), board_snap: bool (unused)
+    scene_numbers: bool, conts: bool, mores: bool, scene_space: 1|2 (blank lines before scene
+    headings; 2 = Final Draft's standard), bold_scenes: bool,
+    page_size: "letter"|"a4", rev_level: 0..8, rev_pages: bool (revised pages in their colour),
+    header: string, title_page: bool, target_pages: int,
+    board_mode: string (unused), board_span: int (cards per row), board_snap: bool (unused),
+    narrator_voice: string, read_headings: bool, read_parens: bool, read_transitions: bool,
+    read_speed: float (table read)
   },
   notes: string,
-  characters: [ { name, color, bio } ],
+  characters: [ { name, color, bio, voice } ],   // voice: built-in voice id ("" or absent = automatic)
   smart: [ string ],
   color_labels: { "#rrggbb": string },   // the writer's names for scene colours
   created: unix seconds, modified: unix seconds
@@ -39,7 +43,8 @@ Para {
   rev: 0..8       // revision colour that last changed this paragraph (omitted when 0)
   lvl: 1..3       // section depth: act, sequence, beat (omitted when 0)
   meta: { color, synopsis, notes, num, omitted, cell, band }   // scene headings and sections (optional)
-                  // cell = [column, row] of a scene card on the story board
+                  // cell = [column, row] of a scene card on the story board (cards flow in story
+                  //   order through their act's lane, so this is informational)
                   // band = [first column, width] of an act label on the story board
                   // slot and pos = legacy board positions, read for old files only
 }

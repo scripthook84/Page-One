@@ -25,6 +25,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: Voice components (cached download)
+        uses: actions/cache@v4
+        with:
+          path: .voice-cache
+          key: voice-linux-kokoro1.0-fp16-ort1.20.1-misaki0.7.4-cmudict1.1.3
+      - name: Built-in voices
+        run: bash scripts/fetch_voice_assets.sh linux
       - run: npm ci || npm install
       - run: cargo test -p pageone-core
       - run: npx tauri build --bundles deb
@@ -51,6 +58,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: Voice components (cached download)
+        uses: actions/cache@v4
+        with:
+          path: .voice-cache
+          key: voice-macos-kokoro1.0-fp16-ort1.20.1-misaki0.7.4-cmudict1.1.3
+      - name: Built-in voices
+        run: bash scripts/fetch_voice_assets.sh macos
       - run: npm ci || npm install
       - run: cargo test -p pageone-core
       - name: Signing (Developer ID if configured, ad-hoc otherwise)
@@ -85,7 +99,7 @@ jobs:
       - name: Name the disk image
         run: |
           cd target/universal-apple-darwin/release/bundle/dmg
-          for f in *.dmg; do mv "$f" "Page-One_1.0.0_universal.dmg"; done
+          for f in *.dmg; do mv "$f" "Page-One_1.1.0_universal.dmg"; done
           ls -la
       - name: Check the app bundle
         continue-on-error: true
@@ -113,6 +127,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: Voice components (cached download)
+        uses: actions/cache@v4
+        with:
+          path: .voice-cache
+          key: voice-windows-kokoro1.0-fp16-ort1.20.1-misaki0.7.4-cmudict1.1.3
+      - name: Built-in voices
+        shell: bash
+        run: bash scripts/fetch_voice_assets.sh windows
       - run: npm ci
       - run: cargo test -p pageone-core
       - run: npx tauri build --bundles msi
@@ -120,7 +142,7 @@ jobs:
         shell: bash
         run: |
           cd target/release/bundle/msi
-          for f in *.msi; do mv "$f" "Page-One_1.0.0_x64.msi"; done
+          for f in *.msi; do mv "$f" "Page-One_1.1.0_x64.msi"; done
           ls -la
           echo "::notice title=msi::$(ls -la | tr '\n' ' ')"
       - uses: actions/upload-artifact@v4
@@ -128,7 +150,7 @@ jobs:
           name: page-one-msi
           path: target/release/bundle/msi/*.msi
 
-  # Publish the installers on the v1.0.0 release page (marked pre-release until tested on every
+  # Publish the installers on the v1.1.0 release page (marked pre-release until tested on every
   # platform). Each new build replaces the files there.
   release:
     needs: [linux-deb, macos-dmg, windows-msi]
@@ -142,9 +164,9 @@ jobs:
       - run: ls -la dist
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.0
+          tag_name: v1.1.0
           target_commitish: ${{ github.sha }}
-          name: Page One 1.0.0
+          name: Page One 1.1.0
           body_path: RELEASE_NOTES.md
           prerelease: true
           files: |

@@ -2141,7 +2141,7 @@ dependencies = [
 
 [[package]]
 name = "page-one"
-version = "1.0.0"
+version = "1.1.0"
 dependencies = [
  "ort",
  "ort-sys",
@@ -2156,7 +2156,7 @@ dependencies = [
 
 [[package]]
 name = "pageone-core"
-version = "1.0.0"
+version = "1.1.0"
 dependencies = [
  "flate2",
  "rmp-serde",

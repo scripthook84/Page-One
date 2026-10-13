@@ -1,7 +1,9 @@
 {
   "bundle": {
-    "resources": {
-      "voice/libonnxruntime.dylib": "voice/libonnxruntime.dylib"
+    "macOS": {
+      "frameworks": [
+        "voice/libonnxruntime.dylib"
+      ]
     }
   }
 }

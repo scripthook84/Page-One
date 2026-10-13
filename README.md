@@ -4,9 +4,9 @@
 
 A lightweight, open-source screenwriting app. Built by a screenwriter for screenwriters. Page One formats your script to the industry
 standard as you type, lays your story out on a snap-to-grid story board, and exports print-ready
-PDF. It's free, works offline, needs no account, and the installer is about 2 MB.
+PDF. It's free, works offline, needs no account, and reads your script aloud with built-in voices.
 
-**Version 1.0.0** · Windows (.msi)  macOS (.dmg) · Linux (.deb) · Apache License 2.0
+**Version 1.1.0** · Windows (.msi)  macOS (.dmg) · Linux (.deb) · Apache License 2.0
 
 ---
 
@@ -21,6 +21,9 @@ PDF. It's free, works offline, needs no account, and the installer is about 2 MB
   the moment you let go.
 - **Acts off the page.** Act labels live on the board and in the navigator, never in the script.
 - **Focus mode.** One click for a full-screen blank page, sized to fit or from 100 to 200 %.
+- **Table read.** Built-in, natural-sounding voices read the script aloud: a narrator for action and
+  a voice for every character, men, women and children. Everything runs on your computer.
+- **Script check.** Finds formatting slips before a reader does, and fixes many in one click.
 - **Your files, your format.** Compact `.pageone` files, plus Fountain and Final Draft (`.fdx`)
   in and out.
 
@@ -30,8 +33,9 @@ PDF. It's free, works offline, needs no account, and the installer is about 2 MB
 ## Writing
 
 - **The page.** Courier 12 pt on US Letter: 1.5" left margin, 1" top, right and bottom, 54 lines per
-  page. Dialogue runs 2.5–6.0", character cues sit at 3.7", parentheticals at 3.1–5.25", and
-  transitions end at 7.5". Page numbers ("2.") start on page 2.
+  page, two blank lines before each scene heading, as in Final Draft. Dialogue runs 2.5–6.0",
+  character cues sit at 3.7", parentheticals at 3.1–5.25", and transitions end at 7.5". Page numbers
+  ("2.") start on page 2.
 - **Element flow.** Enter continues the scene the way scripts are written: scene heading to action,
   character to dialogue, transition to scene heading. Tab on an empty line cycles through action,
   character, transition and scene heading; Enter on an empty line lists every element.
@@ -59,25 +63,27 @@ PDF. It's free, works offline, needs no account, and the installer is about 2 MB
 
 ## Storyboard
 
-- **One grid.** Every scene is a card that snaps to a cell, by row and by column, linked to the next
-  scene by an arrow. Inside each act the story reads left to right, then down; set how many cards
-  fit per row. The act lanes give the board its columns.
-- **Magic snap.** Drop a card on an empty cell and it lands there. Drop it on a card and it slides
-  in before it, nudging that act's following cards along. Empty cells stay until **Tidy up**. The
-  screenplay reorders as soon as you let go; Ctrl+Z puts it back.
+- **One grid.** Every scene is a card, linked to the next scene by an arrow. Inside each act the
+  cards follow each other in story order through the act's colour lane, left to right and then
+  down, with no gaps.
+- **Drag to reorder.** Drop a card anywhere in a lane and it takes that place in the story; the
+  screenplay reorders as soon as you let go, with scene spacing kept exact and "THE END" kept at the
+  end. Ctrl+Z puts it back.
 - **Act lanes.** Act labels sit in a header row above the grid; a new label is one card wide. Drag a
   label's right edge to stretch it across more columns, or drag the label to move where the act
   begins; it snaps column by column. Acts sit side by side, so every card is under exactly one act
   label, belongs to that act, and takes its colour, and each act's columns are tinted as a lane. A
   card's own scene colour shows as a band along its top.
-- **Acts never move cards.** Create ACT 1, ACT 2 … in the panel on the left with a name and a
-  colour; the first act covers the scenes already on the board and later ones start in the first free
-  column on the right. Rename, recolour or remove them in place. Adding, removing, moving or
-  stretching an act changes which act a card belongs to, never where the card is.
+- **Labels: acts, sequences and beats.** In the panel on the left, choose the type first, then
+  name and colour the label; a sequence or beat starts at the scene you pick. A one-column act label
+  stacks its cards in a column; stretch it to lay them across more columns. Rename, recolour or
+  remove labels in place.
 - **Colour key.** Nine standard colours (red, orange, yellow, green, blue, indigo, violet, pink,
   gray), all light enough for black text. Name what each one means ("B story", "Flashback") and click
   a colour to highlight its scenes.
 - Click a card's text to write its synopsis, its dot to colour it, double-click to open the scene.
+- **Print the board and outline** as a landscape PDF: cards by act in their colours, and an outline
+  of acts, sequences, beats and scenes with synopses (File → Print board & outline).
 
 ## Organizing and production
 
@@ -92,9 +98,28 @@ PDF. It's free, works offline, needs no account, and the installer is about 2 MB
   sortable and copyable as CSV.
 - **Target length.** Progress toward your page goal, a running time estimate (1 page ≈ 1 minute)
   and the words written today.
-- **Production.** Scene numbers in both margins, omitted scenes, revision mode in the standard
-  colour order (Blue, Pink, Yellow, Green, Goldenrod, Buff, Salmon, Cherry) with asterisks and a
-  revision header, a title page laid out to standard metrics, and watermarked PDFs.
+- **Script check** (Ctrl+Shift+K). Character cues with no dialogue, dialogue with no cue, scene
+  headings without INT./EXT. or a time of day, unwrapped parentheticals, stray blank lines and
+  misspelled character names (OTSI for OTIS), each with a Go button and, where it's safe, a Fix.
+- **Production.** Scene numbers in both margins (locked numbers such as 12A continue to 13), omitted
+  scenes, revision mode in the standard colour order (Blue, Pink, Yellow, Green, Goldenrod, Buff,
+  Salmon, Cherry) with asterisks, a revision header and revised pages shown and printed in their
+  revision colour, a title page laid out to standard metrics, and watermarked PDFs.
+
+## Table read
+
+- Press ▶ at the top right (Ctrl+Shift+P) and the script is read aloud from the cursor. The line
+  being read is highlighted and kept in view; a small player has pause, previous and next line,
+  stop and speed (0.8–1.5×).
+- **A voice for everyone.** A narrator reads scene headings, action and transitions; every character
+  speaks in their own voice. Seventeen character voices are built in (eight women and seven men
+  with American and British accents, and a girl and a boy, made by raising an adult voice's pitch)
+  plus two narrator voices. Characters are cast
+  automatically (YOUNG JUNE gets a child's voice) until you choose; pick and audition voices in
+  Script → Voices… or from a character in the Characters panel. Choices are saved with the script.
+- Choose whether the narrator reads scene headings, transitions and parentheticals.
+- The voices run entirely on your computer, with no account and no internet connection. They use the
+  open-source Kokoro voice model.
 
 <img width="2880" height="1800" alt="10-export" src="https://github.com/user-attachments/assets/98297632-fc20-4c00-9b1e-98741e3b8705" />
 
@@ -114,7 +139,9 @@ PDF. It's free, works offline, needs no account, and the installer is about 2 MB
   crash.
 - **Import:** Fountain (`.fountain`, `.spmd`, `.txt`) and Final Draft (`.fdx`). Pasting Fountain
   text formats it.
-- **Export:** PDF with the font embedded, Final Draft `.fdx`, Fountain and formatted plain text.
+- **Export:** PDF with the font embedded, Final Draft `.fdx` (with Final Draft's page layout,
+  element settings and scene numbers), Fountain, formatted plain text, and the story board and
+  outline as a landscape PDF.
 - Page One makes no network connections.
 
 ---
@@ -135,7 +162,9 @@ PDF. It's free, works offline, needs no account, and the installer is about 2 MB
 | Planning view | Snap-grid story board with colour-coded act lanes you stretch across columns; drag cards to reorder the script live | Beat Board, Outline Editor and index cards | Index cards |
 | Colour key with your own labels | Yes | — | — |
 | Dialogue tuner | Yes | — | Yes |
-| Revision colours | Yes | Yes | Yes |
+| Revision colours | Yes, revised pages shown and printed in colour | Yes | Yes |
+| Table read with a voice per character | Yes, 17 built-in natural voices including children, offline on every platform | Yes, with the operating system's voices (Speech Control) | Not found in sources checked |
+| Formatting check | Yes, Script check with one-click fixes | Yes, Format Assistant | Not found in sources checked |
 | Page locking and A-pages | No | Yes | Yes |
 | Real-time collaboration | No | Yes | Yes |
 | Fountain | Opens and saves | Not listed in the Final Draft 13 User Guide | Opens and saves |
@@ -146,6 +175,7 @@ PDF. It's free, works offline, needs no account, and the installer is about 2 MB
 ### Future Improvements
 
 - Real-time collaboration, track changes, page locking and A-pages
+- More languages and accents for the table read
 - PDF import; templates for TV, multi-camera and stage formats
 - Production tagging and scheduling exports
 - Phone and tablet apps
@@ -154,11 +184,13 @@ PDF. It's free, works offline, needs no account, and the installer is about 2 MB
 
 ## Install
 
+The installers are about 175 MB, most of it the built-in voices.
+
 ### Windows
 
 Windows 10 or 11, 64-bit.
 
-1. Run `Page-One_1.0.0_x64.msi`.
+1. Run `Page-One_1.1.0_x64.msi`.
 2. The installer isn't code-signed yet, so Windows SmartScreen may say "Windows protected your PC":
    click **More info**, then **Run anyway**. Follow the installer; Page One appears in the Start menu.
 
@@ -171,7 +203,7 @@ use **Settings → Apps → Installed apps**.
 On Ubuntu, Debian, Linux Mint or Pop!_OS:
 
 ```bash
-sudo apt install ./Page-One_1.0.0_amd64.deb
+sudo apt install ./Page-One_1.1.0_amd64.deb
 ```
 
 Page One appears in your applications menu, and `.pageone` files open with it on double-click. It
@@ -182,7 +214,7 @@ it if it's missing. To remove it: `sudo apt remove page-one`.
 
 Requires macOS 12 Monterey or later, on Apple Silicon or Intel.
 
-1. Open `Page-One_1.0.0_universal.dmg` and drag **Page One** onto **Applications**.
+1. Open `Page-One_1.1.0_universal.dmg` and drag **Page One** onto **Applications**.
 2. The first time, open it from Applications. If the build isn't signed with an Apple Developer ID,
    macOS says it can't check the app: open **System Settings → Privacy & Security**, scroll down
    and click **Open Anyway** next to Page One (on macOS 14 and earlier you can instead Control-click
@@ -205,11 +237,16 @@ sudo apt install build-essential pkg-config file patchelf libwebkit2gtk-4.1-dev 
 On a Mac you need Rust, Node.js and Xcode's command-line tools (`xcode-select --install`). On
 Windows you need Rust, Node.js and the Visual Studio C++ Build Tools ("Desktop development with C++").
 
+The built-in voices are not kept in git. `scripts/build_voice_assets.py` assembles them into
+`src-tauri/voice/` from their open-source releases (the workflow below shows the exact downloads):
+the Kokoro-82M model and voices, the misaki and CMU pronunciation dictionaries, and Microsoft's ONNX
+Runtime 1.20.1 library for your platform.
+
 ```bash
 npm install
-npm run build      # target/release/bundle/deb/Page One_1.0.0_amd64.deb
-npm run build:mac  # on a Mac: target/universal-apple-darwin/release/bundle/dmg/Page One_1.0.0_universal.dmg
-npm run build:win  # on Windows: target/release/bundle/msi/Page One_1.0.0_x64_en-US.msi
+npm run build      # target/release/bundle/deb/Page One_1.1.0_amd64.deb
+npm run build:mac  # on a Mac: target/universal-apple-darwin/release/bundle/dmg/Page One_1.1.0_universal.dmg
+npm run build:win  # on Windows: target/release/bundle/msi/Page One_1.1.0_x64_en-US.msi
 npm test           # core tests: file format, pagination, Fountain, FDX
 npm run preview    # the interface in a browser at http://127.0.0.1:8787
 ```
@@ -227,7 +264,7 @@ For the Mac universal build, add both Rust targets once:
 
 **GitHub Actions.** `.github/workflows/build.yml` builds the `.msi` on Windows, the universal `.dmg`
 on macOS and the `.deb` on Ubuntu on every push to `main` (or by hand: Actions → Build → Run
-workflow), and publishes all three on the 1.0.0 release page. Without Apple credentials the Mac app is ad-hoc signed. To sign it with your
+workflow), and publishes all three on the 1.1.0 release page. Without Apple credentials the Mac app is ad-hoc signed. To sign it with your
 Developer ID and have Apple notarize it (so it opens without a warning), add these repository
 secrets: `APPLE_CERTIFICATE` (your Developer ID Application certificate exported as .p12, base64),
 `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY` (e.g. `Developer ID Application: Name (TEAMID)`),
@@ -258,6 +295,13 @@ Novelcraft desktop framework (Rust and Tauri).
 
 Courier Prime © The Courier Prime Project Authors, used under the SIL Open Font License 1.1
 (`crates/core/fonts/OFL.txt`).
+
+The built-in voices use [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) by hexgrad (Apache
+License 2.0) with pronunciations from [misaki](https://github.com/hexgrad/misaki) (Apache License
+2.0) and the [CMU Pronouncing Dictionary](https://github.com/cmusphinx/cmudict) (BSD 2-Clause), run
+by [ONNX Runtime](https://github.com/microsoft/onnxruntime) (MIT) through the
+[ort](https://github.com/pykeio/ort) crate (MIT or Apache 2.0), and ONNX Runtime Web (MIT) in the
+browser preview. See [NOTICE.md](NOTICE.md).
 
 Page One is an independent project, not affiliated with or endorsed by Final Draft, Inc., the
 makers of Fade In, or the Fountain project. Final Draft and Fade In are trademarks of their

@@ -1,7 +1,7 @@
 {
   "name": "page-one",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Page One - lightweight, open-source screenwriting",
   "license": "Apache-2.0",
   "scripts": {

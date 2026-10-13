@@ -62,7 +62,12 @@ fn f16_to_f32(h: u16) -> f32 {
 
 impl Engine {
     pub fn load(dir: &Path) -> Result<Engine, String> {
-        let lib = dir.join(lib_name());
+        // beside the voice files, or (macOS app bundle) signed in Contents/Frameworks
+        let mut libs = vec![dir.join(lib_name())];
+        if let Some(contents) = std::env::current_exe().ok().and_then(|e| e.parent().and_then(|p| p.parent()).map(|p| p.to_path_buf())) {
+            libs.push(contents.join("Frameworks").join(lib_name()));
+        }
+        let lib = libs.iter().find(|p| p.exists()).cloned().ok_or("The voice engine library is missing.")?;
         ort::init_from(lib.to_string_lossy().to_string()).with_name("page-one").commit().map_err(|e| format!("Voice engine: {e}"))?;
         let threads = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(2).clamp(2, 6) - 1;
         let session = Session::builder()

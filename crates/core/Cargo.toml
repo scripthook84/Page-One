@@ -1,6 +1,6 @@
 [package]
 name = "pageone-core"
-version = "1.0.0"
+version = "1.1.0"
 edition = "2021"
 license = "Apache-2.0"
 description = "Screenplay model, .pageone file format, pagination and exporters for Page One"
