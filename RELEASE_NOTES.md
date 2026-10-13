@@ -90,6 +90,7 @@ Installing 1.1 over 1.0 keeps your scripts, settings and backups.
   scene-number options, with the same scene numbers as the printed page. Importing an .fdx keeps
   locked scene numbers, turns numbering on and reads the file's scene-heading spacing.
 - The start screen is a small box centred on the blank page instead of covering the window.
+- The top bar is cleaner: the round app icon sits in the corner in place of the name.
 
 ## Fixed in 1.1
 
