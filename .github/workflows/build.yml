@@ -115,7 +115,8 @@ jobs:
           DMG=$(ls target/universal-apple-darwin/release/bundle/dmg/*.dmg 2>&1 | head -1)
           note "dmg" "$DMG"
           MNT=$(mktemp -d)
-          note "mount" "$(hdiutil attach -nobrowse -readonly -mountpoint "$MNT" "$DMG" 2>&1 | tail -2)"
+          # the disk image shows the licence agreement first; accept it for the check
+          note "mount" "$(yes | PAGER=cat hdiutil attach -nobrowse -readonly -mountpoint "$MNT" "$DMG" 2>&1 | tail -1)"
           note "contents" "$(ls "$MNT" 2>&1)"
           APP="$MNT/Page One.app"
           note "architectures" "$(lipo -info "$APP/Contents/MacOS/page-one" "$APP/Contents/Frameworks/libonnxruntime.dylib" 2>&1)"
