@@ -110,10 +110,13 @@ jobs:
       - name: Check the app bundle
         continue-on-error: true
         run: |
+          set +e
           note() { echo "::notice title=$1::$(echo "$2" | tr '\n' ' ' | cut -c1-900)"; }
-          DMG=$(ls target/universal-apple-darwin/release/bundle/dmg/*.dmg | head -1)
+          DMG=$(ls target/universal-apple-darwin/release/bundle/dmg/*.dmg 2>&1 | head -1)
+          note "dmg" "$DMG"
           MNT=$(mktemp -d)
-          hdiutil attach -nobrowse -readonly -mountpoint "$MNT" "$DMG" >/dev/null
+          note "mount" "$(hdiutil attach -nobrowse -readonly -mountpoint "$MNT" "$DMG" 2>&1 | tail -2)"
+          note "contents" "$(ls "$MNT" 2>&1)"
           APP="$MNT/Page One.app"
           note "architectures" "$(lipo -info "$APP/Contents/MacOS/page-one" "$APP/Contents/Frameworks/libonnxruntime.dylib" 2>&1)"
           note "signature" "$(codesign --verify --deep --strict --verbose=2 "$APP" 2>&1; echo "exit $?")"
