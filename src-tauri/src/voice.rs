@@ -72,6 +72,9 @@ impl Engine {
         let threads = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(2).clamp(2, 6) - 1;
         let session = Session::builder()
             .and_then(|b| b.with_optimization_level(GraphOptimizationLevel::Level3))
+            // the model stores most weights as int8 (see scripts/build_voice_assets.py); this lets
+            // the optimiser turn them back into floats once at load, so speech runs at full speed
+            .and_then(|b| b.with_config_entry("session.disable_quant_qdq", "1"))
             .and_then(|b| b.with_intra_threads(threads))
             .and_then(|b| b.commit_from_file(dir.join("model.onnx")))
             .map_err(|e| format!("Voice model: {e}"))?;
@@ -146,7 +149,11 @@ pub async fn voice_synth(app: tauri::AppHandle, ids: Vec<i64>, style: String, sp
 #[tauri::command]
 pub async fn voice_lexicon(app: tauri::AppHandle) -> Result<tauri::ipc::Response, String> {
     let dir = voice_dir(&app).ok_or("The voice files aren't installed with this copy of Page One.")?;
-    std::fs::read(dir.join("lexicon.json")).map(tauri::ipc::Response::new).map_err(|e| e.to_string())
+    // stored gzipped (7 MB -> 2 MB); the page gets plain JSON
+    let gz = std::fs::read(dir.join("lexicon.json.gz")).map_err(|e| e.to_string())?;
+    let mut json = Vec::with_capacity(gz.len() * 4);
+    std::io::Read::read_to_end(&mut flate2::read::GzDecoder::new(&gz[..]), &mut json).map_err(|e| e.to_string())?;
+    Ok(tauri::ipc::Response::new(json))
 }
 
 #[cfg(test)]

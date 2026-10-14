@@ -14,7 +14,7 @@ fetch() { [ -s "$DL/$2" ] || curl -fsSL --retry 4 -o "$DL/$2" "$1"; }
 fetch "$KOKORO/kokoro-v1.0.fp16.onnx" kokoro-v1.0.fp16.onnx
 fetch "$KOKORO/voices-v1.0.bin" voices-v1.0.bin
 PY="$(command -v python3 || command -v python)"
-"$PY" -m pip install --quiet numpy
+"$PY" -m pip install --quiet numpy onnx
 "$PY" -m pip download --quiet --no-deps -d "$DL" misaki==0.7.4 cmudict==1.1.3
 "$PY" - "$DL" <<'PYEOF'
 import glob, sys, zipfile

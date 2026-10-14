@@ -29,7 +29,9 @@ async function loadLexicon() {
     const buf = await T.core.invoke('voice_lexicon');
     text = new TextDecoder().decode(buf instanceof ArrayBuffer ? buf : new Uint8Array(buf));
   } else {
-    text = await (await fetch('voice/lexicon.json')).text();
+    // stored gzipped next to the model
+    const r = await fetch('voice/lexicon.json.gz');
+    text = await new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).text();
   }
   setLexicon(JSON.parse(text));
 }

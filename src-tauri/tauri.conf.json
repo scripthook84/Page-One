@@ -33,9 +33,9 @@
     "publisher": "scripthook84",
     "copyright": "Copyright 2026 scripthook84. Apache License 2.0.",
     "licenseFile": "../LICENSE",
-    "homepage": "https://github.com/scripthook84/Novelcraft",
-    "shortDescription": "Lightweight, open-source screenwriting",
-    "longDescription": "Page One writes screenplays in industry-standard format: automatic element flow with Enter and Tab, suggestions for characters and locations, a snap-grid story board with act labels, scene navigator, live dual dialogue, revisions, reports, a dialogue tuner and a full-screen focus mode. Saves compact .pageone files, opens and exports Fountain and Final Draft (.fdx), and exports print-ready PDF.",
+    "homepage": "https://github.com/scripthook84/Page-One",
+    "shortDescription": "Screenwriting software",
+    "longDescription": "Page One is a free, open-source app for writing screenplays in industry-standard format.",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -108,7 +108,7 @@
       "voice/model.onnx": "voice/model.onnx",
       "voice/voices.bin": "voice/voices.bin",
       "voice/voices.json": "voice/voices.json",
-      "voice/lexicon.json": "voice/lexicon.json"
+      "voice/lexicon.json.gz": "voice/lexicon.json.gz"
     }
   }
 }

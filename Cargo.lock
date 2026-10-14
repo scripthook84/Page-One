@@ -2143,6 +2143,7 @@ dependencies = [
 name = "page-one"
 version = "1.1.0"
 dependencies = [
+ "flate2",
  "ort",
  "ort-sys",
  "pageone-core",

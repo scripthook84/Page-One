@@ -194,7 +194,7 @@ PDF. It's free, works offline, needs no account, and reads your script aloud wit
 
 ## Install
 
-The installers are about 175 MB, most of it the built-in voices.
+The installers are about 85 MB, most of it the built-in voices.
 
 ### Windows
 

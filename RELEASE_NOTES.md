@@ -11,7 +11,7 @@ and outline, and brings pages, spacing and Final Draft files even closer to the 
 
 | Platform | File | Requires |
 |---|---|---|
-| Linux | `Page-One_1.1.0_amd64.deb` (about 172 MB) | Ubuntu 22.04+, Debian 12+, Linux Mint, Pop!_OS (64-bit) |
+| Linux | `Page-One_1.1.0_amd64.deb` (about 85 MB) | Ubuntu 22.04+, Debian 12+, Linux Mint, Pop!_OS (64-bit) |
 
 This build is Linux only. Windows (`.msi`) and macOS (`.dmg`) installers for 1.1 will follow.
 
