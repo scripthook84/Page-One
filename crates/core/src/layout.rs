@@ -1435,6 +1435,26 @@ mod tests {
     }
 
     #[test]
+    fn a_cue_at_the_foot_of_a_page_moves_with_its_speech_even_while_empty() {
+        // fill page 1 so a cue lands on its last lines, then an empty speech (still being typed)
+        for filler in 30..60 {
+            let mut p = Project::default();
+            p.paras.clear();
+            p.paras.push(Para::new(Elem::Scene, "INT. HOUSE - NIGHT"));
+            for _ in 0..filler {
+                p.paras.push(Para::new(Elem::Character, "JEN"));
+                p.paras.push(Para::new(Elem::Dialogue, "I thought you were going to bed."));
+            }
+            p.paras.push(Para::new(Elem::Character, "DAVE"));
+            let cue = p.paras.len() - 1;
+            p.paras.push(Para::new(Elem::Dialogue, ""));
+            let lay = layout(&p);
+            let speech_page = lay.para_page[cue + 1];
+            assert_eq!(lay.para_page[cue], speech_page, "cue stranded at {filler}");
+        }
+    }
+
+    #[test]
     fn insert_labels() {
         let taken: HashSet<String> = ["12A".to_string()].into_iter().collect();
         assert_eq!(next_insert_label("12", &HashSet::new()), "12A");

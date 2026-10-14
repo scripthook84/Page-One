@@ -285,6 +285,9 @@ body.hide-notes .p[data-t="note"] { display: none; }
 .p.dr[data-t="paren"] { --ml: 32ch; width: 22ch; }
 .p.dr[data-t="dialogue"], .p.dr[data-t="lyric"] { --ml: 30ch; width: 28ch; }
 
+/* page breaks: a strip of desk between sheets, page number on the new sheet. The gap is real
+   space, so the band never covers the last lines of the page before. */
+.p.pb { margin-top: 8.5em !important; }
 .p.pb::before {
   content: attr(data-pn);
   position: absolute; left: calc(-15ch - var(--ml)); width: 85ch; top: -8.5em; height: 8.5em;

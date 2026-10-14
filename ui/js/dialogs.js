@@ -232,6 +232,23 @@ export async function exportDialog(doExport, preset = 'pdf', pre = {}) {
   if (v === 'ok') doExport(opts.kind, opts);
 }
 
+// ------------------------------------------------------------------ new screenplay
+
+/** Choose the format for a new script. Returns 'us', 'bbc' or null. */
+export async function newScriptDialog() {
+  let fmt = 'us';
+  const v = await modal({
+    title: 'New screenplay',
+    body: `<div class="radios">
+        <label><input type="radio" name="nfmt" value="us" checked><span>US screenplay<small>US Letter paper, Final Draft's industry standard. For US studios, agents and contests.</small></span></label>
+        <label><input type="radio" name="nfmt" value="bbc"><span>BBC / UK screenplay<small>A4 paper, as BBC Writersroom and UK producers expect. Same screenplay layout, set for A4.</small></span></label>
+      </div>
+      <p class="hint" style="margin:10px 0 0">You can change the paper size later in File → Document setup.</p>`,
+    buttons: [{ label: 'Cancel', value: null }, { label: 'Create', value: 'ok', primary: true, validate: (b) => { fmt = b.querySelector('input[name="nfmt"]:checked').value; return true; } }],
+  });
+  return v === 'ok' ? fmt : null;
+}
+
 // ------------------------------------------------------------------ draft and production
 
 export async function productionDialog() {

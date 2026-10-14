@@ -108,13 +108,17 @@ function readRecovery() {
   try { return JSON.parse(localStorage.getItem(RECOVERY_KEY) || 'null'); } catch { return null; }
 }
 
-async function newDoc() {
+async function newDoc(preset) {
   if (!(await guardUnsaved())) return;
+  const fmt = typeof preset === 'string' ? preset : await dialogs.newScriptDialog();
+  if (!fmt) return;
   const p = emptyProject();
   p.created = Math.floor(Date.now() / 1000);
   p.paras = [{ t: 'scene', runs: [{ x: '' }] }];
+  // BBC (UK) scripts are written on A4; US scripts on Letter (Final Draft's standard)
+  if (fmt === 'bbc') p.settings.page_size = 'a4';
   loadProject(p, { name: 'Untitled', focus: 0 });
-  toast('New screenplay. Start with a scene heading: type INT. or EXT.');
+  toast(`New ${fmt === 'bbc' ? 'BBC (A4)' : 'US Letter'} screenplay. Start with a scene heading: type INT. or EXT.`);
 }
 
 async function openDoc() {
@@ -1117,7 +1121,7 @@ async function start() {
   }
   const qs = new URLSearchParams(location.search);
   if (qs.has('sample')) { await openSample(); return; }
-  if (qs.has('new')) { await newDoc(); return; }
+  if (qs.has('new')) { await newDoc(qs.get('new') === 'bbc' ? 'bbc' : 'us'); return; }
   showWelcome();
 }
 

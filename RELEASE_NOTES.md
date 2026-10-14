@@ -108,6 +108,11 @@ Installing 1.1 over 1.0 keeps your scripts, settings and backups.
   Script days are an estimate from the headings for the script supervisor to confirm.
 - The Reports dialog shows the same scene, cast and set tables, still copyable as CSV.
 
+### US or BBC format for a new screenplay
+
+- **File → New screenplay** asks for the format: US (Letter paper, Final Draft's standard) or
+  BBC / UK (A4 paper). The paper size can be changed later in Document setup.
+
 ### Draft and Production modes, with locked pages
 
 - A **Draft | Production** switch beside the script's title. Draft is for writing. Production locks
@@ -145,6 +150,7 @@ Installing 1.1 over 1.0 keeps your scripts, settings and backups.
 
 ## Fixed in 1.1
 
+- The grey gap between pages covered the last lines of each page on screen; it now sits below them
 - A long speech after a character cue was pushed to later pages, leaving the cue alone on a page;
   it now starts under its cue and breaks with (MORE) and (CONT'D) as in Final Draft
 - After a locked scene number such as 12A, the next scene was numbered 2 instead of 13
