@@ -56,6 +56,8 @@ Installing 1.1 over 1.0 keeps your scripts, settings and backups.
   **Settings**, next to Table Read, or from a character in the Characters panel; choices are saved
   with the script.
 - Choose whether the narrator reads scene headings, transitions and parentheticals.
+- The narrator defaults to the deep voice; the warm voice is one click away in Settings.
+- Focus mode hides the Table Read controls, leaving only the page.
 - Everything runs on your computer: no account, no internet, nothing uploaded.
 
 ### Script check

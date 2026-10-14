@@ -230,7 +230,7 @@ impl Default for Settings {
             board_mode: "rows".into(),
             board_snap: true,
             board_span: 5,
-            narrator_voice: "narrator".into(),
+            narrator_voice: "narrator_m".into(),
             read_headings: true,
             read_parens: false,
             read_transitions: true,

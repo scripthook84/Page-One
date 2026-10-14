@@ -30,7 +30,7 @@ export function castVoices() {
   const order = [];
   for (const p of S.editor.paras()) if (p.t === 'character') { const n = cueName(textOf(p)); if (n && !order.includes(n)) order.push(n); }
   const list = engine.voiceList();
-  const narrator = S.project.settings.narrator_voice || 'narrator';
+  const narrator = S.project.settings.narrator_voice || 'narrator_m';
   const narratorStyle = (engine.voiceById(narrator) || {}).style;
   const pool = (g) => list.filter((v) => v.group === g && v.style !== narratorStyle).map((v) => v.id);
   const used = new Set(chosen.values());
@@ -226,7 +226,7 @@ let runId = 0;
 function buildQueue(from) {
   const paras = S.editor.paras();
   const st = S.project.settings;
-  const narrator = st.narrator_voice || 'narrator';
+  const narrator = st.narrator_voice || 'narrator_m';
   const cast = castVoices();
   castOrder = [...cast.keys()];
   // the speaker in effect where the read starts

@@ -414,7 +414,7 @@ export async function voicesDialog() {
   };
   box.innerHTML = `<p class="hint" style="margin:0 0 10px">Pick a voice for each character. Every voice runs on this computer; characters get one automatically until you choose.</p>
     <table class="report voices-table"><tbody>
-      <tr><td><b>Narrator</b><br><small class="hint">Scene headings, action, transitions</small></td><td><select data-who="__narrator">${voiceOptions(st.narrator_voice || 'narrator')}</select></td><td><button class="btn small" data-try="__narrator">▶ Listen</button></td></tr>
+      <tr><td><b>Narrator</b><br><small class="hint">Scene headings, action, transitions</small></td><td><select data-who="__narrator">${voiceOptions(st.narrator_voice || 'narrator_m')}</select></td><td><button class="btn small" data-try="__narrator">▶ Listen</button></td></tr>
       ${[...cast.keys()].map((name) => `<tr><td><b>${esc(name)}</b></td><td><select data-who="${esc(name)}">${voiceOptions((cards.get(name) || {}).voice || '', { auto: true })}</select>
         ${(cards.get(name) || {}).voice ? '' : `<small class="hint">Automatic: ${esc((engine.voiceById(cast.get(name)) || {}).label || '')}</small>`}</td><td><button class="btn small" data-try="${esc(name)}">▶ Listen</button></td></tr>`).join('')}
     </tbody></table>

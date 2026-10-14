@@ -627,8 +627,8 @@ body.welcome-open #docTitle, body.welcome-open #saveState { visibility: hidden; 
 .tr-dock.on .tr-start { display: none; }
 .paper-wrap { padding-top: 66px; }
 body.welcome-open .tr-dock, body.welcome-open .tr-wave { display: none; }
-body.focus .tr-dock:not(.on) { opacity: .25; transition: opacity .2s; }
-body.focus .tr-dock:hover { opacity: 1; }
+/* focus mode is the page and nothing else: no Table Read controls */
+body.focus .tr-dock, body.focus .tr-wave { display: none !important; }
 
 /* the listening box with the waveform, over the page */
 .tr-wave { position: sticky; top: 0; left: 0; z-index: 25; height: 0; width: 100%; }
