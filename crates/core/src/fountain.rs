@@ -24,9 +24,11 @@ fn runs_to_fountain(runs: &[Run]) -> String {
 
 fn looks_like_scene(s: &str) -> bool {
     let u = s.trim_start().to_uppercase();
-    ["INT.", "EXT.", "EST.", "INT/EXT", "INT./EXT", "I/E", "INT ", "EXT ", "EST "]
-        .iter()
-        .any(|p| u.starts_with(p))
+    [
+        "INT.", "EXT.", "EST.", "INT/EXT", "INT./EXT", "I/E", "INT ", "EXT ", "EST ",
+    ]
+    .iter()
+    .any(|p| u.starts_with(p))
 }
 
 fn is_all_caps(s: &str) -> bool {
@@ -66,14 +68,22 @@ pub fn export(p: &Project) -> String {
         let text = runs_to_fountain(&para.runs);
         let raw = para.text();
         let in_speech = matches!(para.t, Elem::Dialogue | Elem::Paren | Elem::Lyric)
-            && matches!(prev, Some(Elem::Character | Elem::Dialogue | Elem::Paren | Elem::Lyric));
+            && matches!(
+                prev,
+                Some(Elem::Character | Elem::Dialogue | Elem::Paren | Elem::Lyric)
+            );
         if !in_speech && prev.is_some() {
             out.push('\n');
         }
         match para.t {
             Elem::Scene => {
                 let t = text.trim().to_uppercase();
-                if looks_like_scene(&t) { out.push_str(&t) } else { out.push('.'); out.push_str(&t) }
+                if looks_like_scene(&t) {
+                    out.push_str(&t)
+                } else {
+                    out.push('.');
+                    out.push_str(&t)
+                }
                 if let Some(m) = &para.meta {
                     if !m.num.is_empty() {
                         out.push_str(&format!(" #{}#", m.num));
@@ -96,7 +106,11 @@ pub fn export(p: &Project) -> String {
             }
             Elem::Paren => {
                 let t = text.trim();
-                if t.starts_with('(') { out.push_str(t) } else { out.push_str(&format!("({t})")) }
+                if t.starts_with('(') {
+                    out.push_str(t)
+                } else {
+                    out.push_str(&format!("({t})"))
+                }
             }
             Elem::Dialogue => out.push_str(&text),
             Elem::Lyric => {
@@ -110,14 +124,22 @@ pub fn export(p: &Project) -> String {
             }
             Elem::Transition => {
                 let t = text.trim().to_uppercase();
-                if t.ends_with("TO:") { out.push_str(&t) } else { out.push_str(&format!("> {t}")) }
+                if t.ends_with("TO:") {
+                    out.push_str(&t)
+                } else {
+                    out.push_str(&format!("> {t}"))
+                }
             }
             Elem::Centered => out.push_str(&format!("> {} <", text.trim())),
             Elem::Shot => {
                 // Fountain has no Shot element; an all-caps action line is the convention.
                 out.push_str(&text.trim().to_uppercase());
             }
-            Elem::Section => out.push_str(&format!("{} {}", "#".repeat(para.lvl.clamp(1, 3) as usize), raw.trim())),
+            Elem::Section => out.push_str(&format!(
+                "{} {}",
+                "#".repeat(para.lvl.clamp(1, 3) as usize),
+                raw.trim()
+            )),
             Elem::Note => out.push_str(&format!("[[{}]]", raw.trim())),
             Elem::Action | Elem::General | Elem::Unknown => {
                 let first = raw.lines().next().unwrap_or("");
@@ -149,7 +171,10 @@ pub fn parse_emphasis(s: &str) -> Vec<Run> {
         if !cur.is_empty() {
             match runs.last_mut() {
                 Some(r) if r.s == style => r.x.push_str(cur),
-                _ => runs.push(Run { x: cur.clone(), s: style }),
+                _ => runs.push(Run {
+                    x: cur.clone(),
+                    s: style,
+                }),
             }
             cur.clear();
         }
@@ -209,7 +234,11 @@ pub fn parse_emphasis(s: &str) -> Vec<Run> {
 }
 
 fn para(t: Elem, text: &str) -> Para {
-    Para { t, runs: parse_emphasis(text), ..Default::default() }
+    Para {
+        t,
+        runs: parse_emphasis(text),
+        ..Default::default()
+    }
 }
 
 fn strip_notes_and_boneyard(src: &str) -> String {
@@ -234,15 +263,29 @@ pub fn import(src: &str) -> Project {
     let src = src.trim_start_matches('\u{feff}');
     let src = strip_notes_and_boneyard(src);
     let mut lines: Vec<&str> = src.split('\n').collect();
-    let mut project = Project { paras: vec![], ..Default::default() };
+    let mut project = Project {
+        paras: vec![],
+        ..Default::default()
+    };
     project.title_page.credit.clear();
 
     // ---- title page
     let is_key = |l: &str| {
         if let Some(i) = l.find(':') {
             let k = l[..i].trim().to_lowercase();
-            ["title", "credit", "author", "authors", "source", "draft date", "date", "contact", "notes", "copyright"]
-                .contains(&k.as_str())
+            [
+                "title",
+                "credit",
+                "author",
+                "authors",
+                "source",
+                "draft date",
+                "date",
+                "contact",
+                "notes",
+                "copyright",
+            ]
+            .contains(&k.as_str())
         } else {
             false
         }
@@ -287,7 +330,8 @@ pub fn import(src: &str) -> Project {
     }
 
     let n = lines.len();
-    let blank = |i: isize| -> bool { i < 0 || i as usize >= n || lines[i as usize].trim().is_empty() };
+    let blank =
+        |i: isize| -> bool { i < 0 || i as usize >= n || lines[i as usize].trim().is_empty() };
     let mut i = 0usize;
     while i < n {
         let raw = lines[i];
@@ -312,7 +356,12 @@ pub fn import(src: &str) -> Project {
         }
         if t.starts_with('=') && !t.starts_with("==") {
             let syn = t[1..].trim().to_string();
-            if let Some(last) = project.paras.iter_mut().rev().find(|p| matches!(p.t, Elem::Scene | Elem::Section)) {
+            if let Some(last) = project
+                .paras
+                .iter_mut()
+                .rev()
+                .find(|p| matches!(p.t, Elem::Scene | Elem::Section))
+            {
                 let m = last.meta.get_or_insert_with(Default::default);
                 if !m.synopsis.is_empty() {
                     m.synopsis.push(' ');
@@ -323,7 +372,9 @@ pub fn import(src: &str) -> Project {
             continue;
         }
         if t.starts_with("[[") && t.ends_with("]]") {
-            project.paras.push(Para::new(Elem::Note, t[2..t.len() - 2].trim()));
+            project
+                .paras
+                .push(Para::new(Elem::Note, t[2..t.len() - 2].trim()));
             i += 1;
             continue;
         }
@@ -346,8 +397,14 @@ pub fn import(src: &str) -> Project {
             t
         };
         // forced scene heading
-        if (t.starts_with('.') && !t.starts_with("..")) || (looks_like_scene(t) && blank(i as isize - 1)) {
-            let mut h = if t.starts_with('.') && !looks_like_scene(t) { t[1..].trim().to_string() } else { t.trim_start_matches('.').to_string() };
+        if (t.starts_with('.') && !t.starts_with(".."))
+            || (looks_like_scene(t) && blank(i as isize - 1))
+        {
+            let mut h = if t.starts_with('.') && !looks_like_scene(t) {
+                t[1..].trim().to_string()
+            } else {
+                t.trim_start_matches('.').to_string()
+            };
             let mut num = String::new();
             if h.ends_with('#') {
                 if let Some(a) = h[..h.len() - 1].rfind('#') {
@@ -357,7 +414,10 @@ pub fn import(src: &str) -> Project {
             }
             let mut p = para(Elem::Scene, &h.to_uppercase());
             if !num.is_empty() {
-                p.meta = Some(SceneMeta { num, ..Default::default() });
+                p.meta = Some(SceneMeta {
+                    num,
+                    ..Default::default()
+                });
             }
             project.paras.push(p);
             i += 1;
@@ -365,7 +425,9 @@ pub fn import(src: &str) -> Project {
         }
         // centered
         if t.starts_with('>') && t.ends_with('<') {
-            project.paras.push(para(Elem::Centered, t[1..t.len() - 1].trim()));
+            project
+                .paras
+                .push(para(Elem::Centered, t[1..t.len() - 1].trim()));
             i += 1;
             continue;
         }
@@ -391,7 +453,8 @@ pub fn import(src: &str) -> Project {
         let name_part = t.trim_start_matches('@').trim_end_matches('^').trim();
         let cue_part = name_part.split('(').next().unwrap_or("");
         if !t.starts_with('!')
-            && (forced_char || (is_all_caps(cue_part) && cue_part.chars().any(|c| c.is_alphabetic())))
+            && (forced_char
+                || (is_all_caps(cue_part) && cue_part.chars().any(|c| c.is_alphabetic())))
             && blank(i as isize - 1)
             && !blank(i as isize + 1)
         {
@@ -454,10 +517,27 @@ mod tests {
         let ts: Vec<Elem> = p.paras.iter().map(|x| x.t).collect();
         assert_eq!(
             ts,
-            vec![Elem::Scene, Elem::Action, Elem::Character, Elem::Paren, Elem::Dialogue, Elem::Character, Elem::Dialogue, Elem::Transition, Elem::Scene, Elem::Centered]
+            vec![
+                Elem::Scene,
+                Elem::Action,
+                Elem::Character,
+                Elem::Paren,
+                Elem::Dialogue,
+                Elem::Character,
+                Elem::Dialogue,
+                Elem::Transition,
+                Elem::Scene,
+                Elem::Centered
+            ]
         );
         assert!(p.paras[5].dual);
-        assert_eq!(p.paras[1].runs[1], Run { x: "Lots".into(), s: ITALIC });
+        assert_eq!(
+            p.paras[1].runs[1],
+            Run {
+                x: "Lots".into(),
+                s: ITALIC
+            }
+        );
         assert_eq!(p.paras[8].meta.as_ref().unwrap().synopsis, "She remembers.");
     }
 

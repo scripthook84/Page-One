@@ -108,6 +108,23 @@ Installing 1.1 over 1.0 keeps your scripts, settings and backups.
   Script days are an estimate from the headings for the script supervisor to confirm.
 - The Reports dialog shows the same scene, cast and set tables, still copyable as CSV.
 
+### Draft and Production modes, with locked pages
+
+- A **Draft | Production** switch at the top of the window. Draft is for writing. Production locks
+  the script the way a shooting script is locked, after a short explanation of what will happen.
+- **Locked pages:** every page keeps its number. Text that no longer fits goes onto A pages (12A,
+  12B, and 12AA where needed) and later pages don't move; a shortened page keeps its gap; a page
+  whose text is all cut folds into the page before as a range ("12-13"); text added before page 1
+  goes on A1. A page that starts in the middle of a speech keeps its (MORE) and (CONT'D).
+- **Locked scene numbers:** new scenes take A numbers (12A, A1 before the first scene).
+- **Revisions** start with Blue: asterisks on changed lines, changed pages in colour, and a dated
+  revision header.
+- **Production → Export revised pages** prints only the pages changed in the current colour, ready
+  to send out. **Lock revised pages, start next colour** locks them (A pages included) and moves
+  on to Pink, Yellow and so on.
+- **Back to Draft** unlocks and renumbers everything for a new full draft.
+- Page numbers like 12A show on the page, in the status bar and in the reports.
+
 ### Pages, production and Final Draft files
 
 - Two blank lines before scene headings, Final Draft's standard, for new scripts (Document setup

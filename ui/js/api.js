@@ -108,11 +108,11 @@ export const api = {
       let path = await withDialog('pick_save', { kind, suggested: suggested || 'Untitled' });
       if (!path) return null;
       if (!path.toLowerCase().endsWith('.' + ext)) path += '.' + ext;
-      await invoke('export_file', { path, kind, project, watermark: opts.watermark || '' });
+      await invoke('export_file', { path, kind, project, watermark: opts.watermark || '', onlyRev: opts.onlyRev || 0 });
       return path;
     }
     const as = ext === 'pdf' ? 'bytes' : 'text';
-    const data = await post(board ? '/api/board?what=' + encodeURIComponent(kind) : '/api/' + kind, project, as);
+    const data = await post(board ? '/api/board?what=' + encodeURIComponent(kind) : '/api/' + kind + (opts.onlyRev ? `?only_rev=${opts.onlyRev}` : ''), project, as);
     download(`${suggested || 'Untitled'}.${ext}`, data, ext === 'pdf' ? 'application/pdf' : 'text/plain');
     return suggested + '.' + ext;
   },

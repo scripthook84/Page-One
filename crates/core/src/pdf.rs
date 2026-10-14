@@ -26,6 +26,9 @@ pub struct PdfOptions {
     pub watermark: String,
     /// Print revised pages on their revision colour (solid page background).
     pub rev_pages: bool,
+    /// Only the pages changed in this revision (its colour index), as production sends them out.
+    /// 0 prints every page.
+    pub only_rev: u8,
 }
 
 /// Revision paper colours in the standard order (index 0 = white), as RGB 0–1. Light enough that
@@ -108,7 +111,10 @@ impl Writer {
     pub(crate) fn new() -> Self {
         let mut buf = Vec::new();
         buf.extend_from_slice(b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n");
-        Writer { buf, offsets: vec![0] }
+        Writer {
+            buf,
+            offsets: vec![0],
+        }
     }
     pub(crate) fn reserve(&mut self) -> usize {
         self.offsets.push(0);
@@ -116,13 +122,19 @@ impl Writer {
     }
     pub(crate) fn obj(&mut self, id: usize, body: &[u8]) {
         self.offsets[id] = self.buf.len();
-        self.buf.extend_from_slice(format!("{id} 0 obj\n").as_bytes());
+        self.buf
+            .extend_from_slice(format!("{id} 0 obj\n").as_bytes());
         self.buf.extend_from_slice(body);
         self.buf.extend_from_slice(b"\nendobj\n");
     }
     pub(crate) fn stream(&mut self, id: usize, dict_extra: &str, data: &[u8]) {
         let z = zip(data);
-        let mut body = format!("<< /Length {} /Filter /FlateDecode {} >>\nstream\n", z.len(), dict_extra).into_bytes();
+        let mut body = format!(
+            "<< /Length {} /Filter /FlateDecode {} >>\nstream\n",
+            z.len(),
+            dict_extra
+        )
+        .into_bytes();
         body.extend_from_slice(&z);
         body.extend_from_slice(b"\nendstream");
         self.obj(id, &body);
@@ -147,18 +159,31 @@ impl Canvas {
         };
         let x = col * CELL_W;
         let y = self.height - TOP_MARGIN - row * LINE_H - BASELINE;
-        self.ops.extend_from_slice(format!("BT /{font} 12 Tf {x:.2} {y:.2} Td ").as_bytes());
+        self.ops
+            .extend_from_slice(format!("BT /{font} 12 Tf {x:.2} {y:.2} Td ").as_bytes());
         self.ops.extend_from_slice(&pdf_string(text));
         self.ops.extend_from_slice(b" Tj ET\n");
         if style & UNDERLINE != 0 {
             let w = text.chars().count() as f64 * CELL_W;
-            self.ops.extend_from_slice(format!("0.6 w {x:.2} {:.2} m {:.2} {:.2} l S\n", y - 1.6, x + w, y - 1.6).as_bytes());
+            self.ops.extend_from_slice(
+                format!(
+                    "0.6 w {x:.2} {:.2} m {:.2} {:.2} l S\n",
+                    y - 1.6,
+                    x + w,
+                    y - 1.6
+                )
+                .as_bytes(),
+            );
         }
     }
 }
 
 fn page_dims(size: &str) -> (f64, f64) {
-    if size == "a4" { (595.28, 841.89) } else { (612.0, 792.0) }
+    if size == "a4" {
+        (595.28, 841.89)
+    } else {
+        (612.0, 792.0)
+    }
 }
 
 fn title_page_ops(tp: &TitlePage, canvas: &mut Canvas) {
@@ -211,8 +236,9 @@ fn title_page_ops(tp: &TitlePage, canvas: &mut Canvas) {
 fn body_page_ops(p: &Page, project: &Project, canvas: &mut Canvas) {
     let s = &project.settings;
     // Page number "2." flush right at 7.5", 0.5" from the top; none on page 1.
-    if p.n > 1 {
-        let num = format!("{}.", p.n);
+    // (with locked pages the number may be "12A" or a range such as "12-13")
+    if p.label != "1" && !p.label.is_empty() {
+        let num = format!("{}.", p.label);
         canvas.text(-3.0, COL_RIGHT as f64 - num.len() as f64, &num, 0);
     }
     if !s.header.trim().is_empty() {
@@ -248,7 +274,12 @@ pub fn render_pdf(project: &Project, opts: &PdfOptions) -> Vec<u8> {
     for p in &lay.pages {
         for l in &p.lines {
             for r in &l.runs {
-                used[match r.s & (BOLD | ITALIC) { 0 => 0, BOLD => 1, ITALIC => 2, _ => 3 }] = true;
+                used[match r.s & (BOLD | ITALIC) {
+                    0 => 0,
+                    BOLD => 1,
+                    ITALIC => 2,
+                    _ => 3,
+                }] = true;
             }
         }
     }
@@ -295,22 +326,36 @@ pub fn render_pdf(project: &Project, opts: &PdfOptions) -> Vec<u8> {
         font_refs.push(format!("/F{} {font} 0 R", i + 1));
     }
     let res = pdf.reserve();
-    pdf.obj(res, format!("<< /Font << {} >> >>", font_refs.join(" ")).as_bytes());
+    pdf.obj(
+        res,
+        format!("<< /Font << {} >> >>", font_refs.join(" ")).as_bytes(),
+    );
 
     // ---- pages
     let mut page_ids = Vec::new();
     let mut canvases = Vec::new();
-    if opts.title_page && !project.title_page.title.trim().is_empty() {
-        let mut c = Canvas { ops: Vec::new(), height: h };
+    if opts.title_page && opts.only_rev == 0 && !project.title_page.title.trim().is_empty() {
+        let mut c = Canvas {
+            ops: Vec::new(),
+            height: h,
+        };
         title_page_ops(&project.title_page, &mut c);
         canvases.push(c);
     }
     for p in &lay.pages {
-        let mut c = Canvas { ops: Vec::new(), height: h };
+        if opts.only_rev > 0 && p.rev != opts.only_rev {
+            continue;
+        }
+        let mut c = Canvas {
+            ops: Vec::new(),
+            height: h,
+        };
         if opts.rev_pages && p.rev > 0 {
             // the whole page in its revision colour, under the text
             let (r, g, b) = REV_PAPER[(p.rev as usize).min(REV_PAPER.len() - 1)];
-            c.ops.extend_from_slice(format!("q {r:.3} {g:.3} {b:.3} rg 0 0 {w:.2} {h:.2} re f Q\n").as_bytes());
+            c.ops.extend_from_slice(
+                format!("q {r:.3} {g:.3} {b:.3} rg 0 0 {w:.2} {h:.2} re f Q\n").as_bytes(),
+            );
         }
         body_page_ops(p, project, &mut c);
         canvases.push(c);
@@ -344,22 +389,41 @@ pub fn render_pdf(project: &Project, opts: &PdfOptions) -> Vec<u8> {
     let kids: Vec<String> = page_ids.iter().map(|i| format!("{i} 0 R")).collect();
     pdf.obj(
         pages_id,
-        format!("<< /Type /Pages /Kids [{}] /Count {} >>", kids.join(" "), page_ids.len()).as_bytes(),
+        format!(
+            "<< /Type /Pages /Kids [{}] /Count {} >>",
+            kids.join(" "),
+            page_ids.len()
+        )
+        .as_bytes(),
     );
-    pdf.obj(catalog, format!("<< /Type /Catalog /Pages {pages_id} 0 R >>").as_bytes());
+    pdf.obj(
+        catalog,
+        format!("<< /Type /Catalog /Pages {pages_id} 0 R >>").as_bytes(),
+    );
     let mut info_body = b"<< /Producer (Page One) /Creator (Page One) /Title ".to_vec();
-    info_body.extend_from_slice(&pdf_string(project.title_page.title.lines().next().unwrap_or("Screenplay")));
+    info_body.extend_from_slice(&pdf_string(
+        project
+            .title_page
+            .title
+            .lines()
+            .next()
+            .unwrap_or("Screenplay"),
+    ));
     info_body.extend_from_slice(b" /Author ");
-    info_body.extend_from_slice(&pdf_string(project.title_page.author.lines().next().unwrap_or("")));
+    info_body.extend_from_slice(&pdf_string(
+        project.title_page.author.lines().next().unwrap_or(""),
+    ));
     info_body.extend_from_slice(b" >>");
     pdf.obj(info, &info_body);
 
     // ---- xref
     let xref = pdf.buf.len();
     let n = pdf.offsets.len();
-    pdf.buf.extend_from_slice(format!("xref\n0 {n}\n0000000000 65535 f \n").as_bytes());
+    pdf.buf
+        .extend_from_slice(format!("xref\n0 {n}\n0000000000 65535 f \n").as_bytes());
     for off in &pdf.offsets[1..] {
-        pdf.buf.extend_from_slice(format!("{off:010} 00000 n \n").as_bytes());
+        pdf.buf
+            .extend_from_slice(format!("{off:010} 00000 n \n").as_bytes());
     }
     pdf.buf.extend_from_slice(
         format!("trailer\n<< /Size {n} /Root {catalog} 0 R /Info {info} 0 R >>\nstartxref\n{xref}\n%%EOF\n").as_bytes(),

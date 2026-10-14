@@ -6,7 +6,8 @@
 //! totals as live formulas, and landscape print setup that repeats the header on every page.
 
 use rust_xlsxwriter::{
-    Color, DocProperties, Format, FormatAlign, FormatBorder, Formula, IgnoreError, Workbook as XlsxBook, Worksheet, XlsxError,
+    Color, DocProperties, Format, FormatAlign, FormatBorder, Formula, IgnoreError,
+    Workbook as XlsxBook, Worksheet, XlsxError,
 };
 use serde::Deserialize;
 use serde_json::Value;
@@ -79,15 +80,21 @@ struct Styles {
 }
 
 fn border(f: Format) -> Format {
-    f.set_border(FormatBorder::Thin).set_border_color(Color::RGB(0xD5D9DE))
+    f.set_border(FormatBorder::Thin)
+        .set_border_color(Color::RGB(0xD5D9DE))
 }
 
 fn styles() -> Styles {
     let base = || border(Format::new().set_font_size(10).set_align(FormatAlign::Top));
     Styles {
         title: Format::new().set_bold().set_font_size(15),
-        sub: Format::new().set_font_size(10).set_font_color(Color::RGB(0x5B6470)),
-        note: Format::new().set_italic().set_font_size(9).set_font_color(Color::RGB(0x7A828C)),
+        sub: Format::new()
+            .set_font_size(10)
+            .set_font_color(Color::RGB(0x5B6470)),
+        note: Format::new()
+            .set_italic()
+            .set_font_size(9)
+            .set_font_color(Color::RGB(0x7A828C)),
         head: border(
             Format::new()
                 .set_bold()
@@ -103,27 +110,65 @@ fn styles() -> Styles {
         // pages stored as a number of pages, shown in eighths: 0.375 -> "3/8", 1.25 -> "1 2/8"
         eighths: base().set_num_format("# ?/8").set_align(FormatAlign::Right),
         center: base().set_align(FormatAlign::Center),
-        mark: base().set_align(FormatAlign::Center).set_bold().set_font_color(Color::RGB(0x9B1C1C)).set_background_color(Color::RGB(0xF8D7D5)),
-        mark_soft: base().set_align(FormatAlign::Center).set_font_color(Color::RGB(0x5B6470)).set_background_color(Color::RGB(0xEEF0F3)),
-        total_label: border(Format::new().set_bold().set_font_size(10).set_background_color(Color::RGB(0xEEF0F3))),
-        total_int: border(Format::new().set_bold().set_font_size(10).set_background_color(Color::RGB(0xEEF0F3)).set_align(FormatAlign::Right)),
-        total_eighths: border(
-            Format::new().set_bold().set_font_size(10).set_background_color(Color::RGB(0xEEF0F3)).set_num_format("# ?/8").set_align(FormatAlign::Right),
+        mark: base()
+            .set_align(FormatAlign::Center)
+            .set_bold()
+            .set_font_color(Color::RGB(0x9B1C1C))
+            .set_background_color(Color::RGB(0xF8D7D5)),
+        mark_soft: base()
+            .set_align(FormatAlign::Center)
+            .set_font_color(Color::RGB(0x5B6470))
+            .set_background_color(Color::RGB(0xEEF0F3)),
+        total_label: border(
+            Format::new()
+                .set_bold()
+                .set_font_size(10)
+                .set_background_color(Color::RGB(0xEEF0F3)),
         ),
-        label: border(Format::new().set_bold().set_font_size(10).set_background_color(Color::RGB(0xF4F5F7))),
+        total_int: border(
+            Format::new()
+                .set_bold()
+                .set_font_size(10)
+                .set_background_color(Color::RGB(0xEEF0F3))
+                .set_align(FormatAlign::Right),
+        ),
+        total_eighths: border(
+            Format::new()
+                .set_bold()
+                .set_font_size(10)
+                .set_background_color(Color::RGB(0xEEF0F3))
+                .set_num_format("# ?/8")
+                .set_align(FormatAlign::Right),
+        ),
+        label: border(
+            Format::new()
+                .set_bold()
+                .set_font_size(10)
+                .set_background_color(Color::RGB(0xF4F5F7)),
+        ),
     }
 }
 
 fn hex(s: &str) -> Option<Color> {
     let h = s.trim_start_matches('#');
-    u32::from_str_radix(h, 16).ok().filter(|_| h.len() == 6).map(Color::RGB)
+    u32::from_str_radix(h, 16)
+        .ok()
+        .filter(|_| h.len() == 6)
+        .map(Color::RGB)
 }
 
 /// Excel sheet names: at most 31 characters, none of []:*?/\ .
 fn sheet_name(s: &str) -> String {
-    let clean: String = s.chars().map(|c| if "[]:*?/\\".contains(c) { '-' } else { c }).collect();
+    let clean: String = s
+        .chars()
+        .map(|c| if "[]:*?/\\".contains(c) { '-' } else { c })
+        .collect();
     let t: String = clean.trim().chars().take(31).collect();
-    if t.is_empty() { "Sheet".into() } else { t }
+    if t.is_empty() {
+        "Sheet".into()
+    } else {
+        t
+    }
 }
 
 fn col_letter(mut c: u16) -> String {
@@ -163,7 +208,14 @@ fn wrapped_lines(text: &str, width: f64) -> usize {
         .max(1)
 }
 
-fn write_value(ws: &mut Worksheet, r: u32, c: u16, v: &Value, kind: &str, st: &Styles) -> Result<(), XlsxError> {
+fn write_value(
+    ws: &mut Worksheet,
+    r: u32,
+    c: u16,
+    v: &Value,
+    kind: &str,
+    st: &Styles,
+) -> Result<(), XlsxError> {
     let fmt = match kind {
         "wrap" => &st.wrap,
         "int" => &st.int,
@@ -199,8 +251,17 @@ fn write_value(ws: &mut Worksheet, r: u32, c: u16, v: &Value, kind: &str, st: &S
     Ok(())
 }
 
-fn title_block(ws: &mut Worksheet, book: &Workbook, sheet: &Sheet, st: &Styles) -> Result<(), XlsxError> {
-    let heading = if book.title.is_empty() { sheet.heading.clone() } else { format!("{} — {}", book.title, sheet.heading) };
+fn title_block(
+    ws: &mut Worksheet,
+    book: &Workbook,
+    sheet: &Sheet,
+    st: &Styles,
+) -> Result<(), XlsxError> {
+    let heading = if book.title.is_empty() {
+        sheet.heading.clone()
+    } else {
+        format!("{} — {}", book.title, sheet.heading)
+    };
     ws.write_string_with_format(0, 0, &heading, &st.title)?;
     ws.set_row_height(0, 22)?;
     ws.write_string_with_format(1, 0, &book.subtitle, &st.sub)?;
@@ -210,7 +271,12 @@ fn title_block(ws: &mut Worksheet, book: &Workbook, sheet: &Sheet, st: &Styles) 
     Ok(())
 }
 
-fn print_setup(ws: &mut Worksheet, book: &Workbook, sheet: &Sheet, last_col: u16) -> Result<(), XlsxError> {
+fn print_setup(
+    ws: &mut Worksheet,
+    book: &Workbook,
+    sheet: &Sheet,
+    last_col: u16,
+) -> Result<(), XlsxError> {
     ws.set_landscape();
     ws.set_paper_size(1); // US Letter, the screenplay standard
     ws.set_margins(0.4, 0.4, 0.6, 0.6, 0.3, 0.3);
@@ -221,12 +287,20 @@ fn print_setup(ws: &mut Worksheet, book: &Workbook, sheet: &Sheet, last_col: u16
         ws.set_print_area(0, 0, HEAD_ROW + sheet.rows.len() as u32 + 1, last_col)?;
     }
     let title = book.title.replace('&', "&&");
-    ws.set_header(&format!("&L&\"-,Bold\"{title}&R{}", sheet.heading.replace('&', "&&")));
+    ws.set_header(&format!(
+        "&L&\"-,Bold\"{title}&R{}",
+        sheet.heading.replace('&', "&&")
+    ));
     ws.set_footer("&LPage One&RPage &P of &N");
     Ok(())
 }
 
-fn write_table(ws: &mut Worksheet, book: &Workbook, sheet: &Sheet, st: &Styles) -> Result<(), XlsxError> {
+fn write_table(
+    ws: &mut Worksheet,
+    book: &Workbook,
+    sheet: &Sheet,
+    st: &Styles,
+) -> Result<(), XlsxError> {
     title_block(ws, book, sheet, st)?;
     let ncols = sheet.columns.len() as u16;
     if ncols == 0 {
@@ -252,7 +326,10 @@ fn write_table(ws: &mut Worksheet, book: &Workbook, sheet: &Sheet, st: &Styles) 
             let v = row.get(c).unwrap_or(&Value::Null);
             write_value(ws, r, c as u16, v, &col.kind, st)?;
             if col.kind == "wrap" {
-                lines = lines.max(wrapped_lines(v.as_str().unwrap_or(""), if col.width > 0.0 { col.width } else { 12.0 }));
+                lines = lines.max(wrapped_lines(
+                    v.as_str().unwrap_or(""),
+                    if col.width > 0.0 { col.width } else { 12.0 },
+                ));
             }
         }
         // set the height of wrapped rows, so every spreadsheet app shows the whole text
@@ -272,21 +349,44 @@ fn write_table(ws: &mut Worksheet, book: &Workbook, sheet: &Sheet, st: &Styles) 
             // live formulas, with the value already worked out so every app shows it before recalculating
             for &c in &t.sum {
                 let cl = col_letter(c as u16);
-                let f = if sheet.columns.get(c).map(|x| x.kind.as_str()) == Some("eighths") { &st.total_eighths } else { &st.total_int };
-                let total: f64 = sheet.rows.iter().filter_map(|row| row.get(c).and_then(|v| v.as_f64())).sum();
-                let formula = Formula::new(format!("=SUM({cl}{}:{cl}{})", first + 1, last + 1)).set_result(format!("{total}"));
+                let f = if sheet.columns.get(c).map(|x| x.kind.as_str()) == Some("eighths") {
+                    &st.total_eighths
+                } else {
+                    &st.total_int
+                };
+                let total: f64 = sheet
+                    .rows
+                    .iter()
+                    .filter_map(|row| row.get(c).and_then(|v| v.as_f64()))
+                    .sum();
+                let formula = Formula::new(format!("=SUM({cl}{}:{cl}{})", first + 1, last + 1))
+                    .set_result(format!("{total}"));
                 ws.write_formula_with_format(r, c as u16, formula, f)?;
             }
             for &c in &t.count {
                 let cl = col_letter(c as u16);
-                let n = sheet.rows.iter().filter(|row| row.get(c).is_some_and(|v| !v.is_null() && v.as_str() != Some(""))).count();
-                let formula = Formula::new(format!("=COUNTA({cl}{}:{cl}{})", first + 1, last + 1)).set_result(format!("{n}"));
+                let n = sheet
+                    .rows
+                    .iter()
+                    .filter(|row| {
+                        row.get(c)
+                            .is_some_and(|v| !v.is_null() && v.as_str() != Some(""))
+                    })
+                    .count();
+                let formula = Formula::new(format!("=COUNTA({cl}{}:{cl}{})", first + 1, last + 1))
+                    .set_result(format!("{n}"));
                 ws.write_formula_with_format(r, c as u16, formula, &st.total_int)?;
             }
         }
     }
     // scene numbers are text on purpose ("12A"); don't flag them as numbers stored as text
-    ws.ignore_error_range(HEAD_ROW, 0, last.max(HEAD_ROW) + 1, ncols - 1, IgnoreError::NumberStoredAsText)?;
+    ws.ignore_error_range(
+        HEAD_ROW,
+        0,
+        last.max(HEAD_ROW) + 1,
+        ncols - 1,
+        IgnoreError::NumberStoredAsText,
+    )?;
     ws.set_freeze_panes(HEAD_ROW + 1, sheet.freeze_cols)?;
     if !sheet.rows.is_empty() && sheet.kind != "grid" {
         ws.autofilter(HEAD_ROW, 0, last, ncols - 1)?;
@@ -294,7 +394,12 @@ fn write_table(ws: &mut Worksheet, book: &Workbook, sheet: &Sheet, st: &Styles) 
     print_setup(ws, book, sheet, ncols - 1)
 }
 
-fn write_summary(ws: &mut Worksheet, book: &Workbook, sheet: &Sheet, st: &Styles) -> Result<(), XlsxError> {
+fn write_summary(
+    ws: &mut Worksheet,
+    book: &Workbook,
+    sheet: &Sheet,
+    st: &Styles,
+) -> Result<(), XlsxError> {
     title_block(ws, book, sheet, st)?;
     ws.set_column_width(0, 30)?;
     ws.set_column_width(1, 44)?;
@@ -312,7 +417,18 @@ fn write_summary(ws: &mut Worksheet, book: &Workbook, sheet: &Sheet, st: &Styles
             ws.write_blank(r, 1, &st.head)?;
         } else {
             ws.write_string_with_format(r, 0, label, &st.label)?;
-            write_value(ws, r, 1, value, if kind == "int" || kind == "eighths" { kind } else { "text" }, st)?;
+            write_value(
+                ws,
+                r,
+                1,
+                value,
+                if kind == "int" || kind == "eighths" {
+                    kind
+                } else {
+                    "text"
+                },
+                st,
+            )?;
         }
         r += 1;
     }
@@ -334,10 +450,18 @@ pub fn write(book: &Workbook) -> Result<Vec<u8>, String> {
         let ws = wb.add_worksheet();
         let mut name = sheet_name(&sheet.name);
         while !used.insert(name.to_lowercase()) {
-            name = sheet_name(&format!("{} {}", name.chars().take(27).collect::<String>(), used.len()));
+            name = sheet_name(&format!(
+                "{} {}",
+                name.chars().take(27).collect::<String>(),
+                used.len()
+            ));
         }
         ws.set_name(&name).map_err(|e| e.to_string())?;
-        let res = if sheet.kind == "summary" { write_summary(ws, book, sheet, &st) } else { write_table(ws, book, sheet, &st) };
+        let res = if sheet.kind == "summary" {
+            write_summary(ws, book, sheet, &st)
+        } else {
+            write_table(ws, book, sheet, &st)
+        };
         res.map_err(|e| format!("{}: {e}", sheet.name))?;
     }
     wb.save_to_buffer().map_err(|e| e.to_string())
@@ -374,6 +498,9 @@ mod tests {
         assert_eq!(col_letter(0), "A");
         assert_eq!(col_letter(25), "Z");
         assert_eq!(col_letter(26), "AA");
-        assert_eq!(sheet_name("Cast: by/scene [all] with a very long name indeed"), "Cast- by-scene -all- with a ver");
+        assert_eq!(
+            sheet_name("Cast: by/scene [all] with a very long name indeed"),
+            "Cast- by-scene -all- with a ver"
+        );
     }
 }

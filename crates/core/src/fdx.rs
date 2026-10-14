@@ -3,7 +3,10 @@
 use crate::model::*;
 
 fn esc(s: &str) -> String {
-    s.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;").replace('"', "&quot;")
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
 }
 
 fn fdx_type(t: Elem) -> &'static str {
@@ -39,7 +42,11 @@ fn texts(runs: &[Run]) -> String {
         if st.is_empty() {
             o.push_str(&format!("<Text>{}</Text>", esc(&r.x)));
         } else {
-            o.push_str(&format!("<Text Style=\"{}\">{}</Text>", st.join("+"), esc(&r.x)));
+            o.push_str(&format!(
+                "<Text Style=\"{}\">{}</Text>",
+                st.join("+"),
+                esc(&r.x)
+            ));
         }
     }
     o
@@ -75,8 +82,18 @@ fn para_xml(p: &Para, number: Option<&str>) -> String {
         }
     }
     // an omitted scene keeps its number and prints OMITTED, as on the page
-    let text = if omitted { vec![Run { x: "OMITTED".into(), s: 0 }] } else { p.runs.clone() };
-    format!("    <Paragraph {attrs}>{inner}{}</Paragraph>\n", texts(&text))
+    let text = if omitted {
+        vec![Run {
+            x: "OMITTED".into(),
+            s: 0,
+        }]
+    } else {
+        p.runs.clone()
+    };
+    format!(
+        "    <Paragraph {attrs}>{inner}{}</Paragraph>\n",
+        texts(&text)
+    )
 }
 
 const FONT: &str = r##"<FontSpec AdornmentStyle="0" Background="#FFFFFFFFFFFF" Color="#000000000000" Font="Courier Final Draft" RevisionID="0" Size="12" Style="{style}"/>"##;
@@ -90,28 +107,89 @@ fn settings_xml(p: &Project) -> String {
     o.push_str("  <HeaderAndFooter FooterFirstPage=\"Yes\" FooterVisible=\"No\" HeaderFirstPage=\"No\" HeaderVisible=\"Yes\" StartingPage=\"1\">\n");
     o.push_str("    <Header>\n      <Paragraph Alignment=\"Right\" FirstIndent=\"0.00\" Leading=\"Regular\" LeftIndent=\"1.50\" RightIndent=\"-1.00\" SpaceBefore=\"0\" Spacing=\"1\" StartsNewPage=\"No\">\n");
     if !s.header.trim().is_empty() {
-        o.push_str(&format!("        <Text Style=\"\">{}    </Text>\n", esc(s.header.trim())));
+        o.push_str(&format!(
+            "        <Text Style=\"\">{}    </Text>\n",
+            esc(s.header.trim())
+        ));
     }
     o.push_str("        <DynamicLabel Type=\"Page #\"/>\n        <Text Style=\"\">.</Text>\n      </Paragraph>\n    </Header>\n");
     o.push_str("    <Footer>\n      <Paragraph Alignment=\"Right\" FirstIndent=\"0.00\" Leading=\"Regular\" LeftIndent=\"1.50\" RightIndent=\"-1.00\" SpaceBefore=\"0\" Spacing=\"1\" StartsNewPage=\"No\">\n        <Text Style=\"\"></Text>\n      </Paragraph>\n    </Footer>\n  </HeaderAndFooter>\n");
     // 1" top and bottom, page number 0.5" from the top, US Letter or A4
-    let (w, h) = if s.page_size == "a4" { ("8.27", "11.69") } else { ("8.50", "11.00") };
+    let (w, h) = if s.page_size == "a4" {
+        ("8.27", "11.69")
+    } else {
+        ("8.50", "11.00")
+    };
     o.push_str(&format!(
         "  <PageLayout BackgroundColor=\"#FFFFFFFFFFFF\" BottomMargin=\"72\" BreakDialogueAndActionAtSentences=\"Yes\" DocumentLeading=\"Normal\" FooterMargin=\"36\" ForegroundColor=\"#000000000000\" HeaderMargin=\"36\" InvisiblesColor=\"#808080808080\" TopMargin=\"72\" UsesSmartQuotes=\"Yes\">\n    <AutoCastList AddParentheses=\"Yes\" AutomaticallyGenerate=\"No\" CastListElement=\"Cast List\"/>\n  </PageLayout>\n  <PageSize Height=\"{h}\" Width=\"{w}\"/>\n"
     ));
-    let scene_style = if s.bold_scenes { "Bold+AllCaps" } else { "AllCaps" };
+    let scene_style = if s.bold_scenes {
+        "Bold+AllCaps"
+    } else {
+        "AllCaps"
+    };
     let scene_before = (12 * s.scene_space.clamp(1, 2) as u32).to_string();
     // (type, style, alignment, first indent, left, right, space before, return key, shortcut)
     let elems: [(&str, &str, &str, &str, &str, &str, &str, &str, &str); 9] = [
-        ("General", "", "Left", "0.00", "1.50", "7.50", "0", "General", "0"),
-        ("Scene Heading", scene_style, "Left", "0.00", "1.50", "7.50", &scene_before, "Action", "1"),
-        ("Action", "", "Left", "0.00", "1.50", "7.50", "12", "Action", "2"),
-        ("Character", "AllCaps", "Left", "0.00", "3.70", "7.50", "12", "Dialogue", "3"),
-        ("Parenthetical", "", "Left", "-0.10", "3.20", "5.25", "0", "Dialogue", "4"),
-        ("Dialogue", "", "Left", "0.00", "2.50", "6.00", "0", "Action", "5"),
-        ("Transition", "AllCaps", "Right", "0.00", "5.50", "7.50", "12", "Scene Heading", "6"),
-        ("Shot", "AllCaps", "Left", "0.00", "1.50", "7.50", "12", "Action", "7"),
-        ("Lyrics", "Italic", "Left", "0.00", "2.50", "6.00", "0", "Lyrics", "9"),
+        (
+            "General", "", "Left", "0.00", "1.50", "7.50", "0", "General", "0",
+        ),
+        (
+            "Scene Heading",
+            scene_style,
+            "Left",
+            "0.00",
+            "1.50",
+            "7.50",
+            &scene_before,
+            "Action",
+            "1",
+        ),
+        (
+            "Action", "", "Left", "0.00", "1.50", "7.50", "12", "Action", "2",
+        ),
+        (
+            "Character",
+            "AllCaps",
+            "Left",
+            "0.00",
+            "3.70",
+            "7.50",
+            "12",
+            "Dialogue",
+            "3",
+        ),
+        (
+            "Parenthetical",
+            "",
+            "Left",
+            "-0.10",
+            "3.20",
+            "5.25",
+            "0",
+            "Dialogue",
+            "4",
+        ),
+        (
+            "Dialogue", "", "Left", "0.00", "2.50", "6.00", "0", "Action", "5",
+        ),
+        (
+            "Transition",
+            "AllCaps",
+            "Right",
+            "0.00",
+            "5.50",
+            "7.50",
+            "12",
+            "Scene Heading",
+            "6",
+        ),
+        (
+            "Shot", "AllCaps", "Left", "0.00", "1.50", "7.50", "12", "Action", "7",
+        ),
+        (
+            "Lyrics", "Italic", "Left", "0.00", "2.50", "6.00", "0", "Lyrics", "9",
+        ),
     ];
     for (ty, style, align, first, left, right, before, ret, key) in elems {
         o.push_str(&format!(
@@ -140,7 +218,7 @@ pub fn export(p: &Project) -> String {
         "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>\n<FinalDraft DocumentType=\"Script\" Template=\"No\" Version=\"5\">\n  <Content>\n",
     );
     // the same numbers the printed page carries (locked numbers such as 12A included)
-    let nums = crate::layout::scene_numbers(&p.paras);
+    let nums = crate::layout::scene_numbers_for(p);
     let mut i = 0;
     while i < p.paras.len() {
         let para = &p.paras[i];
@@ -158,8 +236,16 @@ pub fn export(p: &Project) -> String {
                 continue;
             }
         }
-        let locked = para.meta.as_ref().map(|m| !m.num.trim().is_empty()).unwrap_or(false);
-        let num = if para.t == Elem::Scene && (p.settings.scene_numbers || locked) { nums[i].as_deref() } else { None };
+        let locked = para
+            .meta
+            .as_ref()
+            .map(|m| !m.num.trim().is_empty())
+            .unwrap_or(false);
+        let num = if para.t == Elem::Scene && (p.settings.scene_numbers || locked) {
+            nums[i].as_deref()
+        } else {
+            None
+        };
         o.push_str(&para_xml(para, num));
         i += 1;
     }
@@ -168,9 +254,13 @@ pub fn export(p: &Project) -> String {
     o.push_str("  <TitlePage>\n    <Content>\n");
     let tp = &p.title_page;
     let center = |o: &mut String, s: &str| {
-        o.push_str(&format!("      <Paragraph Alignment=\"Center\" Type=\"Title\"><Text>{}</Text></Paragraph>\n", esc(s)));
+        o.push_str(&format!(
+            "      <Paragraph Alignment=\"Center\" Type=\"Title\"><Text>{}</Text></Paragraph>\n",
+            esc(s)
+        ));
     };
-    let blank = |o: &mut String| o.push_str("      <Paragraph Type=\"Title\"><Text></Text></Paragraph>\n");
+    let blank =
+        |o: &mut String| o.push_str("      <Paragraph Type=\"Title\"><Text></Text></Paragraph>\n");
     for _ in 0..18 {
         blank(&mut o);
     }
@@ -193,7 +283,10 @@ pub fn export(p: &Project) -> String {
         blank(&mut o);
     }
     for l in tp.contact.lines().chain(tp.draft.lines()) {
-        o.push_str(&format!("      <Paragraph Alignment=\"Left\" Type=\"Title\"><Text>{}</Text></Paragraph>\n", esc(l)));
+        o.push_str(&format!(
+            "      <Paragraph Alignment=\"Left\" Type=\"Title\"><Text>{}</Text></Paragraph>\n",
+            esc(l)
+        ));
     }
     o.push_str("    </Content>\n  </TitlePage>\n");
     o.push_str(&options_xml(p));
@@ -273,7 +366,12 @@ fn read_para(node: roxmltree::Node, out: &mut Vec<Para>, in_dual: &mut Option<us
         return;
     }
     let (t, lvl) = elem_from(node.attribute("Type").unwrap_or("General"));
-    let mut p = Para { t, lvl, runs: read_runs(node), ..Default::default() };
+    let mut p = Para {
+        t,
+        lvl,
+        runs: read_runs(node),
+        ..Default::default()
+    };
     if t == Elem::General && node.attribute("Alignment") == Some("Center") {
         p.t = Elem::Centered;
     }
@@ -306,12 +404,16 @@ fn read_para(node: roxmltree::Node, out: &mut Vec<Para>, in_dual: &mut Option<us
 }
 
 pub fn import(xml: &str) -> Result<Project, String> {
-    let doc = roxmltree::Document::parse(xml).map_err(|e| format!("Not a valid Final Draft file: {e}"))?;
+    let doc = roxmltree::Document::parse(xml)
+        .map_err(|e| format!("Not a valid Final Draft file: {e}"))?;
     let root = doc.root_element();
     if !root.has_tag_name("FinalDraft") {
         return Err("Not a Final Draft (.fdx) file.".into());
     }
-    let mut p = Project { paras: vec![], ..Default::default() };
+    let mut p = Project {
+        paras: vec![],
+        ..Default::default()
+    };
     if let Some(content) = root.children().find(|c| c.has_tag_name("Content")) {
         let mut dual = None;
         for node in content.children().filter(|c| c.has_tag_name("Paragraph")) {
@@ -322,7 +424,14 @@ pub fn import(xml: &str) -> Result<Project, String> {
         let lines: Vec<String> = tp
             .descendants()
             .filter(|c| c.has_tag_name("Paragraph"))
-            .map(|n| read_runs(n).iter().map(|r| r.x.clone()).collect::<String>().trim().to_string())
+            .map(|n| {
+                read_runs(n)
+                    .iter()
+                    .map(|r| r.x.clone())
+                    .collect::<String>()
+                    .trim()
+                    .to_string()
+            })
             .filter(|s| !s.is_empty())
             .collect();
         let mut it = lines.into_iter().peekable();
@@ -331,7 +440,11 @@ pub fn import(xml: &str) -> Result<Project, String> {
         }
         if let Some(c) = it.peek() {
             let l = c.to_lowercase();
-            if l.contains("by") || l.contains("written") || l.contains("teleplay") || l.contains("story") {
+            if l.contains("by")
+                || l.contains("written")
+                || l.contains("teleplay")
+                || l.contains("story")
+            {
                 p.title_page.credit = it.next().unwrap();
                 if let Some(a) = it.next() {
                     p.title_page.author = a;
@@ -342,14 +455,22 @@ pub fn import(xml: &str) -> Result<Project, String> {
     }
     release_auto_numbers(&mut p);
     // spacing before scene headings, as the file sets it (24 pt = two blank lines)
-    for es in root.children().filter(|c| c.has_tag_name("ElementSettings") && c.attribute("Type") == Some("Scene Heading")) {
+    for es in root.children().filter(|c| {
+        c.has_tag_name("ElementSettings") && c.attribute("Type") == Some("Scene Heading")
+    }) {
         if let Some(ps) = es.children().find(|c| c.has_tag_name("ParagraphSpec")) {
-            if let Some(sb) = ps.attribute("SpaceBefore").and_then(|v| v.parse::<u32>().ok()) {
+            if let Some(sb) = ps
+                .attribute("SpaceBefore")
+                .and_then(|v| v.parse::<u32>().ok())
+            {
                 p.settings.scene_space = if sb >= 24 { 2 } else { 1 };
             }
         }
         if let Some(fs) = es.children().find(|c| c.has_tag_name("FontSpec")) {
-            p.settings.bold_scenes = fs.attribute("Style").map(|v| v.contains("Bold")).unwrap_or(false);
+            p.settings.bold_scenes = fs
+                .attribute("Style")
+                .map(|v| v.contains("Bold"))
+                .unwrap_or(false);
         }
     }
     if p.paras.is_empty() {
@@ -388,7 +509,12 @@ fn release_auto_numbers(p: &mut Project) {
         p.settings.scene_numbers = true;
     }
     for para in p.paras.iter_mut() {
-        if para.meta.as_ref().map(|m| *m == SceneMeta::default()).unwrap_or(false) {
+        if para
+            .meta
+            .as_ref()
+            .map(|m| *m == SceneMeta::default())
+            .unwrap_or(false)
+        {
             para.meta = None;
         }
     }
@@ -406,7 +532,20 @@ mod tests {
         dual.dual = true;
         p.paras = vec![
             Para::new(Elem::Scene, "INT. LAB - DAY"),
-            Para { t: Elem::Action, runs: vec![Run { x: "Bold ".into(), s: BOLD }, Run { x: "<plain>".into(), s: 0 }], ..Default::default() },
+            Para {
+                t: Elem::Action,
+                runs: vec![
+                    Run {
+                        x: "Bold ".into(),
+                        s: BOLD,
+                    },
+                    Run {
+                        x: "<plain>".into(),
+                        s: 0,
+                    },
+                ],
+                ..Default::default()
+            },
             Para::new(Elem::Character, "ANN"),
             Para::new(Elem::Dialogue, "One."),
             dual,
@@ -426,9 +565,15 @@ mod tests {
         let mut p = Project::default();
         p.settings.scene_numbers = true;
         let mut locked = Para::new(Elem::Scene, "INT. B - DAY");
-        locked.meta = Some(SceneMeta { num: "12A".into(), ..Default::default() });
+        locked.meta = Some(SceneMeta {
+            num: "12A".into(),
+            ..Default::default()
+        });
         let mut omitted = Para::new(Elem::Scene, "INT. C - DAY");
-        omitted.meta = Some(SceneMeta { omitted: true, ..Default::default() });
+        omitted.meta = Some(SceneMeta {
+            omitted: true,
+            ..Default::default()
+        });
         p.paras = vec![
             Para::new(Elem::Scene, "INT. A - DAY"),
             Para::new(Elem::Action, "One."),
@@ -439,7 +584,10 @@ mod tests {
         ];
         let x = export(&p);
         // numbers as printed: 1, 12A, 13 (omitted keeps its number), 14
-        assert!(x.contains(r#"<Paragraph Type="Scene Heading" Number="1">"#), "{x}");
+        assert!(
+            x.contains(r#"<Paragraph Type="Scene Heading" Number="1">"#),
+            "{x}"
+        );
         assert!(x.contains(r#"Number="12A""#));
         assert!(x.contains(r#"Number="13"><Text>OMITTED</Text>"#), "{x}");
         assert!(x.contains(r#"Number="14""#));
@@ -450,7 +598,12 @@ mod tests {
         let q = import(&x).unwrap();
         assert!(q.settings.scene_numbers);
         assert_eq!(q.settings.scene_space, 2);
-        let nums: Vec<String> = q.paras.iter().filter(|x| x.t == Elem::Scene).map(|x| x.meta.as_ref().map(|m| m.num.clone()).unwrap_or_default()).collect();
+        let nums: Vec<String> = q
+            .paras
+            .iter()
+            .filter(|x| x.t == Elem::Scene)
+            .map(|x| x.meta.as_ref().map(|m| m.num.clone()).unwrap_or_default())
+            .collect();
         // only the locked number stays; the rest number themselves
         assert_eq!(nums, vec!["", "12A", "", ""]);
         // without numbering switched on, no numbers are written

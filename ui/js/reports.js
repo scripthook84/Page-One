@@ -19,6 +19,13 @@ const words = (t) => (t.match(/[A-Za-z0-9'’]+/g) || []).length;
 const textOf = (p) => (p.runs || []).map((r) => r.x).join('');
 const pages = (e8) => (e8 || 0) / 8;
 
+/** The printed page number for a page index: 12, or with locked pages "12A" / "12-13". */
+function pageLabel(lay, n) {
+  const pg = lay && lay.pages[n - 1];
+  if (!pg) return n;
+  return /^\d+$/.test(pg.label) ? +pg.label : pg.label;
+}
+
 /** INT / EXT / INT/EXT, the way a breakdown writes it. */
 function ie(intro) {
   const t = (intro || '').toUpperCase().replace(/\.$/, '');
@@ -106,7 +113,7 @@ export function collect() {
       cur = {
         i, lastPara: i, heading: text.trim(), number: L.number || '', ie: ie(sp.intro), set: sp.location, time: sp.time, tod, scriptDay,
         notes: ((p.meta && p.meta.notes) || '').trim(),
-        page: (lay && lay.para_page[i]) || 1, e8: L.eighths || 0, omitted: !!(p.meta && p.meta.omitted),
+        page: pageLabel(lay, (lay && lay.para_page[i]) || 1), e8: L.eighths || 0, omitted: !!(p.meta && p.meta.omitted),
         synopsis: ((p.meta && p.meta.synopsis) || '').trim(), first: '', action: [], speaking: new Set(), act, seq, beat,
       };
       scenes.push(cur);
@@ -119,7 +126,7 @@ export function collect() {
       const C = ensure(n);
       C.speeches++;
       const ext = (text.match(/\(([^)]*)\)/g) || []).map((x) => x.slice(1, -1).trim().toUpperCase()).filter(Boolean).join(', ');
-      speech = { name: n, ext, scene: cur, page: (lay && lay.para_page[i]) || 1, parens: [], lines: [], words: 0 };
+      speech = { name: n, ext, scene: cur, page: pageLabel(lay, (lay && lay.para_page[i]) || 1), parens: [], lines: [], words: 0 };
       speeches.push(speech);
       C.firstPara = Math.min(C.firstPara, i);
       if (cur) { cur.speaking.add(n); C.speaks.add(cur); }
@@ -176,7 +183,7 @@ export function collect() {
     const all = [...c.speaks, ...c.named].sort((a, b) => order.get(a) - order.get(b));
     c.scenes = all;
     c.e8 = all.reduce((t, s) => t + (s.e8 || 0), 0);
-    c.firstPage = c.firstPara < Infinity && lay ? lay.para_page[c.firstPara] || 1 : '';
+    c.firstPage = c.firstPara < Infinity && lay ? pageLabel(lay, lay.para_page[c.firstPara] || 1) : '';
   }
 
   // sets
@@ -195,7 +202,8 @@ export function collect() {
   for (const sc of scenes) {
     const a = (lay && lay.para_page[sc.i]) || 1, b = (lay && lay.para_page[sc.lastPara]) || a;
     sc.pageEnd = b;
-    sc.pages = b > a ? `${a}-${b}` : String(a);
+    const la = pageLabel(lay, a), lb = pageLabel(lay, b);
+    sc.pages = b > a ? `${String(la).split('-')[0]}-${String(lb).split('-').pop()}` : String(la);
   }
   return {
     scenes, cast, sets: setList, speeches, totalPages: lay ? lay.pages.length : 0, words: S.derived.words,

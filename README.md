@@ -111,6 +111,24 @@ PDF. It's free, works offline, needs no account, and reads your script aloud wit
   Salmon, Cherry) with asterisks, a revision header and revised pages shown and printed in their
   revision colour, a title page laid out to standard metrics, and watermarked PDFs.
 
+## Draft and Production
+
+A switch at the top of the window moves the script between two modes.
+
+- **Draft** is for writing: pages and scene numbers flow freely and renumber as you go.
+- **Production** locks the script the way a shooting script is locked:
+  - **Locked pages.** Every page keeps its number. Text that no longer fits goes onto an A page
+    (12A, 12B) and the pages after it don't move; a page you shorten keeps its gap; a page whose
+    text is all cut folds into the page before as a range ("12-13"); text added before page 1 goes
+    on A1.
+  - **Locked scene numbers.** A new scene takes the number before it with a letter (12A).
+  - **Revisions.** Changed lines get an asterisk, changed pages show and print in the revision
+    colour, and the header carries the colour and date, starting with Blue.
+- **Send out a revision.** Production → *Export revised pages* prints only the pages changed in
+  the current colour. *Lock revised pages, start next colour* locks those pages, A pages included,
+  and starts the next colour (Blue, Pink, Yellow…).
+- **Back to Draft** unlocks and renumbers everything, for a new full draft.
+
 ## Table Read
 
 - Click **Table Read** at the top centre, above the page (Ctrl+Shift+P), and the script is read aloud
@@ -175,7 +193,7 @@ PDF. It's free, works offline, needs no account, and reads your script aloud wit
 | Revision colours | Yes, revised pages shown and printed in colour | Yes | Yes |
 | Table read with a voice per character | Yes, 17 built-in natural voices including children, offline on every platform | Yes, with the operating system's voices (Speech Control) | Not found in sources checked |
 | Formatting check | Yes, Script check with one-click fixes | Yes, Format Assistant | Not found in sources checked |
-| Page locking and A-pages | No | Yes | Yes |
+| Page locking and A-pages | Yes (Production mode) | Yes | Yes |
 | Real-time collaboration | No | Yes | Yes |
 | Fountain | Opens and saves | Not listed in the Final Draft 13 User Guide | Opens and saves |
 | Final Draft .fdx | Opens and saves | Native format | Opens and saves |
@@ -184,7 +202,7 @@ PDF. It's free, works offline, needs no account, and reads your script aloud wit
 
 ### Future Improvements
 
-- Real-time collaboration, track changes, page locking and A-pages
+- Real-time collaboration and track changes
 - More languages and accents for the table read
 - PDF import; templates for TV, multi-camera and stage formats
 - Production tagging and scheduling exports

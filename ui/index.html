@@ -15,6 +15,10 @@
       <button id="docTitle" title="Edit the title page">Untitled</button>
       <span class="save-state" id="saveState">Not saved yet</span>
     </div>
+    <div class="mode-switch" id="modeSwitch" role="group" aria-label="Script mode">
+      <button data-script-mode="draft" aria-pressed="true" title="Draft: pages and scene numbers flow freely">Draft</button>
+      <button data-script-mode="production" aria-pressed="false" title="Production: lock pages and scene numbers; changes become revisions"><i class="dot" aria-hidden="true"></i>Production</button>
+    </div>
     <div class="views" role="tablist" aria-label="View">
       <button role="tab" data-view="script" aria-selected="true">Script</button>
       <button role="tab" data-view="cards" aria-selected="false">Board</button>

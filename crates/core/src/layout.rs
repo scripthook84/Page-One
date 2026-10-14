@@ -14,6 +14,8 @@
 //!   Transition                               right-aligned, ending at 7.5"
 //!   Page number "2." flush right at 7.5", 0.5" from the top, none on page 1
 
+use std::collections::HashSet;
+
 use crate::model::*;
 use serde::Serialize;
 
@@ -40,13 +42,25 @@ pub struct Geom {
 }
 
 pub fn geometry(t: Elem, s: &Settings) -> Geom {
-    let g = |left, width, before, align| Geom { left, width, before, align, hang: 0 };
+    let g = |left, width, before, align| Geom {
+        left,
+        width,
+        before,
+        align,
+        hang: 0,
+    };
     match t {
         Elem::Scene => g(15, 60, s.scene_space.clamp(1, 2) as usize, Align::Left),
         Elem::Action | Elem::General | Elem::Unknown => g(15, 60, 1, Align::Left),
         Elem::Shot => g(15, 60, 1, Align::Left),
         Elem::Character => g(37, 38, 1, Align::Left),
-        Elem::Paren => Geom { left: 31, width: 21, before: 0, align: Align::Left, hang: 1 },
+        Elem::Paren => Geom {
+            left: 31,
+            width: 21,
+            before: 0,
+            align: Align::Left,
+            hang: 1,
+        },
         Elem::Dialogue => g(25, 35, 0, Align::Left),
         Elem::Lyric => g(25, 35, 0, Align::Left),
         Elem::Transition => g(55, 20, 1, Align::Right),
@@ -87,6 +101,11 @@ pub struct Line {
 #[derive(Serialize, Clone, Debug, Default)]
 pub struct Page {
     pub n: u32,
+    /// Printed page number: "12", or with locked pages "12A", "A1" or a range such as "12-13".
+    pub label: String,
+    /// Where the page begins: paragraph index (-1 if none) and which of its printed lines.
+    pub start_para: i32,
+    pub start_line: u32,
     pub lines: Vec<Line>,
     /// Latest revision colour of any change on this page (0 = unrevised). Revised pages are issued
     /// on that colour of paper.
@@ -142,7 +161,11 @@ pub fn wrap(chars: &[SChar], width: usize, hang: usize) -> Vec<Vec<SChar>> {
         let mut i = 0;
         let w = |lines_so_far: usize, cur_empty_line: bool| {
             let _ = cur_empty_line;
-            if lines_so_far == 0 { width } else { width.saturating_sub(hang).max(1) }
+            if lines_so_far == 0 {
+                width
+            } else {
+                width.saturating_sub(hang).max(1)
+            }
         };
         let start_count = lines.len();
         // split into words keeping following spaces
@@ -152,7 +175,12 @@ pub fn wrap(chars: &[SChar], width: usize, hang: usize) -> Vec<Vec<SChar>> {
             while i < hard.len() && hard[i].0 != ' ' {
                 i += 1;
                 // a hyphen inside a word is a break opportunity ("hand-|painted"), like the editor
-                if hard[i - 1].0 == '-' && i < hard.len() && hard[i].0.is_alphanumeric() && i - s > 1 && hard[i - 2].0 != '-' {
+                if hard[i - 1].0 == '-'
+                    && i < hard.len()
+                    && hard[i].0.is_alphanumeric()
+                    && i - s > 1
+                    && hard[i - 2].0 != '-'
+                {
                     break;
                 }
             }
@@ -163,7 +191,11 @@ pub fn wrap(chars: &[SChar], width: usize, hang: usize) -> Vec<Vec<SChar>> {
         }
         for word in words {
             let limit = w(lines.len() - start_count, cur.is_empty());
-            let trimmed_len = word.iter().rposition(|c| c.0 != ' ').map(|p| p + 1).unwrap_or(0);
+            let trimmed_len = word
+                .iter()
+                .rposition(|c| c.0 != ' ')
+                .map(|p| p + 1)
+                .unwrap_or(0);
             if cur.len() + trimmed_len > limit && !cur.is_empty() {
                 while cur.last().map(|c| c.0 == ' ').unwrap_or(false) {
                     cur.pop();
@@ -174,7 +206,11 @@ pub fn wrap(chars: &[SChar], width: usize, hang: usize) -> Vec<Vec<SChar>> {
             // a single word longer than the line: hard break it
             loop {
                 let limit = w(lines.len() - start_count, cur.is_empty());
-                let wl = word.iter().rposition(|c| c.0 != ' ').map(|p| p + 1).unwrap_or(0);
+                let wl = word
+                    .iter()
+                    .rposition(|c| c.0 != ' ')
+                    .map(|p| p + 1)
+                    .unwrap_or(0);
                 if cur.is_empty() && wl > limit {
                     lines.push(word[..limit].to_vec());
                     word = &word[limit..];
@@ -201,14 +237,20 @@ fn to_runs(chars: &[SChar], extra_style: u8) -> Vec<OutRun> {
         let s = s | extra_style;
         match out.last_mut() {
             Some(r) if r.s == s => r.x.push(c),
-            _ => out.push(OutRun { x: c.to_string(), s }),
+            _ => out.push(OutRun {
+                x: c.to_string(),
+                s,
+            }),
         }
     }
     out
 }
 
 fn plain(text: &str) -> Vec<OutRun> {
-    vec![OutRun { x: text.to_string(), s: 0 }]
+    vec![OutRun {
+        x: text.to_string(),
+        s: 0,
+    }]
 }
 
 // ---------------------------------------------------------------- blocks
@@ -248,14 +290,20 @@ fn line_text(l: &[SChar]) -> String {
 fn ends_sentence(l: &[SChar]) -> bool {
     let t = line_text(l);
     let t = t.trim_end().trim_end_matches(['"', '\'', ')', '’', '”']);
-    t.ends_with('.') || t.ends_with('?') || t.ends_with('!') || t.ends_with("--") || t.ends_with('…')
+    t.ends_with('.')
+        || t.ends_with('?')
+        || t.ends_with('!')
+        || t.ends_with("--")
+        || t.ends_with('…')
 }
 
 fn place_line(g: &Geom, idx: usize, l: &[SChar]) -> u16 {
     let len = l.len() as u16;
     match g.align {
         Align::Left => g.left + if idx > 0 { g.hang } else { 0 },
-        Align::Right => (g.left + g.width).saturating_sub(len).max(g.left.min(COL_LEFT)),
+        Align::Right => (g.left + g.width)
+            .saturating_sub(len)
+            .max(g.left.min(COL_LEFT)),
         Align::Center => g.left + g.width.saturating_sub(len) / 2,
     }
 }
@@ -327,7 +375,12 @@ fn cue_name(text: &str) -> String {
 /// Paragraph range [start, end) of the speech that starts at character paragraph `i`.
 fn speech_end(paras: &[Para], i: usize) -> usize {
     let mut j = i + 1;
-    while j < paras.len() && matches!(paras[j].t, Elem::Dialogue | Elem::Paren | Elem::Lyric | Elem::Note) {
+    while j < paras.len()
+        && matches!(
+            paras[j].t,
+            Elem::Dialogue | Elem::Paren | Elem::Lyric | Elem::Note
+        )
+    {
         j += 1;
     }
     j
@@ -336,12 +389,103 @@ fn speech_end(paras: &[Para], i: usize) -> usize {
 /// Scene number of every scene heading (None for other paragraphs): automatic 1, 2, 3…, with a
 /// locked number (such as 12A) kept as typed and numbering continuing from it. Shared by the page,
 /// the PDF and the Final Draft export so they always agree.
+/// Scene numbers as printed for this project. In production, scene numbers are locked: a new
+/// scene takes the number of the scene before it with a letter (12A, 12B), and a new scene before
+/// the first one is A1.
+pub fn scene_numbers_for(project: &Project) -> Vec<Option<String>> {
+    if !project.settings.production {
+        return scene_numbers(&project.paras);
+    }
+    let paras = &project.paras;
+    let locked = |p: &Para| {
+        p.meta
+            .as_ref()
+            .map(|m| m.num.trim().to_string())
+            .unwrap_or_default()
+    };
+    let mut taken: HashSet<String> = paras
+        .iter()
+        .filter(|p| p.t == Elem::Scene)
+        .map(locked)
+        .filter(|n| !n.is_empty())
+        .collect();
+    let mut out: Vec<Option<String>> = vec![None; paras.len()];
+    let mut prev: Option<String> = None;
+    let mut before_first = 0u32;
+    for (i, p) in paras.iter().enumerate() {
+        if p.t != Elem::Scene {
+            continue;
+        }
+        let num = locked(p);
+        let label = if !num.is_empty() {
+            num
+        } else if let Some(pv) = &prev {
+            next_insert_label(pv, &taken)
+        } else {
+            // before the first locked scene: A1, B1… (numbered from the first locked scene)
+            let first = paras[i..]
+                .iter()
+                .filter(|q| q.t == Elem::Scene)
+                .map(locked)
+                .find(|n| !n.is_empty())
+                .unwrap_or_else(|| "1".into());
+            before_first += 1;
+            format!("{}{}", letters(before_first), first)
+        };
+        taken.insert(label.clone());
+        prev = Some(label.clone());
+        out[i] = Some(label);
+    }
+    out
+}
+
+/// "A", "B", … "Z", "AA", "AB" …
+fn letters(mut n: u32) -> String {
+    let mut s = Vec::new();
+    while n > 0 {
+        n -= 1;
+        s.push((b'A' + (n % 26) as u8) as char);
+        n /= 26;
+    }
+    s.iter().rev().collect()
+}
+
+/// The number for something inserted after `prev` (a page or a scene) when numbers are locked:
+/// 12 → 12A, 12A → 12B; if that one is already used, a letter is added (12AA) so it still sorts
+/// between its neighbours.
+pub fn next_insert_label(prev: &str, taken: &HashSet<String>) -> String {
+    let ends_letter = prev.chars().last().is_some_and(|c| c.is_ascii_alphabetic());
+    let mut c = if ends_letter {
+        let mut v: Vec<char> = prev.chars().collect();
+        let last = *v.last().unwrap();
+        if last.to_ascii_uppercase() < 'Z' {
+            *v.last_mut().unwrap() = ((last.to_ascii_uppercase() as u8) + 1) as char;
+            v.into_iter().collect()
+        } else {
+            format!("{prev}A")
+        }
+    } else {
+        format!("{prev}A")
+    };
+    if taken.contains(&c) {
+        c = format!("{prev}A");
+    }
+    while taken.contains(&c) {
+        c.push('A');
+    }
+    c
+}
+
 pub fn scene_numbers(paras: &[Para]) -> Vec<Option<String>> {
     let mut scene_nums: Vec<Option<String>> = vec![None; paras.len()];
     let mut n = 0u32;
     for (i, p) in paras.iter().enumerate() {
         if p.t == Elem::Scene {
-            let manual = p.meta.as_ref().map(|m| m.num.trim().to_string()).unwrap_or_default();
+            let manual = p
+                .meta
+                .as_ref()
+                .map(|m| m.num.trim().to_string())
+                .unwrap_or_default();
             if manual.is_empty() {
                 n += 1;
                 scene_nums[i] = Some(n.to_string());
@@ -358,164 +502,23 @@ pub fn scene_numbers(paras: &[Para]) -> Vec<Option<String>> {
     scene_nums
 }
 
-pub fn layout(project: &Project) -> Layout {
-    let s = &project.settings;
-    let paras = &project.paras;
-    let lines_per_page = if s.page_size == "a4" { A4_LINES } else { LETTER_LINES };
-
-    // ---- scene numbers
-    let scene_nums = scene_numbers(paras);
-
-    // ---- build blocks
-    let mut blocks: Vec<Block> = Vec::new();
-    let mut last_speaker: Option<String> = None;
-    let mut i = 0;
-    while i < paras.len() {
-        let p = &paras[i];
-        if !p.t.printable() {
-            i += 1;
-            continue;
-        }
-        if p.meta.as_ref().map(|m| m.omitted).unwrap_or(false) && p.t == Elem::Scene {
-            // Omitted scene: print "OMITTED" heading, skip until next scene heading.
-            let num = if s.scene_numbers { scene_nums[i].clone() } else { None };
-            blocks.push(Block {
-                para: i,
-                t: Elem::Scene,
-                before: geometry(Elem::Scene, s).before,
-                rows: vec![vec![BLine {
-                    col: COL_LEFT,
-                    runs: plain("OMITTED"),
-                    para: i as i32,
-                    star: p.rev > 0,
-                    scene_no: num,
-                    sentence_end: false,
-                }]],
-                keep_next: false,
-                splittable: false,
-                speaker: None,
-            });
-            i += 1;
-            while i < paras.len() && paras[i].t != Elem::Scene && paras[i].t != Elem::Section {
-                i += 1;
-            }
-            continue;
-        }
-        match p.t {
-            Elem::Scene => {
-                last_speaker = None;
-                let num = if s.scene_numbers { scene_nums[i].clone() } else { None };
-                let lines = para_block_lines(p, i, s, false, num, None);
-                blocks.push(Block {
-                    para: i,
-                    t: p.t,
-                    before: geometry(p.t, s).before,
-                    rows: lines.into_iter().map(|l| vec![l]).collect(),
-                    keep_next: true,
-                    splittable: false,
-                    speaker: None,
-                });
-                i += 1;
-            }
-            Elem::Character => {
-                let end = speech_end(paras, i);
-                let pair_end = if end < paras.len() && paras[end].t == Elem::Character && paras[end].dual {
-                    Some(speech_end(paras, end))
-                } else {
-                    None
-                };
-                let name = cue_name(&p.text());
-                let has_cont = p.text().to_uppercase().contains("CONT'D");
-                let auto_cont = s.conts && !has_cont && last_speaker.as_deref() == Some(name.as_str());
-
-                if let Some(pe) = pair_end {
-                    // dual dialogue: two columns, never split
-                    let left = dual_column(paras, i, end, s, false, auto_cont);
-                    let right_name = cue_name(&paras[end].text());
-                    let right = dual_column(paras, end, pe, s, true, false);
-                    let rows = left.len().max(right.len());
-                    let mut out = Vec::new();
-                    for r in 0..rows {
-                        let mut row = Vec::new();
-                        if let Some(l) = left.get(r) {
-                            row.push(l.clone());
-                        }
-                        if let Some(l) = right.get(r) {
-                            row.push(l.clone());
-                        }
-                        out.push(row);
-                    }
-                    blocks.push(Block {
-                        para: i,
-                        t: Elem::Character,
-                        before: 1,
-                        rows: out,
-                        keep_next: false,
-                        splittable: false,
-                        speaker: None,
-                    });
-                    last_speaker = Some(right_name);
-                    i = pe;
-                    continue;
-                }
-
-                let cue = para_block_lines(p, i, s, auto_cont, None, None);
-                blocks.push(Block {
-                    para: i,
-                    t: Elem::Character,
-                    before: 1,
-                    rows: cue.into_iter().map(|l| vec![l]).collect(),
-                    keep_next: end > i + 1,
-                    splittable: false,
-                    speaker: None,
-                });
-                let speaker_cue = {
-                    let t = p.text().trim().to_uppercase();
-                    if t.contains("CONT'D") { t } else { format!("{t} (CONT'D)") }
-                };
-                for j in i + 1..end {
-                    let q = &paras[j];
-                    if !q.t.printable() {
-                        continue;
-                    }
-                    let lines = para_block_lines(q, j, s, false, None, None);
-                    let next_is_speech = (j + 1..end).any(|k| paras[k].t.printable());
-                    blocks.push(Block {
-                        para: j,
-                        t: q.t,
-                        before: 0,
-                        rows: lines.into_iter().map(|l| vec![l]).collect(),
-                        keep_next: q.t == Elem::Paren && next_is_speech,
-                        splittable: q.t != Elem::Paren,
-                        speaker: Some(speaker_cue.clone()),
-                    });
-                }
-                last_speaker = Some(name);
-                i = end;
-            }
-            _ => {
-                let g = geometry(p.t, s);
-                let lines = para_block_lines(p, i, s, false, None, None);
-                blocks.push(Block {
-                    para: i,
-                    t: p.t,
-                    before: g.before,
-                    rows: lines.into_iter().map(|l| vec![l]).collect(),
-                    keep_next: p.t == Elem::Shot,
-                    splittable: matches!(p.t, Elem::Action | Elem::General | Elem::Dialogue | Elem::Lyric),
-                    speaker: None,
-                });
-                i += 1;
-            }
-        }
-    }
-
-    // ---- paginate
-    let max = lines_per_page;
+/// Lay blocks out on pages: keep-with-next, splitting action and dialogue with (MORE)/(CONT'D).
+/// `lead` rows open the first page. Returns pages of (row, lines).
+fn paginate(
+    mut blocks: Vec<Block>,
+    max: usize,
+    s: &Settings,
+    lead: Vec<Vec<BLine>>,
+) -> Vec<Vec<(usize, Vec<BLine>)>> {
     let mut pages: Vec<Vec<(usize, Vec<BLine>)>> = vec![Vec::new()]; // (row, row-lines)
     let mut used = 0usize;
+    // lines that must open the first page (a CONT'D cue when a locked page starts mid-speech)
+    for row in lead {
+        pages[0].push((used, row));
+        used += 1;
+    }
     let mut page_first_block: Vec<Vec<usize>> = vec![Vec::new()]; // blocks starting on each page (for carry)
-    // Track for each page the block index → rows placed, to allow carrying a keep-with-next block.
+                                                                  // Track for each page the block index → rows placed, to allow carrying a keep-with-next block.
     let mut placed_rows: Vec<Vec<(usize, usize, usize)>> = vec![Vec::new()]; // (block, first row idx in page vec, count)
 
     let mut bi = 0;
@@ -532,7 +535,11 @@ pub fn layout(project: &Project) -> Layout {
             while k < blocks.len() && chain < 4 {
                 let nb = &blocks[k];
                 let nbefore = nb.before;
-                let take = if nb.splittable { nb.rows.len().min(2) } else { nb.rows.len() };
+                let take = if nb.splittable {
+                    nb.rows.len().min(2)
+                } else {
+                    nb.rows.len()
+                };
                 follow += nbefore + take;
                 if !nb.keep_next {
                     break;
@@ -553,7 +560,10 @@ pub fn layout(project: &Project) -> Layout {
                 pages.last_mut().unwrap().push((used, r.clone()));
                 used += 1;
             }
-            placed_rows.last_mut().unwrap().push((bi, start, b.rows.len()));
+            placed_rows
+                .last_mut()
+                .unwrap()
+                .push((bi, start, b.rows.len()));
             page_first_block.last_mut().unwrap().push(bi);
             bi += 1;
             continue;
@@ -589,7 +599,14 @@ pub fn layout(project: &Project) -> Layout {
                 if is_dialogue && s.mores {
                     pages.last_mut().unwrap().push((
                         used,
-                        vec![BLine { col: 37, runs: plain("(MORE)"), para: -1, star: false, scene_no: None, sentence_end: false }],
+                        vec![BLine {
+                            col: 37,
+                            runs: plain("(MORE)"),
+                            para: -1,
+                            star: false,
+                            scene_no: None,
+                            sentence_end: false,
+                        }],
                     ));
                 }
                 // new page with remainder
@@ -601,7 +618,14 @@ pub fn layout(project: &Project) -> Layout {
                     if let Some(sp) = &b.speaker {
                         pages.last_mut().unwrap().push((
                             0,
-                            vec![BLine { col: 37, runs: plain(sp), para: -1, star: false, scene_no: None, sentence_end: false }],
+                            vec![BLine {
+                                col: 37,
+                                runs: plain(sp),
+                                para: -1,
+                                star: false,
+                                scene_no: None,
+                                sentence_end: false,
+                            }],
                         ));
                         used = 1;
                     }
@@ -652,24 +676,404 @@ pub fn layout(project: &Project) -> Layout {
         page_first_block.push(Vec::new());
         used = 0;
     }
-
-    // drop trailing empty page
+    // drop trailing empty pages
     while pages.len() > 1 && pages.last().unwrap().is_empty() {
         pages.pop();
     }
+    pages
+}
+
+/// Pagination with locked pages. Each locked page begins where it was locked (a paragraph and one
+/// of its lines) and keeps its number; text that no longer fits flows onto A pages (12A, 12B),
+/// a page that gets shorter keeps its gap, and a locked page whose text is all gone folds into
+/// the page before it as a range ("12-13"). Text added before the first locked page goes on A1, B1.
+fn paginate_locked(
+    mut blocks: Vec<Block>,
+    paras: &[Para],
+    max: usize,
+    s: &Settings,
+) -> (Vec<Vec<(usize, Vec<BLine>)>>, Vec<String>) {
+    let locked: HashSet<String> = s.locked_pages.iter().cloned().collect();
+    // where each locked page starts, in document order
+    let mut anchors: Vec<(usize, u32, String)> = Vec::new();
+    for (i, p) in paras.iter().enumerate() {
+        if let Some(m) = &p.meta {
+            for lk in &m.lock {
+                if locked.contains(&lk.p) {
+                    anchors.push((i, lk.l, lk.p.clone()));
+                }
+            }
+        }
+    }
+    anchors.sort_by(|a, b| (a.0, a.1).cmp(&(b.0, b.1)));
+    // locked pages whose starting paragraph was deleted fold into the page before them
+    let present: HashSet<&String> = anchors.iter().map(|a| &a.2).collect();
+    let missing: Vec<String> = s
+        .locked_pages
+        .iter()
+        .filter(|l| !present.contains(l))
+        .cloned()
+        .collect();
+
+    // cut points: (block index, first row of the new page) for each anchor
+    let mut cuts: Vec<(usize, usize, String)> = Vec::new();
+    for (para, line, label) in &anchors {
+        let b = match blocks.iter().rposition(|b| b.para <= *para) {
+            Some(b) => b,
+            None => 0,
+        };
+        let (bi, row) = if blocks.is_empty() {
+            (0, 0)
+        } else if blocks[b].para < *para {
+            (b, 0) // inside a block that can't split (dual dialogue, omitted scene): start with it
+        } else if (*line as usize) < blocks[b].rows.len() {
+            (b, *line as usize)
+        } else {
+            (b + 1, 0)
+        };
+        cuts.push((bi, row, label.clone()));
+    }
+
+    // split the block list into segments at the cut points
+    struct Seg {
+        label: Option<String>,
+        blocks: Vec<Block>,
+        lead: Vec<Vec<BLine>>,
+    }
+    let mut segs: Vec<Seg> = Vec::new();
+    let mut cur = Seg {
+        label: None,
+        blocks: Vec::new(),
+        lead: Vec::new(),
+    };
+    let mut ci = 0;
+    let mut bi = 0;
+    let more = || {
+        vec![BLine {
+            col: 37,
+            runs: plain("(MORE)"),
+            para: -1,
+            star: false,
+            scene_no: None,
+            sentence_end: false,
+        }]
+    };
+    while bi <= blocks.len() {
+        // start every segment that begins at this block
+        while ci < cuts.len() && cuts[ci].0 == bi {
+            let row = cuts[ci].1;
+            let mut lead = Vec::new();
+            if bi < blocks.len() {
+                if row > 0 {
+                    // the block splits here: its first rows stay on the page before
+                    let mut head = blocks[bi].clone();
+                    head.rows.truncate(row);
+                    head.keep_next = false;
+                    cur.blocks.push(head);
+                    let rest = blocks[bi].rows[row..].to_vec();
+                    blocks[bi].rows = rest;
+                    blocks[bi].before = 0;
+                }
+                // a locked page that starts in the middle of a speech: (MORE) and (CONT'D)
+                if let Some(sp) = blocks[bi].speaker.clone() {
+                    if s.mores && !cur.blocks.is_empty() {
+                        let mut m = cur.blocks.last().unwrap().clone();
+                        m.rows = vec![more()];
+                        m.before = 0;
+                        m.splittable = false;
+                        m.keep_next = false;
+                        cur.blocks.push(m);
+                        lead.push(vec![BLine {
+                            col: 37,
+                            runs: plain(&sp),
+                            para: -1,
+                            star: false,
+                            scene_no: None,
+                            sentence_end: false,
+                        }]);
+                    }
+                }
+            }
+            segs.push(std::mem::replace(
+                &mut cur,
+                Seg {
+                    label: Some(cuts[ci].2.clone()),
+                    blocks: Vec::new(),
+                    lead,
+                },
+            ));
+            ci += 1;
+        }
+        if bi == blocks.len() {
+            break;
+        }
+        let mut b = blocks[bi].clone();
+        if cur.blocks.is_empty() && cur.lead.is_empty() {
+            b.before = 0;
+        }
+        cur.blocks.push(b);
+        bi += 1;
+    }
+    segs.push(cur);
+
+    // lay out each segment and number its pages
+    let mut taken: HashSet<String> = locked.clone();
+    let first_locked = anchors
+        .first()
+        .map(|a| a.2.clone())
+        .unwrap_or_else(|| "1".into());
+    let mut pages: Vec<Vec<(usize, Vec<BLine>)>> = Vec::new();
+    let mut labels: Vec<String> = Vec::new();
+    for seg in segs {
+        let has_text = seg.blocks.iter().any(|b| !b.rows.is_empty());
+        if !has_text {
+            // an emptied locked page: its number joins the page before ("12-13")
+            if let (Some(l), Some(prev)) = (&seg.label, labels.last_mut()) {
+                let start = prev.split('-').next().unwrap_or(prev).to_string();
+                *prev = format!("{start}-{l}");
+            }
+            continue;
+        }
+        let blocks: Vec<Block> = seg
+            .blocks
+            .into_iter()
+            .filter(|b| !b.rows.is_empty())
+            .collect();
+        let got = paginate(blocks, max, s, seg.lead);
+        for (k, pg) in got.into_iter().enumerate() {
+            let label = match (&seg.label, k) {
+                (Some(l), 0) => l.clone(),
+                (Some(_), _) => next_insert_label(labels.last().unwrap(), &taken),
+                (None, _) => format!("{}{}", letters(k as u32 + 1), first_locked),
+            };
+            taken.insert(label.clone());
+            labels.push(label);
+            pages.push(pg);
+        }
+    }
+    // pages whose start was deleted along with their text
+    for l in missing {
+        if let Some(pos) = s.locked_pages.iter().position(|x| *x == l) {
+            // fold into the nearest earlier page that is still there
+            let earlier: Vec<&String> = s.locked_pages[..pos].iter().rev().collect();
+            if let Some(idx) = earlier.iter().find_map(|e| {
+                labels
+                    .iter()
+                    .position(|x| x == *e || x.split('-').next() == Some(e.as_str()))
+            }) {
+                let start = labels[idx].split('-').next().unwrap_or("").to_string();
+                labels[idx] = format!("{start}-{l}");
+            }
+        }
+    }
+    if pages.is_empty() {
+        pages.push(Vec::new());
+        labels.push(first_locked);
+    }
+    (pages, labels)
+}
+
+pub fn layout(project: &Project) -> Layout {
+    let s = &project.settings;
+    let paras = &project.paras;
+    let lines_per_page = if s.page_size == "a4" {
+        A4_LINES
+    } else {
+        LETTER_LINES
+    };
+
+    // ---- scene numbers
+    let scene_nums = scene_numbers_for(project);
+
+    // ---- build blocks
+    let mut blocks: Vec<Block> = Vec::new();
+    let mut last_speaker: Option<String> = None;
+    let mut i = 0;
+    while i < paras.len() {
+        let p = &paras[i];
+        if !p.t.printable() {
+            i += 1;
+            continue;
+        }
+        if p.meta.as_ref().map(|m| m.omitted).unwrap_or(false) && p.t == Elem::Scene {
+            // Omitted scene: print "OMITTED" heading, skip until next scene heading.
+            let num = if s.scene_numbers {
+                scene_nums[i].clone()
+            } else {
+                None
+            };
+            blocks.push(Block {
+                para: i,
+                t: Elem::Scene,
+                before: geometry(Elem::Scene, s).before,
+                rows: vec![vec![BLine {
+                    col: COL_LEFT,
+                    runs: plain("OMITTED"),
+                    para: i as i32,
+                    star: p.rev > 0,
+                    scene_no: num,
+                    sentence_end: false,
+                }]],
+                keep_next: false,
+                splittable: false,
+                speaker: None,
+            });
+            i += 1;
+            while i < paras.len() && paras[i].t != Elem::Scene && paras[i].t != Elem::Section {
+                i += 1;
+            }
+            continue;
+        }
+        match p.t {
+            Elem::Scene => {
+                last_speaker = None;
+                let num = if s.scene_numbers {
+                    scene_nums[i].clone()
+                } else {
+                    None
+                };
+                let lines = para_block_lines(p, i, s, false, num, None);
+                blocks.push(Block {
+                    para: i,
+                    t: p.t,
+                    before: geometry(p.t, s).before,
+                    rows: lines.into_iter().map(|l| vec![l]).collect(),
+                    keep_next: true,
+                    splittable: false,
+                    speaker: None,
+                });
+                i += 1;
+            }
+            Elem::Character => {
+                let end = speech_end(paras, i);
+                let pair_end =
+                    if end < paras.len() && paras[end].t == Elem::Character && paras[end].dual {
+                        Some(speech_end(paras, end))
+                    } else {
+                        None
+                    };
+                let name = cue_name(&p.text());
+                let has_cont = p.text().to_uppercase().contains("CONT'D");
+                let auto_cont =
+                    s.conts && !has_cont && last_speaker.as_deref() == Some(name.as_str());
+
+                if let Some(pe) = pair_end {
+                    // dual dialogue: two columns, never split
+                    let left = dual_column(paras, i, end, s, false, auto_cont);
+                    let right_name = cue_name(&paras[end].text());
+                    let right = dual_column(paras, end, pe, s, true, false);
+                    let rows = left.len().max(right.len());
+                    let mut out = Vec::new();
+                    for r in 0..rows {
+                        let mut row = Vec::new();
+                        if let Some(l) = left.get(r) {
+                            row.push(l.clone());
+                        }
+                        if let Some(l) = right.get(r) {
+                            row.push(l.clone());
+                        }
+                        out.push(row);
+                    }
+                    blocks.push(Block {
+                        para: i,
+                        t: Elem::Character,
+                        before: 1,
+                        rows: out,
+                        keep_next: false,
+                        splittable: false,
+                        speaker: None,
+                    });
+                    last_speaker = Some(right_name);
+                    i = pe;
+                    continue;
+                }
+
+                let cue = para_block_lines(p, i, s, auto_cont, None, None);
+                blocks.push(Block {
+                    para: i,
+                    t: Elem::Character,
+                    before: 1,
+                    rows: cue.into_iter().map(|l| vec![l]).collect(),
+                    keep_next: end > i + 1,
+                    splittable: false,
+                    speaker: None,
+                });
+                let speaker_cue = {
+                    let t = p.text().trim().to_uppercase();
+                    if t.contains("CONT'D") {
+                        t
+                    } else {
+                        format!("{t} (CONT'D)")
+                    }
+                };
+                for j in i + 1..end {
+                    let q = &paras[j];
+                    if !q.t.printable() {
+                        continue;
+                    }
+                    let lines = para_block_lines(q, j, s, false, None, None);
+                    let next_is_speech = (j + 1..end).any(|k| paras[k].t.printable());
+                    blocks.push(Block {
+                        para: j,
+                        t: q.t,
+                        before: 0,
+                        rows: lines.into_iter().map(|l| vec![l]).collect(),
+                        keep_next: q.t == Elem::Paren && next_is_speech,
+                        splittable: q.t != Elem::Paren,
+                        speaker: Some(speaker_cue.clone()),
+                    });
+                }
+                last_speaker = Some(name);
+                i = end;
+            }
+            _ => {
+                let g = geometry(p.t, s);
+                let lines = para_block_lines(p, i, s, false, None, None);
+                blocks.push(Block {
+                    para: i,
+                    t: p.t,
+                    before: g.before,
+                    rows: lines.into_iter().map(|l| vec![l]).collect(),
+                    keep_next: p.t == Elem::Shot,
+                    splittable: matches!(
+                        p.t,
+                        Elem::Action | Elem::General | Elem::Dialogue | Elem::Lyric
+                    ),
+                    speaker: None,
+                });
+                i += 1;
+            }
+        }
+    }
+
+    // ---- paginate (with locked pages, each locked page is laid out on its own)
+    let max = lines_per_page;
+    let (pages, labels) = if s.locked_pages.is_empty() {
+        let pages = paginate(blocks, max, s, Vec::new());
+        let labels = (1..=pages.len()).map(|n| n.to_string()).collect::<Vec<_>>();
+        (pages, labels)
+    } else {
+        paginate_locked(blocks, paras, max, s)
+    };
 
     // ---- output
     let mut out_pages = Vec::new();
     let mut para_page = vec![0u32; paras.len()];
     let mut seen = vec![false; paras.len()];
     let mut breaks = Vec::new();
+    let mut lines_of_para = vec![0u32; paras.len()];
     for (pi, pg) in pages.iter().enumerate() {
         let mut lines = Vec::new();
         let mut first_para_on_page: Option<usize> = None;
+        let mut start: Option<(i32, u32)> = None;
         for (row, rl) in pg {
             for l in rl {
                 if l.para >= 0 {
                     let p = l.para as usize;
+                    if start.is_none() {
+                        start = Some((l.para, lines_of_para[p]));
+                    }
+                    lines_of_para[p] += 1;
                     if !seen[p] {
                         seen[p] = true;
                         para_page[p] = pi as u32 + 1;
@@ -697,7 +1101,19 @@ pub fn layout(project: &Project) -> Layout {
             .map(|l| paras.get(l.para as usize).map(|p| p.rev).unwrap_or(0))
             .max()
             .unwrap_or(0);
-        out_pages.push(Page { n: pi as u32 + 1, lines, rev });
+        let (start_para, start_line) = start.unwrap_or((-1, 0));
+        let label = labels
+            .get(pi)
+            .cloned()
+            .unwrap_or_else(|| (pi + 1).to_string());
+        out_pages.push(Page {
+            n: pi as u32 + 1,
+            label,
+            start_para,
+            start_line,
+            lines,
+            rev,
+        });
     }
     // non-printing / omitted paragraphs inherit the page of the next printed paragraph
     let last_page = out_pages.len() as u32;
@@ -712,7 +1128,9 @@ pub fn layout(project: &Project) -> Layout {
 
     // ---- scene lengths in eighths
     let mut scenes = Vec::new();
-    let scene_idx: Vec<usize> = (0..paras.len()).filter(|&i| paras[i].t == Elem::Scene).collect();
+    let scene_idx: Vec<usize> = (0..paras.len())
+        .filter(|&i| paras[i].t == Elem::Scene)
+        .collect();
     // count rows per scene: walk all output lines, attribute to latest scene heading
     let mut row_counts = vec![0usize; scene_idx.len()];
     {
@@ -734,7 +1152,11 @@ pub fn layout(project: &Project) -> Layout {
                 if last_row == Some(l.row) {
                     continue; // dual-dialogue twin
                 }
-                let sc = if l.para >= 0 { ord[l.para as usize] } else { last_scene };
+                let sc = if l.para >= 0 {
+                    ord[l.para as usize]
+                } else {
+                    last_scene
+                };
                 if sc != usize::MAX {
                     // blank lines before this line belong to the scene too
                     let gap = match last_row {
@@ -759,10 +1181,23 @@ pub fn layout(project: &Project) -> Layout {
         });
     }
 
-    Layout { pages: out_pages, para_page, breaks, scenes, lines_per_page }
+    Layout {
+        pages: out_pages,
+        para_page,
+        breaks,
+        scenes,
+        lines_per_page,
+    }
 }
 
-fn dual_column(paras: &[Para], start: usize, end: usize, s: &Settings, right: bool, cont: bool) -> Vec<BLine> {
+fn dual_column(
+    paras: &[Para],
+    start: usize,
+    end: usize,
+    s: &Settings,
+    right: bool,
+    cont: bool,
+) -> Vec<BLine> {
     let (cc, pc, pw, dc, dw) = dual_geom(right);
     let mut out = Vec::new();
     for j in start..end {
@@ -771,9 +1206,27 @@ fn dual_column(paras: &[Para], start: usize, end: usize, s: &Settings, right: bo
             continue;
         }
         let g = match q.t {
-            Elem::Character => Geom { left: cc, width: (75 - cc).min(30), before: 0, align: Align::Left, hang: 0 },
-            Elem::Paren => Geom { left: pc, width: pw, before: 0, align: Align::Left, hang: 1 },
-            _ => Geom { left: dc, width: dw, before: 0, align: Align::Left, hang: 0 },
+            Elem::Character => Geom {
+                left: cc,
+                width: (75 - cc).min(30),
+                before: 0,
+                align: Align::Left,
+                hang: 0,
+            },
+            Elem::Paren => Geom {
+                left: pc,
+                width: pw,
+                before: 0,
+                align: Align::Left,
+                hang: 1,
+            },
+            _ => Geom {
+                left: dc,
+                width: dw,
+                before: 0,
+                align: Align::Left,
+                hang: 0,
+            },
         };
         out.extend(para_block_lines(q, j, s, cont && j == start, None, Some(g)));
     }
@@ -794,25 +1247,235 @@ pub fn runtime_minutes(layout: &Layout) -> u32 {
 
 #[cfg(test)]
 mod tests {
+    // ---------------------------------------------------------------- locked pages
+
+    /// A script of several pages: scenes of action paragraphs, each numbered so tests can find them.
+    fn long_script(scenes: usize) -> Project {
+        let mut p = Project::default();
+        p.paras.clear();
+        for sc in 1..=scenes {
+            p.paras.push(Para::new(Elem::Scene, &format!("INT. ROOM {sc} - DAY")));
+            for k in 1..=6 {
+                p.paras.push(Para::new(Elem::Action, &format!("Scene {sc} beat {k}. {}", "The room is quiet and still. ".repeat(5))));
+            }
+        }
+        p
+    }
+
+    /// Lock the pages as they are now (what the app does when switching to Production).
+    fn lock(p: &mut Project) {
+        let lay = layout(p);
+        for q in p.paras.iter_mut() {
+            if let Some(m) = q.meta.as_mut() {
+                m.lock.clear();
+            }
+        }
+        p.settings.locked_pages.clear();
+        for pg in &lay.pages {
+            let i = pg.start_para as usize;
+            p.paras[i].meta.get_or_insert_with(Default::default).lock.push(PageLock { p: pg.label.clone(), l: pg.start_line });
+            p.settings.locked_pages.push(pg.label.clone());
+        }
+        // scene numbers are locked too
+        let nums = scene_numbers_for(p);
+        for (i, q) in p.paras.iter_mut().enumerate() {
+            if q.t == Elem::Scene {
+                q.meta.get_or_insert_with(Default::default).num = nums[i].clone().unwrap();
+            }
+        }
+        p.settings.production = true;
+    }
+
+    fn labels(p: &Project) -> Vec<String> {
+        layout(p).pages.iter().map(|pg| pg.label.clone()).collect()
+    }
+
+    fn starts(p: &Project) -> Vec<(i32, u32)> {
+        layout(p).pages.iter().map(|pg| (pg.start_para, pg.start_line)).collect()
+    }
+
+    #[test]
+    fn locking_changes_nothing_until_you_edit() {
+        let mut p = long_script(8);
+        let before = (labels(&p), starts(&p));
+        assert!(before.0.len() >= 3, "test script should run several pages");
+        lock(&mut p);
+        assert_eq!(labels(&p), before.0);
+        assert_eq!(starts(&p), before.1);
+    }
+
+    #[test]
+    fn added_text_goes_onto_a_pages_and_later_pages_keep_their_numbers() {
+        let mut p = long_script(8);
+        lock(&mut p);
+        let n = labels(&p).len();
+        let page2_start = layout(&p).pages[1].start_para as usize;
+        // a long new paragraph near the top of page 1
+        p.paras.insert(2, Para::new(Elem::Action, &"New business added in production. ".repeat(40)));
+        let l = labels(&p);
+        assert_eq!(&l[..3], &["1".to_string(), "1A".to_string(), "2".to_string()], "{l:?}");
+        assert_eq!(l.len(), n + 1);
+        // page 2 still begins with the same paragraph (shifted by the insert)
+        let lay = layout(&p);
+        assert_eq!(lay.pages[2].start_para as usize, page2_start + 1);
+        // and the last page keeps its number
+        assert_eq!(l.last().unwrap(), &n.to_string());
+    }
+
+    #[test]
+    fn cut_text_leaves_a_gap_and_does_not_pull_the_next_page_up() {
+        let mut p = long_script(8);
+        lock(&mut p);
+        let lay = layout(&p);
+        let p2 = lay.pages[1].start_para as usize;
+        let p3 = lay.pages[2].start_para as usize;
+        let rows_before = lay.pages[1].lines.len();
+        // cut a paragraph in the middle of page 2
+        p.paras.remove(p2 + 2);
+        let lay2 = layout(&p);
+        assert_eq!(labels(&p)[..3], ["1", "2", "3"]);
+        assert!(lay2.pages[1].lines.len() < rows_before, "page 2 is shorter");
+        assert_eq!(lay2.pages[2].start_para as usize, p3 - 1, "page 3 starts where it did");
+    }
+
+    #[test]
+    fn an_emptied_page_folds_into_the_page_before_as_a_range() {
+        let mut p = long_script(8);
+        lock(&mut p);
+        let lay = layout(&p);
+        let (a, b) = (lay.pages[1].start_para as usize, lay.pages[2].start_para as usize);
+        // delete everything on page 2 (whole paragraphs from its start to page 3's start)
+        if lay.pages[2].start_line == 0 {
+            p.paras.drain(a..b);
+            let l = labels(&p);
+            assert_eq!(l[0], "1-2", "{l:?}");
+            assert_eq!(l[1], "3");
+        }
+    }
+
+    #[test]
+    fn text_added_before_the_first_page_goes_on_a1() {
+        let mut p = long_script(8);
+        lock(&mut p);
+        p.paras.insert(0, Para::new(Elem::Action, &"A cold open written in production. ".repeat(80)));
+        let l = labels(&p);
+        assert_eq!(l[0], "A1", "{l:?}");
+        assert!(l.contains(&"1".to_string()));
+    }
+
+    #[test]
+    fn relocking_keeps_a_pages_and_further_overflow_gets_new_letters() {
+        let mut p = long_script(8);
+        lock(&mut p);
+        p.paras.insert(2, Para::new(Elem::Action, &"New business added in production. ".repeat(40)));
+        // issue the revision: the A page is locked too
+        let current = labels(&p);
+        lock(&mut p);
+        assert_eq!(labels(&p), current);
+        // page 1A grows again: the new page is 1B
+        let a_start = layout(&p).pages[1].start_para as usize;
+        p.paras.insert(a_start + 1, Para::new(Elem::Action, &"Even more new material. ".repeat(160)));
+        let l = labels(&p);
+        assert_eq!(&l[..4], &["1", "1A", "1B", "2"], "{l:?}");
+    }
+
+    #[test]
+    fn a_new_scene_in_production_takes_an_a_number() {
+        let mut p = long_script(3);
+        lock(&mut p);
+        let at = p.paras.iter().position(|q| q.text() == "INT. ROOM 2 - DAY").unwrap();
+        p.paras.insert(at, Para::new(Elem::Scene, "EXT. YARD - NIGHT"));
+        p.paras.insert(0, Para::new(Elem::Scene, "EXT. SKY - DAWN"));
+        let nums: Vec<String> = scene_numbers_for(&p).into_iter().flatten().collect();
+        assert_eq!(nums, ["A1", "1", "1A", "2", "3"]);
+        // in draft mode numbering is plain
+        p.settings.production = false;
+        for q in p.paras.iter_mut() {
+            if let Some(m) = q.meta.as_mut() {
+                m.num.clear();
+            }
+        }
+        let nums: Vec<String> = scene_numbers_for(&p).into_iter().flatten().collect();
+        assert_eq!(nums, ["1", "2", "3", "4", "5"]);
+    }
+
+    #[test]
+    fn a_locked_page_that_starts_mid_speech_keeps_more_and_contd() {
+        let mut p = Project::default();
+        p.paras.clear();
+        p.paras.push(Para::new(Elem::Scene, "INT. ROOM - DAY"));
+        for _ in 0..6 {
+            p.paras.push(Para::new(Elem::Action, &"A man paces. ".repeat(6)));
+        }
+        p.paras.push(Para::new(Elem::Character, "BOB"));
+        let speech: Vec<String> = (1..40).map(|i| format!("This is sentence number {i} of a very long speech.")).collect();
+        p.paras.push(Para::new(Elem::Dialogue, &speech.join(" ")));
+        lock(&mut p);
+        let text = |pg: &Page, k: usize| pg.lines[k].runs.iter().map(|r| r.x.clone()).collect::<String>();
+        // new action on page 1 pushes the speech's first part onto 1A
+        p.paras.insert(2, Para::new(Elem::Action, &"New action. ".repeat(30)));
+        let lay = layout(&p);
+        let l: Vec<&str> = lay.pages.iter().map(|pg| pg.label.as_str()).collect();
+        assert_eq!(&l[..3], &["1", "1A", "2"], "{l:?}");
+        let p1a = &lay.pages[1];
+        assert_eq!(text(p1a, p1a.lines.len() - 1), "(MORE)");
+        assert_eq!(text(&lay.pages[2], 0), "BOB (CONT'D)");
+    }
+
+    #[test]
+    fn locked_pages_survive_save_and_open() {
+        let mut p = long_script(8);
+        lock(&mut p);
+        p.paras.insert(2, Para::new(Elem::Action, &"New business added in production. ".repeat(40)));
+        let before = labels(&p);
+        let q = crate::codec::decode(&crate::codec::encode(&p)).unwrap();
+        assert!(q.settings.production);
+        assert_eq!(q.settings.locked_pages, p.settings.locked_pages);
+        assert_eq!(labels(&q), before);
+    }
+
+    #[test]
+    fn insert_labels() {
+        let taken: HashSet<String> = ["12A".to_string()].into_iter().collect();
+        assert_eq!(next_insert_label("12", &HashSet::new()), "12A");
+        assert_eq!(next_insert_label("12A", &HashSet::new()), "12B");
+        assert_eq!(next_insert_label("12", &taken), "12AA");
+        assert_eq!(next_insert_label("12Z", &HashSet::new()), "12ZA");
+    }
+
     #[test]
     fn long_speech_breaks_with_more_and_contd() {
         // a speech longer than the rest of the page starts under its cue and breaks with (MORE)
         let mut p = Project::default();
         p.paras = vec![Para::new(Elem::Scene, "INT. ROOM - DAY")];
         for _ in 0..8 {
-            p.paras.push(Para::new(Elem::Action, &"A man paces. ".repeat(6)));
+            p.paras
+                .push(Para::new(Elem::Action, &"A man paces. ".repeat(6)));
         }
         p.paras.push(Para::new(Elem::Character, "BOB"));
         p.paras.push(Para::new(Elem::Paren, "(quietly)"));
-        let speech: Vec<String> = (1..40).map(|i| format!("This is sentence number {i} of a very long speech that keeps going.")).collect();
+        let speech: Vec<String> = (1..40)
+            .map(|i| format!("This is sentence number {i} of a very long speech that keeps going."))
+            .collect();
         p.paras.push(Para::new(Elem::Dialogue, &speech.join(" ")));
         let lay = layout(&p);
         let page1 = &lay.pages[0];
-        let text1: Vec<String> = page1.lines.iter().map(|l| l.runs.iter().map(|r| r.x.clone()).collect::<String>()).collect();
-        assert!(text1.iter().any(|t| t == "BOB"), "cue stays on page 1: {text1:?}");
+        let text1: Vec<String> = page1
+            .lines
+            .iter()
+            .map(|l| l.runs.iter().map(|r| r.x.clone()).collect::<String>())
+            .collect();
+        assert!(
+            text1.iter().any(|t| t == "BOB"),
+            "cue stays on page 1: {text1:?}"
+        );
         assert!(text1.iter().any(|t| t == "(quietly)"));
         assert_eq!(text1.last().unwrap(), "(MORE)");
-        let first2: String = lay.pages[1].lines[0].runs.iter().map(|r| r.x.clone()).collect();
+        let first2: String = lay.pages[1].lines[0]
+            .runs
+            .iter()
+            .map(|r| r.x.clone())
+            .collect();
         assert_eq!(first2, "BOB (CONT'D)");
         // every continuation page starts with the cue and carries a real share of the speech
         for pg in &lay.pages[1..] {
@@ -820,12 +1483,14 @@ mod tests {
             assert_eq!(first, "BOB (CONT'D)");
             assert!(pg.lines.len() >= 3);
         }
-
     }
     use super::*;
 
     fn proj(paras: Vec<Para>) -> Project {
-        Project { paras, ..Default::default() }
+        Project {
+            paras,
+            ..Default::default()
+        }
     }
 
     #[test]
@@ -855,7 +1520,10 @@ mod tests {
     #[test]
     fn widths_respected() {
         let long = "word ".repeat(80);
-        let p = proj(vec![Para::new(Elem::Character, "BOB"), Para::new(Elem::Dialogue, &long)]);
+        let p = proj(vec![
+            Para::new(Elem::Character, "BOB"),
+            Para::new(Elem::Dialogue, &long),
+        ]);
         let l = layout(&p);
         for line in &l.pages[0].lines[1..] {
             let len: usize = line.runs.iter().map(|r| r.x.chars().count()).sum();
@@ -927,7 +1595,11 @@ mod tests {
 
     #[test]
     fn hyphen_breaks() {
-        let w = wrap(&"aaaa bbbb-cccc".chars().map(|c| (c, 0)).collect::<Vec<_>>(), 10, 0);
+        let w = wrap(
+            &"aaaa bbbb-cccc".chars().map(|c| (c, 0)).collect::<Vec<_>>(),
+            10,
+            0,
+        );
         let lines: Vec<String> = w.iter().map(|l| l.iter().map(|c| c.0).collect()).collect();
         assert_eq!(lines, vec!["aaaa bbbb-", "cccc"]);
         let w = wrap(&"x -- y".chars().map(|c| (c, 0)).collect::<Vec<_>>(), 60, 0);
@@ -945,7 +1617,12 @@ mod tests {
             Para::new(Elem::Dialogue, "Bye."),
         ]);
         let l = layout(&p);
-        let cues: Vec<_> = l.pages[0].lines.iter().filter(|x| x.col == 37).map(|x| x.runs[0].x.clone()).collect();
+        let cues: Vec<_> = l.pages[0]
+            .lines
+            .iter()
+            .filter(|x| x.col == 37)
+            .map(|x| x.runs[0].x.clone())
+            .collect();
         assert_eq!(cues, vec!["ANN", "ANN (CONT'D)"]);
     }
 

@@ -113,9 +113,12 @@ fn save_file(app: tauri::AppHandle, path: String, project: Project) -> Result<()
 }
 
 #[tauri::command]
-fn export_file(path: String, kind: String, project: Project, watermark: String) -> Result<(), String> {
+fn export_file(path: String, kind: String, project: Project, watermark: String, only_rev: Option<u8>) -> Result<(), String> {
     let bytes = match kind.as_str() {
-        "pdf" => pdf::render_pdf(&project, &pdf::PdfOptions { title_page: project.settings.title_page, watermark, rev_pages: project.settings.rev_pages }),
+        "pdf" => pdf::render_pdf(
+            &project,
+            &pdf::PdfOptions { title_page: project.settings.title_page, watermark, rev_pages: project.settings.rev_pages, only_rev: only_rev.unwrap_or(0) },
+        ),
         // story board and/or outline, landscape
         "board" | "outline" | "board+outline" => pageone_core::board_pdf::render_board_pdf(
             &project,

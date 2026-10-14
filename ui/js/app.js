@@ -354,7 +354,10 @@ function updateStatus() {
   if (!lay || !S.project) return;
   const total = lay.pages.length;
   const page = lay.para_page[S.curPara] || 1;
-  $('#statPage').innerHTML = `Page <b>${page}</b> of <b>${total}</b>`;
+  const label = (lay.pages[page - 1] && lay.pages[page - 1].label) || String(page);
+  $('#statPage').innerHTML = S.project.settings.production
+    ? `Page <b>${esc(label)}</b> <span class="muted">(${total} pages)</span>`
+    : `Page <b>${page}</b> of <b>${total}</b>`;
   const last = lay.pages[total - 1];
   const fill = last && last.lines.length ? (last.lines[last.lines.length - 1].row + 1) / lay.lines_per_page : 0;
   const mins = Math.max(1, Math.round(total - 1 + fill));
@@ -389,6 +392,7 @@ export function applySettingsUI() {
   editor.revLevel = st.rev_level || 0;
   document.documentElement.style.setProperty('--rev-color', REVISIONS[st.rev_level || 0][1]);
   applyPrefs();
+  syncModeUI();
 }
 
 function applyPrefs() {
@@ -532,7 +536,7 @@ function omitScene() {
   toast(el._meta.omitted ? 'Scene omitted. It prints as OMITTED and keeps its number.' : 'Scene restored.');
 }
 
-function setRevision(level) {
+function setRevision(level, quiet = false) {
   const prev = S.project.settings.rev_level;
   S.project.settings.rev_level = level;
   const date = new Date().toLocaleDateString(undefined, { month: '2-digit', day: '2-digit', year: '2-digit' });
@@ -541,7 +545,117 @@ function setRevision(level) {
   markDirty();
   applySettingsUI();
   scheduleRefresh(50);
-  if (level && level !== prev) toast(`${REVISIONS[level][0]} revision: changed lines get an asterisk in the margin.`);
+  if (!quiet && level && level !== prev) toast(`${REVISIONS[level][0]} revision: changed lines get an asterisk in the margin.`);
+  syncModeUI();
+}
+
+// ------------------------------------------------------------------ draft and production
+// Draft: pages and scene numbers flow freely. Production: the script is locked the way a shooting
+// script is. Pages keep their numbers (new text goes onto A pages), scene numbers are locked (new
+// scenes get A numbers) and every change is a revision in the current colour.
+
+/** Lock every page where it starts now, keeping its current number (A pages included). */
+async function lockPagesNow() {
+  await refresh();
+  const lay = S.layout;
+  if (!lay) return;
+  const els = editor.els();
+  for (const el of els) if (el._meta && el._meta.lock) delete el._meta.lock;
+  const labels = [];
+  for (const pg of lay.pages) {
+    const el = els[pg.start_para];
+    if (!el) continue;
+    el._meta = el._meta || {};
+    el._meta.lock = [...(el._meta.lock || []), { p: pg.label, l: pg.start_line }];
+    labels.push(pg.label);
+  }
+  S.project.settings.locked_pages = labels;
+}
+
+function lockSceneNumbers() {
+  const els = editor.els();
+  for (const sc of (S.layout && S.layout.scenes) || []) {
+    const el = els[sc.para];
+    if (!el) continue;
+    el._meta = el._meta || {};
+    if (!el._meta.num) el._meta.num = sc.number;
+  }
+}
+
+async function enterProduction() {
+  const st = S.project.settings;
+  if (st.production) return;
+  const v = await dialogs.productionDialog();
+  if (!v) { syncModeUI(); return; }
+  if (v.clearMarks) for (const el of editor.els()) delete el.dataset.rev;
+  st.scene_numbers = true;
+  st.rev_pages = true;
+  st.production = false;   // number the scenes plainly first, then lock those numbers
+  await refresh();
+  lockSceneNumbers();
+  await lockPagesNow();
+  st.production = true;
+  setRevision(v.clearMarks || !st.rev_level ? 1 : st.rev_level, true);
+  markDirty();
+  await refresh();
+  syncModeUI();
+  toast(`Production: ${st.locked_pages.length} pages and the scene numbers are locked. Changes are ${REVISIONS[st.rev_level][0]} revisions.`);
+}
+
+async function leaveProduction() {
+  const st = S.project.settings;
+  if (!st.production) return;
+  const v = await dialogs.draftDialog();
+  if (!v) { syncModeUI(); return; }
+  for (const el of editor.els()) {
+    if (!el._meta) continue;
+    delete el._meta.lock;
+    if (v.renumber && el.dataset.t === 'scene') delete el._meta.num;
+  }
+  st.locked_pages = [];
+  st.production = false;
+  if (v.clearMarks) {
+    for (const el of editor.els()) delete el.dataset.rev;
+    setRevision(0, true);
+  }
+  markDirty();
+  await refresh();
+  syncModeUI();
+  toast('Draft: pages and scene numbers flow freely again.');
+}
+
+/** Send out the current revision: lock its pages (A pages too) and start the next colour. */
+async function issueRevision() {
+  const st = S.project.settings;
+  if (!st.production) return;
+  const cur = st.rev_level || 1;
+  if (cur + 1 >= REVISIONS.length) {
+    dialogs.alert('Last revision colour', `${REVISIONS[cur][0]} is the last colour in the standard order. Go back to Draft and lock again for a new full draft.`);
+    return;
+  }
+  const changed = (S.layout ? S.layout.pages : []).filter((p) => p.rev === cur).map((p) => p.label);
+  const ok = await dialogs.issueRevisionDialog(REVISIONS[cur][0], REVISIONS[cur + 1][0], changed);
+  if (ok === 'export') { dialogs.exportDialog(doExport, 'pdf', { onlyRev: cur }); return; }
+  if (!ok) return;
+  await lockPagesNow();
+  setRevision(cur + 1, true);
+  markDirty();
+  await refresh();
+  toast(`${REVISIONS[cur][0]} pages locked. New changes are ${REVISIONS[cur + 1][0]} revisions.`);
+}
+
+function setMode(mode) {
+  if (!S.project) return;
+  if (mode === 'production') enterProduction(); else leaveProduction();
+}
+
+function syncModeUI() {
+  const prod = !!(S.project && S.project.settings.production);
+  for (const b of document.querySelectorAll('#modeSwitch button')) b.setAttribute('aria-pressed', String((b.dataset.scriptMode === 'production') === prod));
+  document.body.classList.toggle('production', prod);
+  const rl = (S.project && S.project.settings.rev_level) || 0;
+  const dot = document.querySelector('#modeSwitch .dot');
+  if (dot) dot.style.background = prod && rl ? REVISIONS[rl][1] : 'transparent';
 }
 
 function clearRevisions() {
@@ -692,7 +806,8 @@ async function doExport(kind, opts = {}) {
     const p = projectNow();
     if (opts.titlePage !== undefined) p.settings = { ...p.settings, title_page: opts.titlePage };
     if (opts.sceneNumbers !== undefined) p.settings = { ...p.settings, scene_numbers: opts.sceneNumbers };
-    const name = S.project.title_page.title.split('\n')[0].trim() || S.name || 'Untitled';
+    let name = S.project.title_page.title.split('\n')[0].trim() || S.name || 'Untitled';
+    if (opts.onlyRev) name += ` - ${REVISIONS[opts.onlyRev][0]} pages`;
     const out = await api.exportAs(kind, p, name, opts);
     if (out) toast(isDesktop ? `Exported ${out.split(/[\\/]/).pop()}` : 'Export downloaded.');
   } catch (e) {
@@ -773,6 +888,10 @@ export const COMMANDS = [
   { id: 'trlive', menu: 'Script', label: 'Table Read live mode', check: () => !!S.prefs.trLive, run: () => playback.setLive(!S.prefs.trLive), when: need, hint: 'Room reverb, with the cast seated around a table' },
   { id: 'check', menu: 'Script', label: 'Script check…', keys: 'Ctrl+Shift+K', run: () => dialogs.scriptCheckDialog(), when: need, hint: 'Find formatting slips' },
   // Production
+  { id: 'production', menu: 'Production', label: 'Production mode (lock pages and scenes)', run: () => setMode(S.project.settings.production ? 'draft' : 'production'), check: () => S.project && !!S.project.settings.production, when: need, hint: 'Lock page and scene numbers; changes become revisions' },
+  { id: 'issue', menu: 'Production', label: 'Lock revised pages, start next colour…', run: issueRevision, when: () => S.project && !!S.project.settings.production, hint: 'Send out this revision and start the next colour' },
+  { id: 'revexport', menu: 'Production', label: 'Export revised pages (PDF)…', run: () => dialogs.exportDialog(doExport, 'pdf', { onlyRev: S.project.settings.rev_level || 0 }), when: () => S.project && (S.project.settings.rev_level || 0) > 0 },
+  { sep: true, menu: 'Production' },
   { id: 'scenenums', menu: 'Production', label: 'Scene numbers', run: () => setSetting('scene_numbers', !S.project.settings.scene_numbers), check: () => S.project && S.project.settings.scene_numbers, when: need },
   { id: 'omit', menu: 'Production', label: 'Omit current scene', run: omitScene, when: need },
   { sep: true, menu: 'Production' },
@@ -918,6 +1037,7 @@ function wire() {
     editor.showElementPicker(editor.current);
   });
   $('#revChip').addEventListener('click', () => dialogs.palette(COMMANDS, 'revision'));
+  for (const b of document.querySelectorAll('#modeSwitch button')) b.addEventListener('click', () => setMode(b.dataset.scriptMode));
   $('#projNotes').addEventListener('input', (e) => { S.project.notes = e.target.value; markDirty(); });
 
   $('#findInput').addEventListener('input', () => { find.idx = -1; runFind(false); });

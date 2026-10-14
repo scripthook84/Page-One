@@ -31,7 +31,10 @@ impl Elem {
         !matches!(self, Elem::Section | Elem::Note)
     }
     pub fn uppercase(self) -> bool {
-        matches!(self, Elem::Scene | Elem::Character | Elem::Transition | Elem::Shot)
+        matches!(
+            self,
+            Elem::Scene | Elem::Character | Elem::Transition | Elem::Shot
+        )
     }
     pub fn label(self) -> &'static str {
         match self {
@@ -98,6 +101,18 @@ pub struct SceneMeta {
     /// Columns an act label spans on the story board: [first column, width].
     #[serde(skip_serializing_if = "Option::is_none")]
     pub band: Option<[u32; 2]>,
+    /// Locked pages that start in this paragraph (see `Settings::locked_pages`).
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub lock: Vec<PageLock>,
+}
+
+/// Where a locked page begins: this paragraph, from its `l`-th printed line. The page keeps its
+/// number `p` ("12", "12A") however the text before or after it changes.
+#[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq)]
+#[serde(default)]
+pub struct PageLock {
+    pub p: String,
+    pub l: u32,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq)]
@@ -120,7 +135,14 @@ pub struct Para {
 
 impl Para {
     pub fn new(t: Elem, text: &str) -> Self {
-        Para { t, runs: vec![Run { x: text.to_string(), s: 0 }], ..Default::default() }
+        Para {
+            t,
+            runs: vec![Run {
+                x: text.to_string(),
+                s: 0,
+            }],
+            ..Default::default()
+        }
     }
     pub fn text(&self) -> String {
         self.runs.iter().map(|r| r.x.as_str()).collect()
@@ -171,6 +193,13 @@ pub struct Settings {
     pub read_transitions: bool,
     /// Playback speed, 0.7–1.5.
     pub read_speed: f32,
+    /// Production mode: scene numbers and pages are locked, and changes are revisions.
+    #[serde(skip_serializing_if = "is_false")]
+    pub production: bool,
+    /// Production page locking: every locked page number, in order ("1", "2", "2A", "3"…).
+    /// Empty when pages aren't locked. Each one's starting point is a `PageLock` on a paragraph.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub locked_pages: Vec<String>,
 }
 
 impl Default for Settings {
@@ -195,6 +224,8 @@ impl Default for Settings {
             read_parens: false,
             read_transitions: true,
             read_speed: 1.0,
+            production: false,
+            locked_pages: Vec::new(),
         }
     }
 }
@@ -231,7 +262,10 @@ impl Default for Project {
     fn default() -> Self {
         Project {
             version: 1,
-            title_page: TitlePage { credit: "Written by".into(), ..Default::default() },
+            title_page: TitlePage {
+                credit: "Written by".into(),
+                ..Default::default()
+            },
             paras: vec![Para::new(Elem::Scene, "")],
             settings: Settings::default(),
             notes: String::new(),

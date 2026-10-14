@@ -26,7 +26,9 @@ Project {
     header: string, title_page: bool, target_pages: int,
     board_mode: string (unused), board_span: int (cards per row), board_snap: bool (unused),
     narrator_voice: string, read_headings: bool, read_parens: bool, read_transitions: bool,
-    read_speed: float (table read)
+    read_speed: float (table read),
+    production: bool (Production mode; omitted when false),
+    locked_pages: [ string ]   // locked page numbers in order ("1", "2", "2A", "3"…); omitted when empty
   },
   notes: string,
   characters: [ { name, color, bio, voice } ],   // voice: built-in voice id ("" or absent = automatic)
@@ -42,7 +44,9 @@ Para {
   dual: bool      // on a character: printed beside the previous speech (omitted when false)
   rev: 0..8       // revision colour that last changed this paragraph (omitted when 0)
   lvl: 1..3       // section depth: act, sequence, beat (omitted when 0)
-  meta: { color, synopsis, notes, num, omitted, cell, band }   // scene headings and sections (optional)
+  meta: { color, synopsis, notes, num, omitted, cell, band, lock }   // optional
+                  // lock = [ { p: page number, l: line } ]: locked pages that begin in this
+                  //   paragraph, at its l-th printed line (any element; see settings.locked_pages)
                   // cell = [column, row] of a scene card on the story board (cards flow in story
                   //   order through their act's lane, so this is informational)
                   // band = [first column, width] of an act label on the story board

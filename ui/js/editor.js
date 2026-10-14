@@ -1089,7 +1089,9 @@ export class Editor {
     for (const el of this.root.querySelectorAll('.pb')) { el.classList.remove('pb'); delete el.dataset.pn; }
     lay.breaks.forEach((pi, k) => {
       const el = els[pi];
-      if (el) { el.classList.add('pb'); el.dataset.pn = `${k + 2}.`; }
+      // the printed number: "12", or with locked pages "12A" or "12-13"
+      const pg = lay.pages[k + 1];
+      if (el) { el.classList.add('pb'); el.dataset.pn = `${(pg && pg.label) || k + 2}.`; }
     });
     for (const s of lay.scenes) {
       const el = els[s.para];

@@ -41,6 +41,7 @@ export function emptyProject() {
       page_size: 'letter', rev_level: 0, header: '', title_page: true, target_pages: 110,
       board_mode: 'rows', board_snap: true, board_span: 5,
       narrator_voice: 'narrator', read_headings: true, read_parens: false, read_transitions: true, read_speed: 1,
+      production: false, locked_pages: [],
     },
     notes: '', characters: [], smart: [], color_labels: {}, created: 0, modified: 0,
   };

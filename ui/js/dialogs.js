@@ -2,7 +2,7 @@
 
 import { S, eighths, projectNow } from './state.js';
 import { esc, textOf } from './editor.js';
-import { ELEMS, cueName, sceneParts, SCENE_COLORS, colorLabel, keyText } from './elements.js';
+import { ELEMS, cueName, sceneParts, SCENE_COLORS, colorLabel, keyText, REVISIONS } from './elements.js';
 import { checkScript } from './check.js';
 import * as engine from './voice/engine.js';
 import * as playback from './playback.js';
@@ -175,8 +175,11 @@ document.addEventListener('input', (e) => {
 
 // ------------------------------------------------------------------ export
 
-export async function exportDialog(doExport, preset = 'pdf') {
+export async function exportDialog(doExport, preset = 'pdf', pre = {}) {
   const st = S.project.settings;
+  const rl = st.rev_level || 0;
+  const revName = rl ? REVISIONS[rl][0] : '';
+  const changed = rl && S.layout ? S.layout.pages.filter((p) => p.rev === rl).map((p) => p.label) : [];
   const body = `<div class="radios">
       <label><input type="radio" name="fmt" value="pdf"><span>PDF<small>Print-ready, industry format</small></span></label>
       <label><input type="radio" name="fmt" value="fdx"><span>Final Draft<small>.fdx for Final Draft, Fade In, WriterDuet</small></span></label>
@@ -191,6 +194,7 @@ export async function exportDialog(doExport, preset = 'pdf') {
     <div class="opts" id="pdfOpts">
       <label class="chk"><input type="checkbox" id="xTitle" ${st.title_page ? 'checked' : ''}> Include title page</label>
       <label class="chk"><input type="checkbox" id="xNums" ${st.scene_numbers ? 'checked' : ''}> Scene numbers</label>
+      <label class="chk" ${rl ? '' : 'hidden'}><input type="checkbox" id="xOnly" ${pre.onlyRev ? 'checked' : ''}> Only the pages changed in the ${esc(revName)} revision${changed.length ? ` (${changed.length}: ${esc(changed.slice(0, 12).join(', '))}${changed.length > 12 ? '…' : ''})` : ' (none yet)'}</label>
       <label class="field"><span>Watermark (optional)</span><input type="text" id="xWm" placeholder="e.g. DRAFT, or the reader’s name"></label>
     </div>`;
   let opts = {};
@@ -208,6 +212,7 @@ export async function exportDialog(doExport, preset = 'pdf') {
         titlePage: b.querySelector('#xTitle').checked,
         sceneNumbers: b.querySelector('#xNums').checked,
         watermark: b.querySelector('#xWm').value.trim(),
+        onlyRev: kind === 'pdf' && rl && b.querySelector('#xOnly').checked ? rl : 0,
       };
       return true;
     } }],
@@ -217,6 +222,7 @@ export async function exportDialog(doExport, preset = 'pdf') {
         const f = b.querySelector('input[name="fmt"]:checked').value;
         b.querySelector('#pdfOpts').hidden = !['pdf', 'text'].includes(f);
         b.querySelector('#xWm').parentElement.hidden = f !== 'pdf';
+        b.querySelector('#xOnly').parentElement.hidden = f !== 'pdf' || !rl;
         b.querySelector('#boardOpts').hidden = f !== 'board';
       };
       b.addEventListener('change', sync);
@@ -224,6 +230,54 @@ export async function exportDialog(doExport, preset = 'pdf') {
     },
   });
   if (v === 'ok') doExport(opts.kind, opts);
+}
+
+// ------------------------------------------------------------------ draft and production
+
+export async function productionDialog() {
+  const st = S.project.settings;
+  const marks = [...S.editor.els()].some((el) => +el.dataset.rev);
+  const pages = S.layout ? S.layout.pages.length : 0;
+  let out = null;
+  const v = await modal({
+    title: 'Switch to Production',
+    body: `<p style="margin:0 0 10px">Lock the script as it is now, the way a shooting script is locked.</p>
+      <ul class="explain">
+        <li><b>Pages are locked.</b> Each of the ${pages} pages keeps its number. Text that no longer fits goes onto an A page (12A, 12B), and the pages after it don't move. A page you shorten keeps the gap.</li>
+        <li><b>Scene numbers are locked</b> and shown. A new scene gets an A number (12A).</li>
+        <li><b>Every change is a revision.</b> Changed lines get an asterisk, and changed pages show in the revision colour, starting with ${REVISIONS[1][0]}.</li>
+      </ul>
+      <label class="chk" ${marks ? '' : 'hidden'}><input type="checkbox" id="pClear" checked> Clear the revision marks already in the script, so it starts as a clean white draft</label>
+      <p class="hint" style="margin:10px 0 0">You can switch back to Draft at any time; that unlocks and renumbers everything.</p>`,
+    buttons: [{ label: 'Cancel', value: null }, { label: 'Switch to Production', value: 'ok', primary: true, validate: (b) => { out = { clearMarks: marks ? b.querySelector('#pClear').checked : true }; return true; } }],
+  });
+  return v === 'ok' ? out : null;
+}
+
+export async function draftDialog() {
+  let out = null;
+  const v = await modal({
+    title: 'Back to Draft',
+    body: `<p style="margin:0 0 10px">Unlock the pages so the script flows and renumbers 1, 2, 3… again. Use this for a new full draft; while you're shooting, stay in Production so page numbers don't change.</p>
+      <label class="chk"><input type="checkbox" id="dRenum" checked> Renumber the scenes too (1, 2, 3…, no A numbers)</label>
+      <label class="chk"><input type="checkbox" id="dClear" checked> Clear revision marks and turn revisions off</label>`,
+    buttons: [{ label: 'Stay in Production', value: null }, { label: 'Back to Draft', value: 'ok', primary: true, validate: (b) => { out = { renumber: b.querySelector('#dRenum').checked, clearMarks: b.querySelector('#dClear').checked }; return true; } }],
+  });
+  return v === 'ok' ? out : null;
+}
+
+export async function issueRevisionDialog(cur, next, changed) {
+  return modal({
+    title: `Lock ${cur} pages, start ${next}`,
+    body: `<p style="margin:0 0 10px">Do this when you send out the ${esc(cur)} pages.</p>
+      <ul class="explain">
+        <li>${changed.length ? `${changed.length} page${changed.length === 1 ? '' : 's'} changed in ${esc(cur)}: <b>${esc(changed.join(', '))}</b>.` : `No pages have changed in ${esc(cur)} yet.`}</li>
+        <li>Every page is locked as it is now, A pages included, so the pages you send out keep their numbers.</li>
+        <li>From now on, changes are marked as the <b>${esc(next)}</b> revision, dated today.</li>
+      </ul>
+      <p class="hint" style="margin:10px 0 0">Export the ${esc(cur)} pages first if you haven't yet.</p>`,
+    buttons: [{ label: 'Cancel', value: null }, { label: `Export ${cur} pages…`, value: 'export' }, { label: `Start ${next} revision`, value: 'ok', primary: true }],
+  });
 }
 
 // ------------------------------------------------------------------ acts / sequences / beats

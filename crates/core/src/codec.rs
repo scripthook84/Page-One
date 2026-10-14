@@ -97,7 +97,9 @@ pub fn save_to_path(project: &Project, path: &std::path::Path) -> std::io::Resul
     let dir = path.parent().unwrap_or_else(|| std::path::Path::new("."));
     let tmp = dir.join(format!(
         ".{}.tmp",
-        path.file_name().and_then(|n| n.to_str()).unwrap_or("script")
+        path.file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("script")
     ));
     {
         let mut f = std::fs::File::create(&tmp)?;
@@ -135,21 +137,36 @@ mod tests {
     fn roundtrip_and_smaller_than_json() {
         let mut p = Project::default();
         for i in 0..400 {
-            p.paras.push(Para::new(Elem::Scene, &format!("INT. HOUSE {i} - DAY")));
-            p.paras.push(Para::new(Elem::Action, "Rain hammers the window. MAYA stares at the phone."));
+            p.paras
+                .push(Para::new(Elem::Scene, &format!("INT. HOUSE {i} - DAY")));
+            p.paras.push(Para::new(
+                Elem::Action,
+                "Rain hammers the window. MAYA stares at the phone.",
+            ));
             p.paras.push(Para::new(Elem::Character, "MAYA"));
-            p.paras.push(Para::new(Elem::Dialogue, "Pick up. Pick up, pick up, pick up."));
+            p.paras.push(Para::new(
+                Elem::Dialogue,
+                "Pick up. Pick up, pick up, pick up.",
+            ));
         }
         let bin = encode(&p);
         let json = serde_json::to_vec(&p).unwrap();
-        assert!(bin.len() * 4 < json.len(), "bin {} json {}", bin.len(), json.len());
+        assert!(
+            bin.len() * 4 < json.len(),
+            "bin {} json {}",
+            bin.len(),
+            json.len()
+        );
         assert_eq!(decode(&bin).unwrap(), p);
         assert!(std::str::from_utf8(&bin).is_err());
     }
 
     #[test]
     fn rejects_garbage_and_damage() {
-        assert!(matches!(decode(b"{\"json\":true}"), Err(CodecError::NotPageOne)));
+        assert!(matches!(
+            decode(b"{\"json\":true}"),
+            Err(CodecError::NotPageOne)
+        ));
         let mut bin = encode(&Project::default());
         let n = bin.len();
         bin[n - 2] ^= 0xff;

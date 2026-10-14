@@ -1,14 +1,14 @@
 //! Page One core: everything that is not UI.
 
+pub mod board_pdf;
 pub mod codec;
 pub mod fdx;
 pub mod fountain;
 pub mod layout;
 pub mod model;
-pub mod board_pdf;
-pub mod xlsx;
 pub mod pdf;
 pub mod text;
+pub mod xlsx;
 
 pub use model::Project;
 
@@ -19,7 +19,9 @@ pub fn import_any(path_or_name: &str, bytes: &[u8]) -> Result<Project, String> {
         return codec::decode(bytes).map_err(|e| e.to_string());
     }
     let text = String::from_utf8_lossy(bytes);
-    if lower.ends_with(".fdx") || text.trim_start().starts_with("<?xml") && text.contains("<FinalDraft") {
+    if lower.ends_with(".fdx")
+        || text.trim_start().starts_with("<?xml") && text.contains("<FinalDraft")
+    {
         return fdx::import(&text);
     }
     // .fountain, .spmd, .txt — Fountain is a superset of plain screenplay text
