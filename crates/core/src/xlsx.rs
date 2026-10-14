@@ -138,6 +138,31 @@ fn col_letter(mut c: u16) -> String {
     s.iter().rev().collect()
 }
 
+/// About how many lines a text wraps to in a column of `width` characters (10 pt text).
+fn wrapped_lines(text: &str, width: f64) -> usize {
+    let per = (width * 1.05).max(4.0) as usize;
+    text.split('\n')
+        .map(|para| {
+            let (mut lines, mut len) = (1usize, 0usize);
+            for word in para.split_whitespace() {
+                let w = word.chars().count();
+                if len > 0 && len + 1 + w > per {
+                    lines += 1;
+                    len = w;
+                } else {
+                    len += if len > 0 { w + 1 } else { w };
+                }
+                while len > per {
+                    lines += 1;
+                    len -= per;
+                }
+            }
+            lines
+        })
+        .sum::<usize>()
+        .max(1)
+}
+
 fn write_value(ws: &mut Worksheet, r: u32, c: u16, v: &Value, kind: &str, st: &Styles) -> Result<(), XlsxError> {
     let fmt = match kind {
         "wrap" => &st.wrap,
@@ -189,7 +214,8 @@ fn print_setup(ws: &mut Worksheet, book: &Workbook, sheet: &Sheet, last_col: u16
     ws.set_landscape();
     ws.set_paper_size(1); // US Letter, the screenplay standard
     ws.set_margins(0.4, 0.4, 0.6, 0.6, 0.3, 0.3);
-    ws.set_print_fit_to_pages(1, 0); // one page wide, as many tall as needed
+    // one page wide, as many tall as needed (the summary fits on one page)
+    ws.set_print_fit_to_pages(1, if sheet.kind == "summary" { 1 } else { 0 });
     if sheet.kind != "summary" {
         ws.set_repeat_rows(HEAD_ROW, HEAD_ROW)?;
         ws.set_print_area(0, 0, HEAD_ROW + sheet.rows.len() as u32 + 1, last_col)?;
@@ -221,8 +247,17 @@ fn write_table(ws: &mut Worksheet, book: &Workbook, sheet: &Sheet, st: &Styles) 
     ws.set_row_height(HEAD_ROW, if sheet.kind == "grid" { 30 } else { 28 })?;
     for (i, row) in sheet.rows.iter().enumerate() {
         let r = HEAD_ROW + 1 + i as u32;
+        let mut lines = 1usize;
         for (c, col) in sheet.columns.iter().enumerate() {
-            write_value(ws, r, c as u16, row.get(c).unwrap_or(&Value::Null), &col.kind, st)?;
+            let v = row.get(c).unwrap_or(&Value::Null);
+            write_value(ws, r, c as u16, v, &col.kind, st)?;
+            if col.kind == "wrap" {
+                lines = lines.max(wrapped_lines(v.as_str().unwrap_or(""), if col.width > 0.0 { col.width } else { 12.0 }));
+            }
+        }
+        // set the height of wrapped rows, so every spreadsheet app shows the whole text
+        if lines > 1 {
+            ws.set_row_height(r, 13.0 * lines as f64 + 2.0)?;
         }
     }
     let first = HEAD_ROW + 1;
@@ -334,6 +369,8 @@ mod tests {
         let bytes = write(&book).unwrap();
         assert_eq!(&bytes[..2], b"PK");
         assert!(bytes.len() > 4000);
+        assert_eq!(wrapped_lines("short", 20.0), 1);
+        assert_eq!(wrapped_lines(&"word ".repeat(40), 20.0), 10);
         assert_eq!(col_letter(0), "A");
         assert_eq!(col_letter(25), "Z");
         assert_eq!(col_letter(26), "AA");

@@ -81,21 +81,31 @@ Installing 1.1 over 1.0 keeps your scripts, settings and backups.
 
 ### Production reports in Excel
 
-- **File → Export reports (Excel)…** (also in Script → Reports) writes an `.xlsx` workbook:
-  - **Summary:** title, draft, revision, pages, estimated screen time, and scene counts by interior,
-    exterior, day, night, dawn/dusk and omitted.
-  - **Scene report:** the one-liner in script order: scene number, I/E, set, D/N, time as written,
-    page, length in eighths, cast ID numbers, who speaks and who is named in the action, a
-    one-line description (your synopsis, or the first action line), act, sequence and beat.
-  - **Cast list:** ID numbers (1 is the part in the most scenes), scenes, speeches, words, page
-    count, first and last scene.
+- **File → Export reports (Excel)…** (also in Script → Reports) writes an `.xlsx` workbook whose
+  fields match Final Draft's reports and the scene fields production scheduling uses:
+  - **Summary:** title, draft, revision, pages, estimated screen time, dialogue and action word
+    share, scene counts (interior, exterior, and day/night × interior/exterior, the four strip
+    colours), estimated script days, monologues, each element's count and share, and profanity,
+    like Final Draft's statistics report.
+  - **Scene report:** the one-liner in script order: scene number, I/E, set, time of day (Day,
+    Night, Morning, Evening, Dawn, Dusk), time as written, script day (D1, N1…), script pages
+    (e.g. 12-13), length in eighths, screen time, cast ID numbers, who speaks, who is named in the
+    action, synopsis (or the first action line), act, sequence, beat and scene notes.
+  - **Cast list:** ID numbers (1 is the part in the most scenes), scenes in and scenes spoken in
+    (like Final Draft's cast report, scenes where a character doesn't speak count too), speeches,
+    words, longest speech, page count, script days, first and last scene.
   - **Cast by scene:** the chart an assistant director builds the Day Out of Days from: X where a
     character speaks, • where they're named in the action.
-  - **Sets:** every set with its I/E, scenes, page count and times of day, longest first.
+  - **Dialogue:** every speech by character with its extension (V.O., O.S.), scene, page and
+    parenthetical, and monologues of 100+ words flagged, like Final Draft's character report.
+    Filter one character to print their sides.
+  - **Sets:** every set with its I/E, scenes, page count, times of day, script days and cast.
 - Page lengths are real numbers shown as eighths ("1 3/8"), so they add up; totals are live
   formulas. Headers stay in view, every column filters, and each sheet prints landscape on US
   Letter with the header row on every page.
-- CONTINUOUS, LATER and similar scenes take the day or night of the scene before, as a breakdown does.
+- CONTINUOUS, LATER and similar scenes keep the time of the scene before. A new script day starts
+  with the morning after a night, or NEXT DAY / DAYS LATER; flashbacks and dreams are kept apart.
+  Script days are an estimate from the headings for the script supervisor to confirm.
 - The Reports dialog shows the same scene, cast and set tables, still copyable as CSV.
 
 ### Pages, production and Final Draft files

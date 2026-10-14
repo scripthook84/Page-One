@@ -461,9 +461,9 @@ export async function reportsDialog(tab = 'scenes') {
   if (!tables[tab]) tab = tab === 'characters' ? 'cast' : tab === 'locations' ? 'sets' : 'scenes';
   const live = R.scenes.filter((s) => !s.omitted);
   const ints = live.filter((s) => s.ie === 'INT').length, exts = live.filter((s) => s.ie === 'EXT').length;
-  const nights = live.filter((s) => s.dn === 'Night').length;
+  const nights = live.filter((s) => ['Night', 'Evening', 'Dusk'].includes(s.tod)).length;
   const body = document.createElement('div');
-  body.innerHTML = `<p class="hint" style="margin:0">${R.totalPages} pages, ${live.length} scenes (${ints} interior, ${exts} exterior, ${nights} night), ${R.cast.length} speaking characters, ${R.sets.length} sets. Export to Excel adds a summary and a cast-by-scene chart.</p>
+  body.innerHTML = `<p class="hint" style="margin:0">${R.totalPages} pages, ${live.length} scenes (${ints} interior, ${exts} exterior, ${nights} night), ${R.cast.length} speaking characters, ${R.sets.length} sets. Export to Excel adds a summary, a cast-by-scene chart and every speech by character.</p>
     <div class="tabs" style="padding:0">${Object.entries(tables).map(([k, T]) => `<button data-tab="${k}" aria-selected="${k === tab}">${T.label}</button>`).join('')}</div>
     <div style="max-height:55vh;overflow:auto" id="rep"></div>`;
   let sort = { col: null, dir: 1 };
