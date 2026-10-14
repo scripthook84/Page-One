@@ -53,8 +53,6 @@ jobs:
   # With the secrets below set in the repository, it is signed with your Developer ID
   # and notarized, and opens without a warning.
   macos-dmg:
-    # paused: this build ships the Linux .deb only (set to true to build it again)
-    if: false
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -173,8 +171,9 @@ jobs:
   # Publish the installers on the v1.1.0 release page (marked pre-release until tested on every
   # platform). Each new build replaces the files there.
   release:
-    needs: [linux-deb]
-    if: ${{ !cancelled() && needs.linux-deb.result == 'success' }}
+    needs: [linux-deb, macos-dmg]
+    # publish whatever built: a busy Mac queue never holds back the other installers
+    if: ${{ !cancelled() && (needs.linux-deb.result == 'success' || needs.macos-dmg.result == 'success') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -192,3 +191,4 @@ jobs:
           prerelease: true
           files: |
             dist/*.deb
+            dist/*.dmg
