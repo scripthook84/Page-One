@@ -10,6 +10,14 @@ built-in voices that run on its own speech engine, with no internet connection.
 
 **Version 1.1.0** · Windows (.msi) · macOS (.dmg) · Linux (.deb) · Apache License 2.0
 
+## Downloads
+
+| Platform | File | Requires |
+|---|---|---|
+| Windows | [`Page-One_1.1.0_x64.msi`](https://github.com/scripthook84/Page-One/releases/download/v1.1.0/Page-One_1.1.0_x64.msi) (82 MB) | Windows 10 or 11, 64-bit |
+| macOS | [`Page-One_1.1.0_universal.dmg`](https://github.com/scripthook84/Page-One/releases/download/v1.1.0/Page-One_1.1.0_universal.dmg) (98 MB) | macOS 12 Monterey or later, Apple Silicon or Intel |
+| Linux | [`Page-One_1.1.0_amd64.deb`](https://github.com/scripthook84/Page-One/releases/download/v1.1.0/Page-One_1.1.0_amd64.deb) (84 MB) | Ubuntu 22.04+, Debian 12+, Linux Mint, Pop!_OS (64-bit) |
+
 ---
 
 ## Highlights
@@ -35,7 +43,7 @@ built-in voices that run on its own speech engine, with no internet connection.
   in and out.
 
 ---
-<img width="2880" height="1800" alt="01-script-view" src="https://github.com/user-attachments/assets/655acf88-85ac-4f9e-86eb-6163b4617c03" />
+<img width="1914" height="1033" alt="Screenshot-2026-10-14_06-24-19" src="https://github.com/user-attachments/assets/35e8342a-d37e-41b6-9909-314964805616" />
 
 ## Writing
 
@@ -45,15 +53,9 @@ built-in voices that run on its own speech engine, with no internet connection.
     screenplay layout and 58 lines of text per page.
 
   The paper size can be changed later in Document setup.
-- **The page.** Courier 12 pt with a 1.5" left margin and 1" top, right and bottom, two blank lines
-  before each scene heading, as in Final Draft. Dialogue runs 2.5–6.0", character cues sit at 3.7",
-  parentheticals at 3.1–5.25", and transitions end at 7.5". Page numbers ("2.") start on page 2,
-  half an inch from the top. Every sheet on screen is drawn at the full size of the paper, so what
-  you see is what prints, line for line.
+
 - **Element flow.** Enter continues the scene the way scripts are written: scene heading to action,
-  character to dialogue, transition to scene heading. Tab on an empty line cycles through action,
-  character, transition and scene heading; Enter on an empty line lists every element.
-  **Ctrl+0…9** switch elements directly.
+  character to dialogue, transition to scene heading. 
 - **Flow bar.** The bar at the bottom always shows the current element and what Enter and Tab will
   do next.
 - **Suggestions.** Character names (most frequent first), extensions such as (V.O.) and (O.S.), scene
@@ -70,13 +72,12 @@ built-in voices that run on its own speech engine, with no internet connection.
 - **Day and Night themes.** The button at the top right switches to Night, a dark desk and page
   that's easy on the eyes after dark.
 - **Focus mode**, also at the top right, goes full screen on a blank sheet, keeps the line you're
-  writing centred and hides everything else, Table Read included. A small toolbar at the bottom left
-  sets **Fit width** or **100–200 %**, and a button at the bottom right switches between Day and
-  Night. Esc leaves.
+  writing centred and hides everything else.
 - Unlimited undo, find and replace, go to page, spell checking from your system dictionary, and a
   command palette (Ctrl+K) that finds every command.
 
-<img width="2880" height="1800" alt="06-storyboard" src="https://github.com/user-attachments/assets/25196abe-b33d-4b63-9309-7e4c47e6014c" />
+<img width="1917" height="1036" alt="Screenshot-2026-10-14_06-25-30" src="https://github.com/user-attachments/assets/6c5dd319-1da0-4ef0-841f-102bbe466158" />
+
 
 ## Storyboard
 
@@ -88,9 +89,7 @@ built-in voices that run on its own speech engine, with no internet connection.
   end. Ctrl+Z puts it back.
 - **Act lanes.** Act labels sit in a header row above the grid; a new label is one card wide. Drag a
   label's right edge to stretch it across more columns, or drag the label to move where the act
-  begins; it snaps column by column. Acts sit side by side, so every card is under exactly one act
-  label, belongs to that act, and takes its colour, and each act's columns are tinted as a lane. A
-  card's own scene colour shows as a band along its top.
+  begins; it snaps column by column. 
 - **Labels: acts, sequences and beats.** In the panel on the left, choose the type first, then
   name and colour the label; a sequence or beat starts at the scene you pick. A one-column act label
   stacks its cards in a column; stretch it to lay them across more columns. Rename, recolour or
@@ -159,8 +158,6 @@ locking, Page One explains in a few lines what Production will do.
     scramble the locked pages.
 - **Colour revisions** in the standard order: Blue, Pink, Yellow, Green, Goldenrod, Buff, Salmon,
   Cherry.
-  - Changed lines get an asterisk in the right margin.
-  - Changed pages show and print in the revision colour, like pages issued on coloured paper
     (Production → Revised pages in colour turns this off).
   - The header carries the colour and date.
   - The title page lists the White draft and each revision with its date, at the bottom right.
@@ -175,6 +172,9 @@ Sending out a revision and starting a new draft:
   next colour.
 - **Back to Draft** (flip the switch) unlocks and renumbers everything, for a new full draft.
 
+<img width="960" height="732" alt="Table Read" src="https://github.com/user-attachments/assets/03160bec-bd72-4367-ad99-ad4eb7ff2855" />
+
+
 ## Table Read
 
 Table Read has its own built-in voices and its own speech engine inside the app, so it works fully
@@ -188,12 +188,7 @@ offline: nothing is sent anywhere, and no internet connection or account is need
 - **Waveform** opens a listening box over the page with the speaker's name, the line being read and
   its waveform, plus its own play controls. Close it and the read carries on.
 - **A voice for everyone.** A narrator reads scene headings, action and transitions; every character
-  speaks in their own voice. Seventeen character voices are built in (eight women and seven men
-  with American and British accents, and a girl and a boy, made by raising an adult voice's pitch)
-  plus two narrator voices. Characters are cast
-  automatically (YOUNG JUNE gets a child's voice) until you choose; pick and audition a voice for
-  each character in **Settings**, next to Table Read, or from a character in the Characters panel.
-  Choices are saved with the script.
+  speaks in their own voice. 
 - Choose whether the narrator reads scene headings, transitions and parentheticals.
 - The speech engine is built from the open-source Kokoro voice model and ONNX Runtime, packed into
   the installer, so every line is spoken on your computer.
