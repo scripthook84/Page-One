@@ -175,6 +175,8 @@ Sending out a revision and starting a new draft:
   next colour.
 - **Back to Draft** (flip the switch) unlocks and renumbers everything, for a new full draft.
 
+<img width="960" height="732" alt="Table Read" src="https://github.com/user-attachments/assets/1eea9417-8e60-48f0-8293-ba7afb25f760" />
+
 ## Table Read
 
 Table Read has its own built-in voices and its own speech engine inside the app, so it works fully
