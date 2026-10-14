@@ -5,3 +5,4 @@
 /ui/vendor/ort/
 /src-tauri/voice/
 /.voice-cache/
+__pycache__/
