@@ -180,7 +180,7 @@ Sending out a revision and starting a new draft:
 ## Table Read
 
 Table Read has its own built-in voices and its own speech engine inside the app, so it works fully
-offline: nothing is sent anywhere, and no internet connection or account is needed.** *Some voices may take a few seconds to load for longer dialogue**
+offline: nothing is sent anywhere, and no internet connection or account is needed. Some voices may take a few seconds to load for longer dialogue.
 
 - Click **Table Read** at the top centre, above the page (Ctrl+Shift+P), and the script is read aloud
   starting where the cursor is. The line being read is highlighted and kept in view. While reading,
