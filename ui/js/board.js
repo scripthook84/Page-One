@@ -155,6 +155,10 @@ function commit(model, message) {
     blocks.set(it, block);
   });
   const first = items.length ? Math.min(...items.map((it) => it.sc.i)) : paras.length;
+  // a locked script keeps its scene order (act labels can still be adjusted)
+  const before = [...cards].sort((a, b) => a.sc.i - b.sc.i);
+  const after = order.filter((it) => it.kind === 'card');
+  if (after.some((c, k) => c !== before[k]) && S.app.lockedForMoves()) { renderBoard(true); return; }
   S.editor.replaceAll(finishReorder(paras.slice(0, first).concat(...order.map((it) => blocks.get(it))), ending));
   if (message) S.app.toast(message);
   S.app.refresh().then(() => renderBoard(true));

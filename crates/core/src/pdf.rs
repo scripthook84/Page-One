@@ -186,7 +186,7 @@ fn page_dims(size: &str) -> (f64, f64) {
     }
 }
 
-fn title_page_ops(tp: &TitlePage, canvas: &mut Canvas) {
+fn title_page_ops(tp: &TitlePage, history: &[RevEntry], canvas: &mut Canvas) {
     let center = |canvas: &mut Canvas, row: f64, s: &str, style: u8| {
         let len = s.chars().count() as f64;
         let col = 15.0 + (60.0 - len).max(0.0) / 2.0;
@@ -221,10 +221,24 @@ fn title_page_ops(tp: &TitlePage, canvas: &mut Canvas) {
     for (i, l) in contact.iter().enumerate() {
         canvas.text(start + i as f64, 15.0, l, 0);
     }
-    // Draft date / notes bottom-right.
+    // Draft date / notes bottom-right, then (in production) the locked draft and each revision
+    // with its date, so the crew can see which pages they should be holding.
     let mut right: Vec<String> = tp.notes.lines().map(|s| s.to_string()).collect();
     if !tp.draft.trim().is_empty() {
         right.push(tp.draft.trim().to_string());
+    }
+    if !history.is_empty() {
+        if !right.is_empty() {
+            right.push(String::new());
+        }
+        for e in history {
+            let name = if e.level == 0 {
+                "White Draft".to_string()
+            } else {
+                format!("{} Revisions", REVISIONS.get(e.level as usize).map(|r| r.0).unwrap_or("Revised"))
+            };
+            right.push(format!("{name} {}", e.date));
+        }
     }
     let start = last_row - right.len() as f64 + 1.0;
     for (i, l) in right.iter().enumerate() {
@@ -339,7 +353,7 @@ pub fn render_pdf(project: &Project, opts: &PdfOptions) -> Vec<u8> {
             ops: Vec::new(),
             height: h,
         };
-        title_page_ops(&project.title_page, &mut c);
+        title_page_ops(&project.title_page, &project.settings.rev_history, &mut c);
         canvases.push(c);
     }
     for p in &lay.pages {

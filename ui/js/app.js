@@ -390,6 +390,8 @@ export function applySettingsUI() {
   document.body.classList.toggle('scene-space-2', (st.scene_space || 1) >= 2);
   document.body.classList.toggle('bold-scenes', !!st.bold_scenes);
   editor.revLevel = st.rev_level || 0;
+  editor.production = !!st.production;
+  editor.notify = toast;
   document.documentElement.style.setProperty('--rev-color', REVISIONS[st.rev_level || 0][1]);
   applyPrefs();
   syncModeUI();
@@ -536,6 +538,10 @@ function omitScene() {
   toast(el._meta.omitted ? 'Scene omitted. It prints as OMITTED and keeps its number.' : 'Scene restored.');
 }
 
+function today() {
+  return new Date().toLocaleDateString(undefined, { month: '2-digit', day: '2-digit', year: '2-digit' });
+}
+
 function setRevision(level, quiet = false) {
   const prev = S.project.settings.rev_level;
   S.project.settings.rev_level = level;
@@ -596,6 +602,8 @@ async function enterProduction() {
   await lockPagesNow();
   st.production = true;
   setRevision(v.clearMarks || !st.rev_level ? 1 : st.rev_level, true);
+  // the title page lists the locked draft and each revision with its date
+  st.rev_history = [{ level: 0, date: today() }, { level: st.rev_level, date: today() }];
   markDirty();
   await refresh();
   syncModeUI();
@@ -614,6 +622,7 @@ async function leaveProduction() {
   }
   st.locked_pages = [];
   st.production = false;
+  st.rev_history = [];
   if (v.clearMarks) {
     for (const el of editor.els()) delete el.dataset.rev;
     setRevision(0, true);
@@ -639,6 +648,7 @@ async function issueRevision() {
   if (!ok) return;
   await lockPagesNow();
   setRevision(cur + 1, true);
+  st.rev_history = [...(st.rev_history || []), { level: cur + 1, date: today() }];
   markDirty();
   await refresh();
   toast(`${REVISIONS[cur][0]} pages locked. New changes are ${REVISIONS[cur + 1][0]} revisions.`);
@@ -653,9 +663,7 @@ function syncModeUI() {
   const prod = !!(S.project && S.project.settings.production);
   for (const b of document.querySelectorAll('#modeSwitch button')) b.setAttribute('aria-pressed', String((b.dataset.scriptMode === 'production') === prod));
   document.body.classList.toggle('production', prod);
-  const rl = (S.project && S.project.settings.rev_level) || 0;
-  const dot = document.querySelector('#modeSwitch .dot');
-  if (dot) dot.style.background = prod && rl ? REVISIONS[rl][1] : 'transparent';
+  editor.production = prod;
 }
 
 function clearRevisions() {
@@ -666,7 +674,15 @@ function clearRevisions() {
   toast('Revision marks cleared.');
 }
 
+/** Scenes can't be moved once the script is locked: page and scene numbers would scramble. */
+function lockedForMoves() {
+  if (!S.project || !S.project.settings.production) return false;
+  toast('The script is locked for production, so scenes stay in order. Omit a scene and write it again where it belongs, or go back to Draft.');
+  return true;
+}
+
 function moveScene(dir) {
+  if (lockedForMoves()) return;
   const scenes = S.derived.scenes.filter((x) => x.t === 'scene');
   const si = currentSceneIndex(S.curPara);
   const cur = S.derived.scenes[si];
@@ -892,14 +908,15 @@ export const COMMANDS = [
   { id: 'issue', menu: 'Production', label: 'Lock revised pages, start next colour…', run: issueRevision, when: () => S.project && !!S.project.settings.production, hint: 'Send out this revision and start the next colour' },
   { id: 'revexport', menu: 'Production', label: 'Export revised pages (PDF)…', run: () => dialogs.exportDialog(doExport, 'pdf', { onlyRev: S.project.settings.rev_level || 0 }), when: () => S.project && (S.project.settings.rev_level || 0) > 0 },
   { sep: true, menu: 'Production' },
-  { id: 'scenenums', menu: 'Production', label: 'Scene numbers', run: () => setSetting('scene_numbers', !S.project.settings.scene_numbers), check: () => S.project && S.project.settings.scene_numbers, when: need },
+  // in Production, scene numbers stay on and colours only advance in order
+  { id: 'scenenums', menu: 'Production', label: 'Scene numbers', run: () => setSetting('scene_numbers', !S.project.settings.scene_numbers), check: () => S.project && S.project.settings.scene_numbers, when: () => S.project && !S.project.settings.production },
   { id: 'omit', menu: 'Production', label: 'Omit current scene', run: omitScene, when: need },
   { sep: true, menu: 'Production' },
   ...REVISIONS.map(([name, color], i) => ({
-    id: 'rev-' + i, menu: 'Production', label: i === 0 ? 'Revisions off' : `${name} revision`, color: i ? color : null, run: () => setRevision(i), check: () => S.project && (S.project.settings.rev_level || 0) === i, when: need,
+    id: 'rev-' + i, menu: 'Production', label: i === 0 ? 'Revisions off' : `${name} revision`, color: i ? color : null, run: () => setRevision(i), check: () => S.project && (S.project.settings.rev_level || 0) === i, when: () => S.project && !S.project.settings.production,
   })),
   { id: 'revpages', menu: 'Production', label: 'Revised pages in colour', run: () => setSetting('rev_pages', !S.project.settings.rev_pages), check: () => S.project && S.project.settings.rev_pages !== false, when: need },
-  { id: 'clearrev', menu: 'Production', label: 'Clear revision marks', run: clearRevisions, when: need },
+  { id: 'clearrev', menu: 'Production', label: 'Clear revision marks', run: clearRevisions, when: () => S.project && !S.project.settings.production },
   // Help
   { id: 'shortcuts', menu: 'Help', label: 'Keyboard shortcuts', keys: 'F1', run: () => dialogs.shortcutsDialog() },
   { id: 'format', menu: 'Help', label: 'Screenplay format guide', run: () => dialogs.formatGuide() },
@@ -1071,7 +1088,7 @@ export function toast(msg) {
 }
 
 // exported for panels/dialogs
-S.app = { refresh, scheduleRefresh, markDirty, toast, setView, applySettingsUI, setSetting, setPref, onCaret, currentSceneIndex, save, doExport, setTitleUI, voicesDialog: () => dialogs.voicesDialog() };
+S.app = { lockedForMoves, refresh, scheduleRefresh, markDirty, toast, setView, applySettingsUI, setSetting, setPref, onCaret, currentSceneIndex, save, doExport, setTitleUI, voicesDialog: () => dialogs.voicesDialog() };
 
 /** Mac: show ⌘ ⌥ ⇧ in the labels written into the page itself. */
 function platformLabels() {

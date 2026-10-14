@@ -28,7 +28,9 @@ Project {
     narrator_voice: string, read_headings: bool, read_parens: bool, read_transitions: bool,
     read_speed: float (table read),
     production: bool (Production mode; omitted when false),
-    locked_pages: [ string ]   // locked page numbers in order ("1", "2", "2A", "3"…); omitted when empty
+    locked_pages: [ string ]   // locked page numbers in order ("1", "2", "2A", "3"…); omitted when empty,
+    rev_history: [ { level: 0..8, date: string } ]   // production: the locked draft (0) and each
+                                                     //   revision colour since; on the title page
   },
   notes: string,
   characters: [ { name, color, bio, voice } ],   // voice: built-in voice id ("" or absent = automatic)

@@ -12,12 +12,12 @@
     <div class="brand" title="Page One"><img src="icon.png" alt="Page One"></div>
     <nav class="menus" id="menus" aria-label="Menu"></nav>
     <div class="doc">
+      <div class="mode-switch" id="modeSwitch" role="group" aria-label="Script mode">
+        <button data-script-mode="draft" aria-pressed="true" title="Draft: pages and scene numbers flow freely">Draft</button>
+        <button data-script-mode="production" aria-pressed="false" title="Production: lock pages and scene numbers; changes become revisions"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Production</button>
+      </div>
       <button id="docTitle" title="Edit the title page">Untitled</button>
       <span class="save-state" id="saveState">Not saved yet</span>
-    </div>
-    <div class="mode-switch" id="modeSwitch" role="group" aria-label="Script mode">
-      <button data-script-mode="draft" aria-pressed="true" title="Draft: pages and scene numbers flow freely">Draft</button>
-      <button data-script-mode="production" aria-pressed="false" title="Production: lock pages and scene numbers; changes become revisions"><i class="dot" aria-hidden="true"></i>Production</button>
     </div>
     <div class="views" role="tablist" aria-label="View">
       <button role="tab" data-view="script" aria-selected="true">Script</button>

@@ -99,6 +99,9 @@ export class Editor {
     this.typingTimer = null;
     this.pendingStyle = null;
     this.revLevel = 0;
+    // production: scene headings with locked numbers are never lost; cut scenes become OMITTED
+    this.production = false;
+    this.notify = null;
     this.current = null;
     this.smart = null; // {items, index, pick}
     this.typewriter = false;
@@ -630,10 +633,20 @@ export class Editor {
     this.updateSmart();
   }
 
+  /** In production, a scene heading with a locked number. */
+  lockedHeading(el) {
+    return this.production && el && el.dataset.t === 'scene' && !!(el._meta && el._meta.num);
+  }
+
   deleteSelection() {
     const s = this.getSel();
     if (!s || s.collapsed) return;
     const els = this.root.children;
+    // in production, cut scenes stay in the script as OMITTED so their numbers aren't reused
+    const cutHeads = [];
+    if (this.production) {
+      for (let i = s.sp + 1; i <= s.ep; i++) if (this.lockedHeading(els[i]) && !(i === s.ep && s.eo === 0)) cutHeads.push({ text: textOf(els[i]), meta: { ...els[i]._meta } });
+    }
     // never let an edit land inside a hidden act/sequence line (e.g. after Select All)
     while (s.sp < s.ep && els[s.sp].dataset.t === 'section') { s.sp++; s.so = 0; }
     while (s.ep > s.sp && els[s.ep].dataset.t === 'section') { s.ep--; s.eo = textOf(els[s.ep]).length; }
@@ -641,13 +654,30 @@ export class Editor {
     const a = els[s.sp], b = els[s.ep];
     const left = sliceRuns(runsOf(a), 0, s.so);
     const right = sliceRuns(runsOf(b), s.eo);
-    // whole first paragraph selected from its start → take the last paragraph's type
-    if (s.so === 0 && s.sp !== s.ep && textOf(b).length > s.eo) a.dataset.t = b.dataset.t;
+    // whole first paragraph selected from its start → take the last paragraph's type (and its
+    // scene details, since what's left of it is the last paragraph's text)
+    const firstGoes = s.so === 0 && s.sp !== s.ep && textOf(b).length > s.eo;
+    if (firstGoes && this.lockedHeading(a)) cutHeads.unshift({ text: textOf(a), meta: { ...a._meta } });
+    if (firstGoes) {
+      a.dataset.t = b.dataset.t;
+      if (a.dataset.t === 'scene' || a._meta) a._meta = b._meta ? { ...b._meta } : undefined;
+    }
     // acts and sequences live in the navigator, so a page edit never deletes them
     for (let i = s.ep; i > s.sp; i--) { if (els[i].dataset.t !== 'section') els[i].remove(); }
     this.setRuns(a, concatRuns(left, right));
     this.setSel(s.sp, s.so);
     this.decorate(a);
+    if (cutHeads.length) {
+      const omitted = cutHeads.map((h) => {
+        const n = this.makeEl({ t: 'scene', runs: [{ x: h.text }], meta: { ...h.meta, omitted: true } });
+        if (this.revLevel) n.dataset.rev = this.revLevel;
+        return n;
+      });
+      // they go where the cut scenes were: before what remains of the paragraph if nothing of
+      // the first paragraph is left, after it otherwise
+      if (left.length && runsText(left).trim()) a.after(...omitted); else a.before(...omitted);
+      if (this.notify) this.notify(`${omitted.length === 1 ? 'Scene' : 'Scenes'} ${cutHeads.map((h) => h.meta.num).join(', ')} marked OMITTED; the number stays in the script.`);
+    }
   }
 
   removePara(el, dir) {
@@ -670,6 +700,8 @@ export class Editor {
   mergeBackward(el) {
     const prev = this.visibleSibling(el, -1);
     if (!prev) return;
+    // a locked heading can lose the blank line before it, but never itself
+    if (this.lockedHeading(el) && !(textOf(prev) === '' || (prev.dataset.t === 'paren' && textOf(prev) === '()'))) { this.lockedNotice(); return; }
     this.closeTyping();
     this.pushUndo();
     const txt = textOf(el);
@@ -696,6 +728,7 @@ export class Editor {
   mergeForward(el) {
     const next = this.visibleSibling(el, 1);
     if (!next) return;
+    if (this.lockedHeading(next) || (this.lockedHeading(el) && textOf(el) === '')) { this.lockedNotice(); return; }
     this.closeTyping();
     this.pushUndo();
     const i = this.indexOf(el);
@@ -706,6 +739,10 @@ export class Editor {
     next.remove();
     this.setSel(i, len);
     this.changed(true, el);
+  }
+
+  lockedNotice() {
+    if (this.notify) this.notify('Scene numbers are locked for production. To cut a scene, use Production → Omit current scene.');
   }
 
   insertParaAfter(el, p) {

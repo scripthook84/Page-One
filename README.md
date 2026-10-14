@@ -113,7 +113,7 @@ PDF. It's free, works offline, needs no account, and reads your script aloud wit
 
 ## Draft and Production
 
-A switch at the top of the window moves the script between two modes.
+A switch beside the script's title moves it between two modes.
 
 - **Draft** is for writing: pages and scene numbers flow freely and renumber as you go.
 - **Production** locks the script the way a shooting script is locked:
@@ -121,9 +121,13 @@ A switch at the top of the window moves the script between two modes.
     (12A, 12B) and the pages after it don't move; a page you shorten keeps its gap; a page whose
     text is all cut folds into the page before as a range ("12-13"); text added before page 1 goes
     on A1.
-  - **Locked scene numbers.** A new scene takes the number before it with a letter (12A).
+  - **Locked scene numbers.** A new scene takes the number before it with a letter (12A). A scene
+    you cut stays in the script as OMITTED, so its number is never reused, and scenes keep their
+    order (moving one would scramble the locked pages).
   - **Revisions.** Changed lines get an asterisk, changed pages show and print in the revision
-    colour, and the header carries the colour and date, starting with Blue.
+    colour, and the header carries the colour and date, starting with Blue. The title page lists
+    the White draft and each revision with its date. Colours advance only in order, and revision
+    marks can't be cleared while the script is locked.
 - **Send out a revision.** Production → *Export revised pages* prints only the pages changed in
   the current colour. *Lock revised pages, start next colour* locks those pages, A pages included,
   and starts the next colour (Blue, Pink, Yellow…).

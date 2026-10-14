@@ -110,15 +110,20 @@ Installing 1.1 over 1.0 keeps your scripts, settings and backups.
 
 ### Draft and Production modes, with locked pages
 
-- A **Draft | Production** switch at the top of the window. Draft is for writing. Production locks
+- A **Draft | Production** switch beside the script's title. Draft is for writing. Production locks
   the script the way a shooting script is locked, after a short explanation of what will happen.
 - **Locked pages:** every page keeps its number. Text that no longer fits goes onto A pages (12A,
   12B, and 12AA where needed) and later pages don't move; a shortened page keeps its gap; a page
   whose text is all cut folds into the page before as a range ("12-13"); text added before page 1
   goes on A1. A page that starts in the middle of a speech keeps its (MORE) and (CONT'D).
-- **Locked scene numbers:** new scenes take A numbers (12A, A1 before the first scene).
+- **Locked scene numbers:** new scenes take A numbers (12A, A1 before the first scene). Cutting a
+  scene leaves it as OMITTED with its number, and scenes can't be moved while the script is locked
+  (on the page, in the navigator or on the board).
+- **Title page revision list:** the White draft and each revision colour with its date, at the
+  bottom right.
 - **Revisions** start with Blue: asterisks on changed lines, changed pages in colour, and a dated
-  revision header.
+  revision header. In Production, colours advance only in order, scene numbers stay on, and
+  revision marks can't be cleared.
 - **Production → Export revised pages** prints only the pages changed in the current colour, ready
   to send out. **Lock revised pages, start next colour** locks them (A pages included) and moves
   on to Pink, Yellow and so on.

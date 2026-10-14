@@ -200,6 +200,17 @@ pub struct Settings {
     /// Empty when pages aren't locked. Each one's starting point is a `PageLock` on a paragraph.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub locked_pages: Vec<String>,
+    /// In production: the locked draft (level 0) and each revision colour since, with its date.
+    /// Listed on the title page.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub rev_history: Vec<RevEntry>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq)]
+#[serde(default)]
+pub struct RevEntry {
+    pub level: u8,
+    pub date: String,
 }
 
 impl Default for Settings {
@@ -226,6 +237,7 @@ impl Default for Settings {
             read_speed: 1.0,
             production: false,
             locked_pages: Vec::new(),
+            rev_history: Vec::new(),
         }
     }
 }

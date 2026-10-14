@@ -103,6 +103,7 @@ function blockRange(paras, a) {
 }
 
 export function moveBlock(from, before) {
+  if (S.app.lockedForMoves()) return false;
   const all = S.editor.paras();
   const { body: paras, ending } = splitEnding(all);
   if (from >= paras.length) return false;
