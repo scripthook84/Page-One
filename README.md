@@ -3,18 +3,19 @@
 # Page One
 
 A lightweight, open-source screenwriting app. Built by a screenwriter for screenwriters. Page One formats your script to the industry
-standard as you type, lays your story out on a snap-to-grid story board, and exports print-ready
-PDF. It's free, works offline, needs no account, and reads your script aloud with built-in voices.
+standard as you type, in US or BBC (A4) format, lays your story out on a snap-to-grid story board, and
+exports print-ready PDF. When the script goes into production it locks pages and scene numbers and
+tracks colour revisions. It's free, works offline, needs no account, and reads your script aloud with
+built-in voices that run on its own speech engine, with no internet connection.
 
-**Version 1.1.0** · Windows (.msi)  macOS (.dmg) · Linux (.deb) · Apache License 2.0
+**Version 1.1.0** · Windows (.msi) · macOS (.dmg) · Linux (.deb) · Apache License 2.0
 
 ---
 
 ## Highlights
 
 - **Industry-standard pages, live.** Page breaks, (MORE) and (CONT'D), and dual dialogue appear in
-  the editor exactly as they print.
-
+  the editor exactly as they print, on US Letter or BBC / UK A4.
 - **Writes the format for you.** Enter and Tab move through scene heading, action, character,
   parenthetical, dialogue and transition; suggestions fill in names, locations and times of day.
 - **A story board that snaps.** Scenes are cards on one grid. Drag a card and the script reorders
@@ -22,8 +23,13 @@ PDF. It's free, works offline, needs no account, and reads your script aloud wit
 - **Acts off the page.** Act labels live on the board and in the navigator, never in the script.
 - **Focus mode.** One click for a full-screen blank page, sized to fit or from 100 to 200 %.
 - **Table Read.** Built-in, natural-sounding voices read the script aloud from the cursor: a narrator
-  for action and a voice for every character, men, women and children. Live mode puts the read in a
-  room. Everything runs on your computer.
+  for action and a voice for every character, men, women and children. The voices and the speech
+  engine are built into the app, so a table read works fully offline. Live mode puts the read in a
+  room.
+- **Draft and Production modes.** Write freely in Draft; switch to Production to lock pages (12A,
+  12B), lock scene numbers (OMITTED, 12A) and issue colour revisions.
+- **Production reports in Excel.** A scene one-liner, cast list, cast-by-scene chart, dialogue and
+  sets, with the fields Final Draft and scheduling software use.
 - **Script check.** Finds formatting slips before a reader does, and fixes many in one click.
 - **Your files, your format.** Compact `.pageone` files, plus Fountain and Final Draft (`.fdx`)
   in and out.
@@ -33,10 +39,17 @@ PDF. It's free, works offline, needs no account, and reads your script aloud wit
 
 ## Writing
 
-- **The page.** Courier 12 pt on US Letter: 1.5" left margin, 1" top, right and bottom, 54 lines per
-  page, two blank lines before each scene heading, as in Final Draft. Dialogue runs 2.5–6.0",
-  character cues sit at 3.7", parentheticals at 3.1–5.25", and transitions end at 7.5". Page numbers
-  ("2.") start on page 2.
+- **Two formats.** File → New screenplay asks which one you're writing:
+  - **US screenplay:** US Letter (8.5 × 11"), Final Draft's standard, 54 lines of text per page.
+  - **BBC / UK screenplay:** A4 paper, as BBC Writersroom and UK producers expect, with the same
+    screenplay layout and 58 lines of text per page.
+
+  The paper size can be changed later in Document setup.
+- **The page.** Courier 12 pt with a 1.5" left margin and 1" top, right and bottom, two blank lines
+  before each scene heading, as in Final Draft. Dialogue runs 2.5–6.0", character cues sit at 3.7",
+  parentheticals at 3.1–5.25", and transitions end at 7.5". Page numbers ("2.") start on page 2,
+  half an inch from the top. Every sheet on screen is drawn at the full size of the paper, so what
+  you see is what prints, line for line.
 - **Element flow.** Enter continues the scene the way scripts are written: scene heading to action,
   character to dialogue, transition to scene heading. Tab on an empty line cycles through action,
   character, transition and scene heading; Enter on an empty line lists every element.
@@ -54,9 +67,12 @@ PDF. It's free, works offline, needs no account, and reads your script aloud wit
   headings and character cues are never stranded at the foot of a page; dialogue breaks at a
   sentence with (MORE) and (CONT'D).
 - Bold, italic, underline; Shift+Enter for a line break inside a paragraph; notes that never print.
-- **Dark mode** and **focus mode** at the top right. Focus mode goes full screen on a blank sheet,
-  keeps the line you're writing centred, and has a small toolbar at the bottom left for **Fit width**
-  or **100–200 %**. Esc leaves.
+- **Day and Night themes.** The button at the top right switches to Night, a dark desk and page
+  that's easy on the eyes after dark.
+- **Focus mode**, also at the top right, goes full screen on a blank sheet, keeps the line you're
+  writing centred and hides everything else, Table Read included. A small toolbar at the bottom left
+  sets **Fit width** or **100–200 %**, and a button at the bottom right switches between Day and
+  Night. Esc leaves.
 - Unlimited undo, find and replace, go to page, spell checking from your system dictionary, and a
   command palette (Ctrl+K) that finds every command.
 
@@ -86,54 +102,83 @@ PDF. It's free, works offline, needs no account, and reads your script aloud wit
 - **Print the board and outline** as a landscape PDF: cards by act in their colours, and an outline
   of acts, sequences, beats and scenes with synopses (File → Print board & outline).
 
-## Organizing and production
+## Organizing
 
 - **Navigator.** The scene list with numbers, length in eighths of a page, colours and synopses;
   filter it, click to jump, drag to reorder. Alt+Shift+↑/↓ moves the current scene.
-- **Scene inspector.** Synopsis, colour, notes, a locked scene number (such as 12A) and an omit
+- **Scene inspector.** Synopsis, colour, notes, a scene number of your own (such as 12A) and an omit
   option for the scene under the cursor, plus who speaks in it.
 - **Characters.** Lines, words and scenes per speaker, with a colour and bio for each.
 - **Dialogue tuner.** One character's lines on their own, editable in place.
 - **Rename character** in cues and, if you like, everywhere the name appears.
-- **Production reports, in Excel.** File → Export reports (Excel) writes an `.xlsx` workbook with
-  the fields of Final Draft's reports and production scheduling: a summary with script statistics;
-  a scene report (the one-liner: scene number, I/E, set, time of day, script day, script pages,
-  eighths, screen time, cast ID numbers, synopsis, act); a cast list with ID numbers; a cast-by-scene
-  chart for the Day Out of Days; every speech by character; and every set. Headers stay in view,
-  columns filter, page counts add up in eighths, and it prints in landscape. The same tables are in Script → Reports, copyable as CSV.
 - **Target length.** Progress toward your page goal, a running time estimate (1 page ≈ 1 minute)
   and the words written today.
 - **Script check** (Ctrl+Shift+K). Character cues with no dialogue, dialogue with no cue, scene
   headings without INT./EXT. or a time of day, unwrapped parentheticals, stray blank lines and
   misspelled character names (OTSI for OTIS), each with a Go button and, where it's safe, a Fix.
-- **Production.** Scene numbers in both margins (locked numbers such as 12A continue to 13), omitted
-  scenes, revision mode in the standard colour order (Blue, Pink, Yellow, Green, Goldenrod, Buff,
-  Salmon, Cherry) with asterisks, a revision header and revised pages shown and printed in their
-  revision colour, a title page laid out to standard metrics, and watermarked PDFs.
+- **Printing.** Scene numbers in both margins, a title page laid out to standard metrics, and
+  watermarked PDFs.
 
+## Production reports
+
+File → Export reports (Excel) writes an `.xlsx` workbook with the fields of Final Draft's reports
+and production scheduling:
+
+- **Summary:** title, draft, pages, estimated screen time, dialogue and action share, interior and
+  exterior day and night scene counts, script days, monologues, element counts and profanity.
+- **Scene report** (the one-liner): scene number, I/E, set, time of day, script day (D1, N1…),
+  script pages (12-13, 12A), length in eighths, screen time, cast ID numbers, synopsis and act.
+- **Cast list:** ID numbers, scenes, speeches, words, page count, script days, first and last scene.
+- **Cast by scene:** the chart a Day Out of Days is built from.
+- **Dialogue:** every speech by character, with extension, scene, page and parenthetical; filter one
+  character to print their sides.
+- **Sets:** every set with its scenes, page count, times of day and cast.
+
+Headers stay in view, columns filter, page counts add up in eighths, and every sheet prints in
+landscape. The same tables are in Script → Reports, copyable as CSV.
 ## Draft and Production
 
-A switch beside the script's title moves it between two modes.
+A **Draft | Production** switch beside the script's title moves it between two modes. Before
+locking, Page One explains in a few lines what Production will do.
 
-- **Draft** is for writing: pages and scene numbers flow freely and renumber as you go.
-- **Production** locks the script the way a shooting script is locked:
-  - **Locked pages.** Every page keeps its number. Text that no longer fits goes onto an A page
-    (12A, 12B) and the pages after it don't move; a page you shorten keeps its gap; a page whose
-    text is all cut folds into the page before as a range ("12-13"); text added before page 1 goes
-    on A1.
-  - **Locked scene numbers.** A new scene takes the number before it with a letter (12A). A scene
-    you cut stays in the script as OMITTED, so its number is never reused, and scenes keep their
-    order (moving one would scramble the locked pages).
-  - **Revisions.** Changed lines get an asterisk, changed pages show and print in the revision
-    colour, and the header carries the colour and date, starting with Blue. The title page lists
-    the White draft and each revision with its date. Colours advance only in order, and revision
-    marks can't be cleared while the script is locked.
-- **Send out a revision.** Production → *Export revised pages* prints only the pages changed in
-  the current colour. *Lock revised pages, start next colour* locks those pages, A pages included,
-  and starts the next colour (Blue, Pink, Yellow…).
-- **Back to Draft** unlocks and renumbers everything, for a new full draft.
+**Draft** is for writing: pages and scene numbers flow freely and renumber as you go.
+
+**Production** locks the script the way a shooting script is locked:
+
+- **Locked pages.** Every page keeps its number.
+  - Text that no longer fits goes onto an A page (12A, 12B, then 12AA where needed) and the pages
+    after it don't move.
+  - A page you shorten keeps its gap.
+  - A page whose text is all cut folds into the page before as a range ("12-13").
+  - Text added before page 1 goes on A1.
+  - A page that starts mid-speech keeps its (MORE) and (CONT'D).
+- **Locked scene numbers.**
+  - A new scene takes the number before it with a letter (12A; A1 before the first scene).
+  - A scene you cut stays in the script as OMITTED, so its number is never reused.
+  - Scenes keep their order on the page, in the navigator and on the board, since moving one would
+    scramble the locked pages.
+- **Colour revisions** in the standard order: Blue, Pink, Yellow, Green, Goldenrod, Buff, Salmon,
+  Cherry.
+  - Changed lines get an asterisk in the right margin.
+  - Changed pages show and print in the revision colour, like pages issued on coloured paper
+    (Production → Revised pages in colour turns this off).
+  - The header carries the colour and date.
+  - The title page lists the White draft and each revision with its date, at the bottom right.
+  - Colours advance only in order, and revision marks can't be cleared while the script is locked.
+- **Page labels everywhere.** Page numbers like 12A show on the page, in the status bar, in the
+  PDF and in the reports.
+
+Sending out a revision and starting a new draft:
+
+- **Export revised pages** prints only the pages changed in the current colour, ready to send out.
+- **Lock revised pages, start next colour** locks those pages, A pages included, and moves on to the
+  next colour.
+- **Back to Draft** (flip the switch) unlocks and renumbers everything, for a new full draft.
 
 ## Table Read
+
+Table Read has its own built-in voices and its own speech engine inside the app, so it works fully
+offline: nothing is sent anywhere, and no internet connection or account is needed.
 
 - Click **Table Read** at the top centre, above the page (Ctrl+Shift+P), and the script is read aloud
   starting where the cursor is. The line being read is highlighted and kept in view. While reading,
@@ -150,8 +195,8 @@ A switch beside the script's title moves it between two modes.
   each character in **Settings**, next to Table Read, or from a character in the Characters panel.
   Choices are saved with the script.
 - Choose whether the narrator reads scene headings, transitions and parentheticals.
-- The voices run entirely on your computer, with no account and no internet connection. They use the
-  open-source Kokoro voice model.
+- The speech engine is built from the open-source Kokoro voice model and ONNX Runtime, packed into
+  the installer, so every line is spoken on your computer.
 
 <img width="2880" height="1800" alt="10-export" src="https://github.com/user-attachments/assets/98297632-fc20-4c00-9b1e-98741e3b8705" />
 
@@ -178,45 +223,55 @@ A switch beside the script's title moves it between two modes.
 
 ---
 
-## How Page One Compares
+## Page One vs Final Draft
 
-| | **Page One** | **Final Draft 13** | **Fade In** |
-|---|---|---|---|
-| Price | Free, open source (Apache 2.0) | $199.99 one-time, or $99.99/year as Final Draft Suite | $79.95 one-time, updates free |
-| Linux | Yes (.deb) | No | Yes |
-| macOS | Yes (.dmg, Apple Silicon and Intel) | Yes | Yes |
-| Windows | Yes (.msi, 64-bit) | Yes | Yes |
-| Phone and tablet | No | Final Draft Go for iOS, sold separately | Fade In Mobile for iOS and Android, sold separately |
-| Account or activation | None | Sign-in; two computers active at once | License key |
-| Formats as you type (element flow, suggestions) | Yes | Yes | Yes |
-| Live page breaks with (MORE) / (CONT'D) | Yes | Yes | Yes |
-| Dual dialogue | Yes, side by side while you type | Yes | Yes |
-| Planning view | Snap-grid story board with colour-coded act lanes you stretch across columns; drag cards to reorder the script live | Beat Board, Outline Editor and index cards | Index cards |
-| Colour key with your own labels | Yes | — | — |
-| Dialogue tuner | Yes | — | Yes |
-| Revision colours | Yes, revised pages shown and printed in colour | Yes | Yes |
-| Table read with a voice per character | Yes, 17 built-in natural voices including children, offline on every platform | Yes, with the operating system's voices (Speech Control) | Not found in sources checked |
-| Formatting check | Yes, Script check with one-click fixes | Yes, Format Assistant | Not found in sources checked |
-| Page locking and A-pages | Yes (Production mode) | Yes | Yes |
-| Real-time collaboration | No | Yes | Yes |
-| Fountain | Opens and saves | Not listed in the Final Draft 13 User Guide | Opens and saves |
-| Final Draft .fdx | Opens and saves | Native format | Opens and saves |
-| Own file format | `.pageone`: compact binary, documented | `.fdx` (XML) | `.fadein` (zipped XML) |
+| | **Page One 1.1** | **Final Draft 13** |
+|---|---|---|
+| Price | Free, open source (Apache 2.0) | $199.99 one-time, or $99.99/year as Final Draft Suite |
+| Platforms | Windows (.msi), macOS (.dmg, Apple Silicon and Intel), Linux (.deb) | Windows and macOS |
+| Phone and tablet | No | Final Draft Go for iOS, sold separately |
+| Account or activation | None | Sign-in; two computers active at once |
+| Formats as you type (element flow, suggestions) | Yes | Yes |
+| Live page breaks with (MORE) / (CONT'D) | Yes, on screen exactly as printed | Yes |
+| Dual dialogue | Yes, side by side while you type | Yes |
+| US and BBC / UK (A4) screenplay formats | Yes, chosen when you start a script | Yes, through page setup and templates |
+| Templates for TV, multi-camera and stage | Screenplay only | Yes, many |
+| Planning view | Snap-grid story board with colour-coded act lanes; dragging a card reorders the script live | Beat Board, Outline Editor and index cards |
+| Print the board and outline | Yes, landscape PDF | Index cards and outline print |
+| Colour key with your own labels | Yes | — |
+| Dialogue tuner | Yes | — |
+| Table read with a voice per character | Yes: 17 built-in neural voices including children, plus two narrators, on its own offline engine on every platform; Live mode and waveform view | Yes, with the operating system's voices (Speech Control) |
+| Formatting check | Script check, with one-click fixes | Format Assistant |
+| Draft and Production modes | Yes, one switch | Separate locking commands |
+| Locked pages and A-pages (12A, A1, ranges) | Yes | Yes |
+| Locked scene numbers, A-scenes, OMITTED | Yes | Yes |
+| Colour revisions | Yes: asterisks, dated header, pages in colour, revised-pages-only export, revision list on the title page | Yes |
+| Production reports | Excel workbook: summary, scene one-liner with script days, cast list with IDs, cast by scene, dialogue, sets | Scene, location, character and cast reports |
+| Production tagging (props, wardrobe…) | No | Yes |
+| Track changes | No | Yes |
+| Real-time collaboration | No | Yes |
+| Fountain | Opens and saves | Not listed in the Final Draft 13 User Guide |
+| Final Draft .fdx | Opens and saves, with Final Draft's page layout and scene numbers | Native format |
+| Own file format | `.pageone`: compact binary, documented | `.fdx` (XML) |
+| Backups and crash recovery | Last 20 versions, autosave every minute, recovery of never-saved work | Backups and autosave |
+| Network connections | None | Sign-in, updates and collaboration |
 
 
 ### Future Improvements
 
 - Real-time collaboration and track changes
+- Production tagging (props, wardrobe, vehicles) and scheduling exports
+- Templates for TV, multi-camera and stage formats
+- PDF import
 - More languages and accents for the table read
-- PDF import; templates for TV, multi-camera and stage formats
-- Production tagging and scheduling exports
 - Phone and tablet apps
 
 ---
 
 ## Install
 
-The installers are about 85 MB, most of it the built-in voices.
+The installers are 82–98 MB (Windows about 82 MB, Linux about 84 MB, macOS about 98 MB, since it
+holds both Apple Silicon and Intel code). Most of that is the built-in voices and speech engine.
 
 ### Windows
 
@@ -279,13 +334,13 @@ npm install
 npm run build      # target/release/bundle/deb/Page One_1.1.0_amd64.deb
 npm run build:mac  # on a Mac: target/universal-apple-darwin/release/bundle/dmg/Page One_1.1.0_universal.dmg
 npm run build:win  # on Windows: target/release/bundle/msi/Page One_1.1.0_x64_en-US.msi
-npm test           # core tests: file format, pagination, Fountain, FDX
+npm test           # core tests: file format, pagination, locked pages, Fountain, FDX
 npm run preview    # the interface in a browser at http://127.0.0.1:8787
 ```
 
 | Path | Contents |
 |---|---|
-| `crates/core` | Everything that isn't interface, in Rust: document model, `.pageone` codec, pagination (the single source of page breaks), and the PDF, Fountain, FDX and text exporters |
+| `crates/core` | Everything that isn't interface, in Rust: document model, `.pageone` codec, pagination and locked pages (the single source of page breaks), and the PDF, Excel, Fountain, FDX and text exporters |
 | `src-tauri` | Desktop shell: native file dialogs, saving with backups, file association, packaging |
 | `ui` | Interface in plain HTML, CSS and JavaScript modules, no build step |
 | `docs` | File format specification and screenshots |
@@ -295,8 +350,8 @@ For the Mac universal build, add both Rust targets once:
 `rustup target add aarch64-apple-darwin x86_64-apple-darwin`.
 
 **GitHub Actions.** `.github/workflows/build.yml` builds the `.msi` on Windows, the universal `.dmg`
-on macOS and the `.deb` on Ubuntu on every push to `main` (or by hand: Actions → Build → Run
-workflow), and publishes all three on the 1.1.0 release page. Without Apple credentials the Mac app is ad-hoc signed. To sign it with your
+on macOS and the `.deb` on Ubuntu, and publishes all three on the 1.1.0 release page. Builds run
+only when started by hand (Actions → Build → Run workflow), not on every push. Without Apple credentials the Mac app is ad-hoc signed. To sign it with your
 Developer ID and have Apple notarize it (so it opens without a warning), add these repository
 secrets: `APPLE_CERTIFICATE` (your Developer ID Application certificate exported as .p12, base64),
 `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY` (e.g. `Developer ID Application: Name (TEAMID)`),

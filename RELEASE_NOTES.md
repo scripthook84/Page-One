@@ -1,9 +1,11 @@
 # Page One 1.1.0 — release notes
 
-**Released:** October 13, 2026 · **License:** Apache License 2.0
+**Released:** October 14, 2026 · **License:** Apache License 2.0
 
-Page One 1.1 reads your script aloud with built-in voices, checks your formatting, prints the board
-and outline, and brings pages, spacing and Final Draft files even closer to the industry standard.
+Page One 1.1 takes a script from first draft to production. It reads the script aloud with built-in
+offline voices, locks pages and scene numbers for production with colour revisions, writes production
+reports in Excel, offers US or BBC (A4) format, checks your formatting, prints the board and outline,
+and draws every page exactly as it prints.
 
 ---
 
@@ -11,12 +13,13 @@ and outline, and brings pages, spacing and Final Draft files even closer to the 
 
 | Platform | File | Requires |
 |---|---|---|
-| Linux | `Page-One_1.1.0_amd64.deb` (about 85 MB) | Ubuntu 22.04+, Debian 12+, Linux Mint, Pop!_OS (64-bit) |
+| Windows | [`Page-One_1.1.0_x64.msi`](https://github.com/scripthook84/Page-One/releases/download/v1.1.0/Page-One_1.1.0_x64.msi) (82 MB) | Windows 10 or 11, 64-bit |
+| macOS | [`Page-One_1.1.0_universal.dmg`](https://github.com/scripthook84/Page-One/releases/download/v1.1.0/Page-One_1.1.0_universal.dmg) (98 MB) | macOS 12 Monterey or later, Apple Silicon or Intel |
+| Linux | [`Page-One_1.1.0_amd64.deb`](https://github.com/scripthook84/Page-One/releases/download/v1.1.0/Page-One_1.1.0_amd64.deb) (84 MB) | Ubuntu 22.04+, Debian 12+, Linux Mint, Pop!_OS (64-bit) |
 
-This build is Linux only. Windows (`.msi`) and macOS (`.dmg`) installers for 1.1 will follow.
-
-The installer is larger than 1.0's because the voices are built in, so Table Read works offline
-from the first launch.
+The installers are larger than 1.0's because the voices and their speech engine are built in, so
+Table Read works offline from the first launch. The voice model is compressed to half its original
+size (177 MB to 83 MB) with no audible difference, which also keeps installs quick.
 
 ## Install
 
@@ -58,7 +61,8 @@ Installing 1.1 over 1.0 keeps your scripts, settings and backups.
 - Choose whether the narrator reads scene headings, transitions and parentheticals.
 - The narrator defaults to the deep voice; the warm voice is one click away in Settings.
 - Focus mode hides the Table Read controls, leaving only the page.
-- Everything runs on your computer: no account, no internet, nothing uploaded.
+- The voices and the speech engine (the open-source Kokoro model on ONNX Runtime) are built into
+  the app. Everything runs on your computer: no account, no internet, nothing uploaded.
 
 ### Script check
 
@@ -112,8 +116,12 @@ Installing 1.1 over 1.0 keeps your scripts, settings and backups.
 
 ### US or BBC format for a new screenplay
 
-- **File → New screenplay** asks for the format: US (Letter paper, Final Draft's standard) or
-  BBC / UK (A4 paper). The paper size can be changed later in Document setup.
+- **File → New screenplay** asks for the format:
+  - **US screenplay:** US Letter, Final Draft's standard, 54 lines of text per page.
+  - **BBC / UK screenplay:** A4, as BBC Writersroom and UK producers expect, with the same
+    screenplay layout and 58 lines of text per page.
+- The paper size can be changed later in Document setup, and the PDF, page breaks and reports follow
+  it.
 
 ### Draft and Production modes, with locked pages
 
@@ -149,10 +157,14 @@ Installing 1.1 over 1.0 keeps your scripts, settings and backups.
   locked scene numbers, turns numbering on and reads the file's scene-heading spacing.
 - The start screen is a small box centred on the blank page instead of covering the window.
 - The top bar is cleaner: the round app icon sits in the corner in place of the name.
+- Focus mode has its own Day / Night button at the bottom right, and hides the Table Read controls.
+- The first page no longer shows binder holes.
 
 ## Fixed in 1.1
 
-- Dark mode is the Night theme. The Midnight theme (a white page on a dark desk) is gone; anyone using
+- Dark mode is the Night theme, including in focus mode, where it didn't apply before. The US / BBC
+  choice and other dialogs are readable in Night.
+- The Midnight theme (a white page on a dark desk) is gone; anyone using
   it gets Night.
 - Pages on screen now match the printed page exactly: every sheet is drawn full size (11" Letter
   or A4) with a 1" top and bottom margin and the page number half an inch down, even when a page
@@ -193,7 +205,7 @@ Installing 1.1 over 1.0 keeps your scripts, settings and backups.
 - New scripts open on a blank scene heading
 - Bold, italic and underline; non-printing notes; unlimited undo; find and replace; go to page;
   spell checking; command palette (Ctrl+K)
-- Day, Night and Midnight themes, with dark mode one click away at the top right
+- Day and Night themes, one click away at the top right
 - Focus mode: full screen on a blank page, with Fit width or 100–200 % from a toolbar at the
   bottom left
 
@@ -286,7 +298,7 @@ Installing 1.1 over 1.0 keeps your scripts, settings and backups.
 - The table read speaks American and British English. The child voices are adult voices raised in
   pitch, and words outside the pronunciation dictionary are read by spelling rules.
 - The Windows and Mac builds are new; please report anything that behaves differently from Linux.
-- No real-time collaboration, track changes, page locking or A-pages yet.
+- No real-time collaboration, track changes or production tagging yet.
 - No PDF import, and no TV, multi-camera or stage templates yet.
 - A single block that can't be split (such as a dual-dialogue exchange longer than a page) runs past
   the bottom margin rather than breaking.
