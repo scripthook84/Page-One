@@ -1,7 +1,5 @@
 <img width="250" height="250" alt="Page One" src="https://github.com/user-attachments/assets/390777f1-1224-4a7b-99df-b0c0c13637b6" />
 
-<img width="250" height="250" alt="Page One" src="https://github.com/user-attachments/assets/390777f1-1224-4a7b-99df-b0c0c13637b6" />
-
 # Page One
 
 A lightweight, open-source screenwriting app. Built by a screenwriter for screenwriters. Page One formats your script to the industry
