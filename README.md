@@ -35,7 +35,7 @@ built-in voices that run on its own speech engine, with no internet connection.
   in and out.
 
 ---
-<img width="2880" height="1800" alt="01-script-view" src="https://github.com/user-attachments/assets/655acf88-85ac-4f9e-86eb-6163b4617c03" />
+<img width="1914" height="1033" alt="Screenshot-2026-10-14_06-24-19" src="https://github.com/user-attachments/assets/35e8342a-d37e-41b6-9909-314964805616" />
 
 ## Writing
 
@@ -68,7 +68,8 @@ built-in voices that run on its own speech engine, with no internet connection.
 - Unlimited undo, find and replace, go to page, spell checking from your system dictionary, and a
   command palette (Ctrl+K) that finds every command.
 
-<img width="2880" height="1800" alt="06-storyboard" src="https://github.com/user-attachments/assets/25196abe-b33d-4b63-9309-7e4c47e6014c" />
+<img width="1917" height="1036" alt="Screenshot-2026-10-14_06-25-30" src="https://github.com/user-attachments/assets/6c5dd319-1da0-4ef0-841f-102bbe466158" />
+
 
 ## Storyboard
 
@@ -162,6 +163,9 @@ Sending out a revision and starting a new draft:
 - **Lock revised pages, start next colour** locks those pages, A pages included, and moves on to the
   next colour.
 - **Back to Draft** (flip the switch) unlocks and renumbers everything, for a new full draft.
+
+<img width="960" height="732" alt="Table Read" src="https://github.com/user-attachments/assets/03160bec-bd72-4367-ad99-ad4eb7ff2855" />
+
 
 ## Table Read
 
