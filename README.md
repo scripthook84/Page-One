@@ -10,6 +10,14 @@ built-in voices that run on its own speech engine, with no internet connection.
 
 **Version 1.1.0** · Windows (.msi) · macOS (.dmg) · Linux (.deb) · Apache License 2.0
 
+## Downloads
+
+| Platform | File | Requires |
+|---|---|---|
+| Windows | [`Page-One_1.1.0_x64.msi`](https://github.com/scripthook84/Page-One/releases/download/v1.1.0/Page-One_1.1.0_x64.msi) (82 MB) | Windows 10 or 11, 64-bit |
+| macOS | [`Page-One_1.1.0_universal.dmg`](https://github.com/scripthook84/Page-One/releases/download/v1.1.0/Page-One_1.1.0_universal.dmg) (98 MB) | macOS 12 Monterey or later, Apple Silicon or Intel |
+| Linux | [`Page-One_1.1.0_amd64.deb`](https://github.com/scripthook84/Page-One/releases/download/v1.1.0/Page-One_1.1.0_amd64.deb) (84 MB) | Ubuntu 22.04+, Debian 12+, Linux Mint, Pop!_OS (64-bit) |
+
 ---
 
 ## Highlights
