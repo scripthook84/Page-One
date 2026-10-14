@@ -193,7 +193,7 @@ offline: nothing is sent anywhere, and no internet connection or account is need
   speaks in their own voice. Seventeen character voices are built in (eight women and seven men
   with American and British accents, and a girl and a boy, made by raising an adult voice's pitch)
   plus two narrator voices. Characters are cast
-  automatically (YOUNG JUNE gets a child's voice) until you choose; pick and audition a voice for
+  automatically until you choose; pick and audition a voice for
   each character in **Settings**, next to Table Read, or from a character in the Characters panel.
   Choices are saved with the script.
 - Choose whether the narrator reads scene headings, transitions and parentheticals.
