@@ -152,6 +152,8 @@ Installing 1.1 over 1.0 keeps your scripts, settings and backups.
 
 ## Fixed in 1.1
 
+- Dark mode is the Night theme. The Midnight theme (a white page on a dark desk) is gone; anyone using
+  it gets Night.
 - Pages on screen now match the printed page exactly: every sheet is drawn full size (11" Letter
   or A4) with a 1" top and bottom margin and the page number half an inch down, even when a page
   ends early. Before, the gap between pages could cover the last lines of a page.

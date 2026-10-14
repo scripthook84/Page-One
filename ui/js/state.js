@@ -6,7 +6,11 @@ export const PREFS_DEFAULT = {
 
 function loadPrefs() {
   try {
-    return { ...PREFS_DEFAULT, ...JSON.parse(localStorage.getItem('pageone.prefs') || '{}') };
+    const p = { ...PREFS_DEFAULT, ...JSON.parse(localStorage.getItem('pageone.prefs') || '{}') };
+    // Midnight (a white page on a dark desk) was retired in 1.1; Night is the dark theme
+    if (p.theme !== 'day') p.theme = 'night';
+    delete p.darkTheme;
+    return p;
   } catch {
     return { ...PREFS_DEFAULT };
   }

@@ -30,28 +30,7 @@
   --r: 6px;
   color-scheme: light;
 }
-:root[data-theme="night"], :root[data-theme="midnight"] {
-  --desk: #14171c;
-  --desk-2: #0f1216;
-  --chrome: #1d2128;
-  --chrome-2: #262b33;
-  --line: #333a45;
-  --ink: #e3e6eb;
-  --muted: #a1a9b5;
-  --faint: #747d8a;
-  --accent: #ef5f59;
-  --accent-soft: #3d2424;
-  --accent-ink: #1a0d0c;
-  --paper: #23272e;
-  --paper-ink: #e9e5da;
-  --paper-muted: #6f7782;
-  --note-bg: #3b3519;
-  --note-ink: #f1dd8a;
-  --section: #7fb0ec;
-  --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 10px 30px rgba(0, 0, 0, .35);
-  color-scheme: dark;
-}
-:root[data-theme="midnight"] {
+:root[data-theme="night"] {
   --paper: #fbfbf8;
   --paper-ink: #16181b;
   --paper-muted: #9aa1ab;
@@ -152,8 +131,7 @@ body.no-nav .nav, body.no-insp .inspector { display: none; }
 input[type="text"], input[type="search"], input[type="number"], select, textarea {
   background: var(--paper); border: 1px solid var(--line); border-radius: 5px; padding: 5px 8px; color: var(--ink);
 }
-:root[data-theme="night"] input, :root[data-theme="night"] select, :root[data-theme="night"] textarea,
-:root[data-theme="midnight"] input, :root[data-theme="midnight"] select, :root[data-theme="midnight"] textarea { background: var(--desk-2); }
+:root[data-theme="night"] input, :root[data-theme="night"] select, :root[data-theme="night"] textarea { background: var(--desk-2); }
 textarea { resize: vertical; width: 100%; line-height: 1.45; }
 
 /* scene list */
@@ -301,11 +279,6 @@ body.focus { grid-template-rows: 1fr; }
 body.focus .bar, body.focus .flow, body.focus .nav, body.focus .inspector { display: none; }
 body.focus .work { grid-template-columns: minmax(0, 1fr); }
 body.focus .desk { background: var(--paper); }
-/* focus mode is only the page, so in a dark theme the page goes dark too (Midnight keeps a white
-   page beside the dark desk elsewhere) */
-:root[data-theme="midnight"] body.focus {
-  --paper: #23272e; --paper-ink: #e9e5da; --paper-muted: #6f7782; --note-bg: #3b3519; --note-ink: #f1dd8a; --section: #7fb0ec;
-}
 .focus-theme {
   position: fixed; right: 16px; bottom: 14px; z-index: 40; display: none; width: 38px; height: 38px; border-radius: 50%;
   border: 1px solid var(--line); background: var(--chrome); color: var(--ink); box-shadow: var(--shadow);

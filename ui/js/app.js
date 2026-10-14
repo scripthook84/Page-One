@@ -409,7 +409,6 @@ function applyPrefs() {
   document.body.classList.toggle('no-insp', !p.insp);
   document.body.classList.toggle('hide-notes', !p.showNotes);
   editor.typewriter = !!p.typewriter;
-  if (p.theme !== 'day') p.darkTheme = p.theme;
   savePrefs();
   if (document.getElementById('themeBtn')) syncToolButtons();
   editor.scheduleDual();
@@ -429,7 +428,7 @@ function syncToolButtons() {
 }
 
 function toggleDark() {
-  setPref('theme', S.prefs.theme === 'day' ? (S.prefs.darkTheme || 'night') : 'day');
+  setPref('theme', S.prefs.theme === 'day' ? 'night' : 'day');
 }
 
 /** Focus mode: full screen, chrome hidden, the page zoomed to fill the screen, typewriter scrolling. */
@@ -888,7 +887,6 @@ export const COMMANDS = [
   { sep: true, menu: 'View' },
   { id: 'th-day', menu: 'View', label: 'Day theme', run: () => setPref('theme', 'day'), check: () => S.prefs.theme === 'day' },
   { id: 'th-night', menu: 'View', label: 'Night theme', run: () => setPref('theme', 'night'), check: () => S.prefs.theme === 'night' },
-  { id: 'th-mid', menu: 'View', label: 'Midnight theme (dark desk, white page)', run: () => setPref('theme', 'midnight'), check: () => S.prefs.theme === 'midnight' },
   // Script
   ...['scene', 'action', 'character', 'paren', 'dialogue', 'transition', 'shot', 'centered', 'lyric', 'general'].map((t) => ({
     id: 'el-' + t, menu: 'Script', label: ELEMS[t].label, keys: 'Ctrl+' + ELEMS[t].key, run: () => { editor.root.focus(); editor.changeElement(t); }, when: need, check: () => editor.current && editor.current.dataset.t === t,
