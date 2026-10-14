@@ -762,10 +762,16 @@ export function formatGuide() {
 
 export function aboutDialog() {
   const body = `<div style="display:flex;gap:16px;align-items:center"><img src="icon.png" width="64" height="64" alt="" style="border-radius:14px">
-    <div><h2 style="margin:0;font-size:18px">Page One 1.0</h2><p class="hint" style="margin:4px 0 0">A lightweight, open-source screenwriting app. Apache License 2.0.</p></div></div>
+    <div><h2 style="margin:0;font-size:18px">Page One <span id="aboutVer">1.1</span></h2><p class="hint" style="margin:4px 0 0">A lightweight, open-source screenwriting app. Apache License 2.0.</p></div></div>
     <p style="margin:0">Scripts are saved as compact <b>.pageone</b> files. Page One opens and exports Fountain and Final Draft (.fdx), and exports industry-format PDF.</p>
     <p class="hint" style="margin:0">Courier Prime by Quote-Unquote Apps, SIL Open Font License. Built on the Novelcraft desktop framework (Rust + Tauri).</p>`;
-  return modal({ title: 'About', body, buttons: [{ label: 'Close', primary: true }] });
+  const shown = modal({ title: 'About', body, buttons: [{ label: 'Close', primary: true }] });
+  // In the desktop app, show the installed version (from tauri.conf.json) so it can't fall behind
+  window.__TAURI__?.app?.getVersion?.().then((v) => {
+    const el = document.getElementById('aboutVer');
+    if (el && v) el.textContent = v.replace(/\.0$/, '');
+  }).catch(() => {});
+  return shown;
 }
 
 export { projectNow };
