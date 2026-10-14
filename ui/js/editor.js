@@ -1123,13 +1123,29 @@ export class Editor {
 
   applyLayout(lay, settings) {
     const els = this.root.children;
-    for (const el of this.root.querySelectorAll('.pb')) { el.classList.remove('pb'); delete el.dataset.pn; }
+    for (const el of this.root.querySelectorAll('.pb')) { el.classList.remove('pb'); delete el.dataset.pn; el.style.removeProperty('--gap-fill'); }
+    // lines a page didn't use, so every sheet is drawn full height (54 lines on Letter, 58 on A4)
+    const unused = (pg) => {
+      let last = -1;
+      for (const l of (pg && pg.lines) || []) if (l.para >= 0) last = Math.max(last, l.row);
+      return Math.max(0, (lay.lines_per_page || 54) - (last + 1));
+    };
     lay.breaks.forEach((pi, k) => {
       const el = els[pi];
       // the printed number: "12", or with locked pages "12A" or "12-13"
       const pg = lay.pages[k + 1];
-      if (el) { el.classList.add('pb'); el.dataset.pn = `${(pg && pg.label) || k + 2}.`; }
+      if (el) {
+        el.classList.add('pb');
+        el.dataset.pn = `${(pg && pg.label) || k + 2}.`;
+        el.style.setProperty('--gap-fill', `${unused(lay.pages[k])}em`);
+      }
     });
+    // the first line on the page has no blank line above it, even after hidden act labels
+    for (const el of this.root.querySelectorAll('.lead')) el.classList.remove('lead');
+    const lead = [...els].find((e) => e.dataset.t !== 'section' && !(e.dataset.t === 'note' && document.body.classList.contains('hide-notes')));
+    if (lead) lead.classList.add('lead');
+    this.pageLines = lay.lines_per_page || 54;
+    this.schedulePageFit();
     for (const s of lay.scenes) {
       const el = els[s.para];
       if (el) el.dataset.sn = settings.scene_numbers ? s.number : '';
@@ -1144,6 +1160,7 @@ export class Editor {
     for (const el of this.root.querySelectorAll('[data-contd]')) if (!contd.has(el)) delete el.dataset.contd;
     for (const el of contd) el.dataset.contd = '1';
     this.scheduleDual();
+    this.lastLayout = [lay, settings];
     this.paintRevPages(lay, settings);
   }
 
@@ -1172,13 +1189,53 @@ export class Editor {
       const a = k ? brk[k - 1] : null, b = brk[k] || null;
       // a page that starts or ends inside a long speech has no paragraph edge to paint from
       if ((k && !a) || (k < lay.pages.length - 1 && !b)) return;
-      const top = a ? (a.getBoundingClientRect().top - pr.top) / em - 5.1 : 0;
-      const bottom = b ? (b.getBoundingClientRect().top - pr.top) / em - 7.1 : pr.height / em;
+      const top = a ? (a.getBoundingClientRect().top - pr.top) / em - 6 : 0;
+      const bottom = b ? (b.getBoundingClientRect().top - pr.top) / em - 8 : pr.height / em;
       html += `<div style="top:${top.toFixed(3)}em;height:${Math.max(0, bottom - top).toFixed(3)}em;background:${col}"></div>`;
       if (a) a.style.setProperty('--pg-below', col);
       if (b) b.style.setProperty('--pg-above', col);
     });
     layer.innerHTML = html;
+  }
+
+  /** After layout (and dual dialogue) settle, size every sheet to exactly its page: measure where
+   * each page's text really ends and fill the rest of the page, so the gap always falls one inch
+   * below the page's last possible line, as on paper. */
+  schedulePageFit() {
+    if (this.fitFrame) cancelAnimationFrame(this.fitFrame);
+    this.fitFrame = requestAnimationFrame(() => { this.fitFrame = requestAnimationFrame(() => { this.fitFrame = null; this.fitPages(); }); });
+  }
+
+  fitPages() {
+    const paper = this.root.closest('.paper');
+    if (!paper) return;
+    const em = parseFloat(getComputedStyle(paper).fontSize) || 16;
+    const lines = this.pageLines || 54;
+    const els = [...this.root.children];
+    const visible = (e) => e.dataset.t !== 'section' && e.offsetParent !== null;
+    // notes show on screen but never print, so the space they take isn't part of the page
+    const noteSpace = (e) => e.offsetHeight + (parseFloat(getComputedStyle(e).marginTop) || 0);
+    let textTop = paper.getBoundingClientRect().top + 6 * em;   // page 1: one inch down the sheet
+    let notes = 0, last = null;
+    const fill = (bottomOf, apply) => {
+      const used = last ? (last.getBoundingClientRect().bottom - textTop - notes) / em : 0;
+      apply(Math.max(0, lines - used));
+    };
+    for (const e of els) {
+      if (e.classList.contains('pb')) {
+        e.style.setProperty('--gap-fill', '0em');
+        fill(null, (f) => e.style.setProperty('--gap-fill', `${f.toFixed(3)}em`));
+        textTop = e.getBoundingClientRect().top;
+        notes = 0;
+        last = null;
+      }
+      if (!visible(e)) continue;
+      if (e.dataset.t === 'note') { notes += noteSpace(e); continue; }
+      last = e;
+    }
+    this.root.style.paddingBottom = '0px';
+    fill(null, (f) => { this.root.style.paddingBottom = `${f.toFixed(3)}em`; });
+    if (this.lastLayout) this.paintRevPages(...this.lastLayout);
   }
 
   focusPara(i, off = 0) {

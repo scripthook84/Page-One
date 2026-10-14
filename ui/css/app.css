@@ -219,6 +219,7 @@ textarea { resize: vertical; width: 100%; line-height: 1.45; }
 .script ::selection { background: color-mix(in srgb, var(--accent) 28%, transparent); }
 .p { --ml: 0ch; position: relative; margin: 0 0 0 var(--ml); width: 60ch; min-height: 1em; white-space: pre-wrap; overflow-wrap: break-word; }
 .p + .p { margin-top: 1em; }
+.p.lead:not(.pb) { margin-top: 0 !important; }
 .p[data-t="scene"] { text-transform: uppercase; }
 body.scene-space-2 .p[data-t="scene"]:not(:first-child) { margin-top: 2em; }
 body.bold-scenes .p[data-t="scene"] { font-weight: 700; }
@@ -285,33 +286,17 @@ body.hide-notes .p[data-t="note"] { display: none; }
 .p.dr[data-t="paren"] { --ml: 32ch; width: 22ch; }
 .p.dr[data-t="dialogue"], .p.dr[data-t="lyric"] { --ml: 30ch; width: 28ch; }
 
-/* page breaks: a strip of desk between sheets, page number on the new sheet. The gap is real
-   space, so the band never covers the last lines of the page before. */
-.p.pb { margin-top: 8.5em !important; }
+/* page breaks drawn to Final Draft's page geometry: the rest of the page (--gap-fill, the lines
+   the page didn't use), its 1" bottom margin, a strip of desk, then the next sheet's 1" top margin
+   with the page number half an inch down. Real space, so the band never covers any text. */
+.p.pb { --gap-fill: 0em; margin-top: calc(14em + var(--gap-fill)) !important; }
 .p.pb::before {
   content: attr(data-pn);
-  position: absolute; left: calc(-15ch - var(--ml)); width: 85ch; top: -8.5em; height: 8.5em;
-  box-sizing: border-box; padding: 5.5em 10ch 0 0; text-align: right; text-indent: 0;
+  position: absolute; left: calc(-15ch - var(--ml)); width: 85ch; top: calc(-14em - var(--gap-fill)); height: calc(14em + var(--gap-fill));
+  box-sizing: border-box; padding: calc(var(--gap-fill) + 11em) 10ch 0 0; text-align: right; text-indent: 0;
   font: calc(12pt * var(--zoom))/1 var(--mono); font-style: normal; font-weight: 400; text-transform: none; color: var(--paper-muted);
-  background: linear-gradient(to bottom, var(--pg-above, var(--paper)) 0 1.4em, var(--desk) 1.4em 3.4em, var(--pg-below, var(--paper)) 3.4em);
+  background: linear-gradient(to bottom, var(--pg-above, var(--paper)) 0 calc(var(--gap-fill) + 6em), var(--desk) calc(var(--gap-fill) + 6em) calc(var(--gap-fill) + 8em), var(--pg-below, var(--paper)) calc(var(--gap-fill) + 8em));
   border: 0; pointer-events: none;
-}
-/* revised pages: the whole page in its revision colour (soft enough to read in every theme) */
-.rev-pages { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
-.rev-pages > div { position: absolute; left: 0; right: 0; }
-.paper > .script { position: relative; z-index: 1; }
-:root { --rev-mix: 75%; }
-/* on the dark Night page a light tint would wash the text out, so it stays a gentle wash */
-:root[data-theme="night"] { --rev-mix: 22%; }
-:root {
-  --rev-page-1: color-mix(in srgb, #c7ddff var(--rev-mix), var(--paper));
-  --rev-page-2: color-mix(in srgb, #ffd5e6 var(--rev-mix), var(--paper));
-  --rev-page-3: color-mix(in srgb, #fff4a8 var(--rev-mix), var(--paper));
-  --rev-page-4: color-mix(in srgb, #ccf0c8 var(--rev-mix), var(--paper));
-  --rev-page-5: color-mix(in srgb, #f4d885 var(--rev-mix), var(--paper));
-  --rev-page-6: color-mix(in srgb, #f1e3bd var(--rev-mix), var(--paper));
-  --rev-page-7: color-mix(in srgb, #ffcebd var(--rev-mix), var(--paper));
-  --rev-page-8: color-mix(in srgb, #f4b2ba var(--rev-mix), var(--paper));
 }
 .p[data-t="note"].pb::before { left: calc(-15ch - var(--ml) - .8em); }
 
@@ -338,7 +323,7 @@ body.focus .focus-exit { display: inline-flex; }
 /* a blank sheet: no binder holes, no shadow, no page furniture */
 body.focus .paper::before { display: none; }
 body.focus .paper { box-shadow: none; }
-body.focus .p.pb::before { background: linear-gradient(to bottom, transparent calc(2.4em - 1px), color-mix(in srgb, var(--paper-muted) 35%, transparent) calc(2.4em - 1px) 2.4em, transparent 2.4em); }
+body.focus .p.pb::before { background: linear-gradient(to bottom, transparent calc(var(--gap-fill) + 7em - 1px), color-mix(in srgb, var(--paper-muted) 35%, transparent) calc(var(--gap-fill) + 7em - 1px) calc(var(--gap-fill) + 7em), transparent calc(var(--gap-fill) + 7em)); }
 body.focus .paper-wrap { padding-top: 0; }
 .focus-bar {
   position: fixed; left: 16px; bottom: 14px; z-index: 40; display: none; align-items: center; gap: 6px;

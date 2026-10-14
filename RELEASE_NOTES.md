@@ -150,7 +150,9 @@ Installing 1.1 over 1.0 keeps your scripts, settings and backups.
 
 ## Fixed in 1.1
 
-- The grey gap between pages covered the last lines of each page on screen; it now sits below them
+- Pages on screen now match the printed page exactly: every sheet is drawn full size (11" Letter
+  or A4) with a 1" top and bottom margin and the page number half an inch down, even when a page
+  ends early. Before, the gap between pages could cover the last lines of a page.
 - A long speech after a character cue was pushed to later pages, leaving the cue alone on a page;
   it now starts under its cue and breaks with (MORE) and (CONT'D) as in Final Draft
 - After a locked scene number such as 12A, the next scene was numbered 2 instead of 13
