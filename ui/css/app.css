@@ -301,6 +301,19 @@ body.focus { grid-template-rows: 1fr; }
 body.focus .bar, body.focus .flow, body.focus .nav, body.focus .inspector { display: none; }
 body.focus .work { grid-template-columns: minmax(0, 1fr); }
 body.focus .desk { background: var(--paper); }
+/* focus mode is only the page, so in a dark theme the page goes dark too (Midnight keeps a white
+   page beside the dark desk elsewhere) */
+:root[data-theme="midnight"] body.focus {
+  --paper: #23272e; --paper-ink: #e9e5da; --paper-muted: #6f7782; --note-bg: #3b3519; --note-ink: #f1dd8a; --section: #7fb0ec;
+}
+.focus-theme {
+  position: fixed; right: 16px; bottom: 14px; z-index: 40; display: none; width: 38px; height: 38px; border-radius: 50%;
+  border: 1px solid var(--line); background: var(--chrome); color: var(--ink); box-shadow: var(--shadow);
+  place-items: center; opacity: .4; transition: opacity .2s; padding: 0;
+}
+.focus-theme:hover, .focus-theme:focus-visible { opacity: 1; }
+.focus-theme svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+body.focus .focus-theme { display: grid; }
 body.focus .p:not(.cur) { opacity: .5; transition: opacity .25s; }
 body.focus .p.dl, body.focus .p.dr { opacity: 1; }
 .focus-exit {
@@ -349,7 +362,7 @@ label.chk { display: inline-flex; gap: 6px; align-items: center; user-select: no
 /* ------------------------------------------------------------------ inspector */
 .insp { padding: 14px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
 .insp h3 { margin: 0; font-size: 13px; }
-.insp .heading { font: 600 12.5px/1.35 var(--mono); text-transform: uppercase; padding: 8px 10px; background: var(--paper); border: 1px solid var(--line); border-radius: 5px; }
+.insp .heading { font: 600 12.5px/1.35 var(--mono); text-transform: uppercase; padding: 8px 10px; background: var(--paper); color: var(--paper-ink); border: 1px solid var(--line); border-radius: 5px; }
 .field { display: grid; gap: 5px; }
 .field > span { color: var(--muted); font-size: 12px; }
 .swatches { display: flex; gap: 5px; flex-wrap: wrap; }
@@ -486,7 +499,7 @@ body.board-view .nav > .tabs, body.board-view .nav > .pane:not(#pane-board) { di
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .opts { display: grid; gap: 8px; }
 .radios { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
-.radios label { display: flex; gap: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 7px; cursor: pointer; background: var(--paper); }
+.radios label { display: flex; gap: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 7px; cursor: pointer; background: var(--chrome-2); color: var(--ink); }
 .radios label:has(input:checked) { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
 .radios small { display: block; color: var(--muted); }
 .hint { color: var(--muted); font-size: 12px; margin: 0; }

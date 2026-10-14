@@ -417,11 +417,14 @@ function applyPrefs() {
 
 function syncToolButtons() {
   const dark = S.prefs.theme !== 'day';
-  const t = $('#themeBtn');
-  t.setAttribute('aria-pressed', String(dark));
-  t.title = keyText(dark ? 'Light mode (Ctrl+Shift+L)' : 'Dark mode (Ctrl+Shift+L)');
-  t.querySelector('.i-moon').hidden = dark;
-  t.querySelector('.i-sun').hidden = !dark;
+  for (const t of [$('#themeBtn'), $('#focusTheme')]) {
+    if (!t) continue;
+    t.setAttribute('aria-pressed', String(dark));
+    t.title = keyText(dark ? 'Light mode (Ctrl+Shift+L)' : 'Dark mode (Ctrl+Shift+L)');
+    t.setAttribute('aria-label', dark ? 'Light mode' : 'Dark mode');
+    t.querySelector('.i-moon').hidden = dark;
+    t.querySelector('.i-sun').hidden = !dark;
+  }
   $('#focusBtn').setAttribute('aria-pressed', String(document.body.classList.contains('focus')));
 }
 
@@ -1025,6 +1028,7 @@ function wire() {
   for (const b of document.querySelectorAll('.views button')) b.addEventListener('click', () => setView(b.dataset.view));
   $('#cmdBtn').addEventListener('click', () => dialogs.palette(COMMANDS));
   $('#themeBtn').addEventListener('click', toggleDark);
+  $('#focusTheme').addEventListener('click', toggleDark);
   playback.wire();
   $('#focusBtn').addEventListener('click', () => toggleFocus());
   $('#focusExit').addEventListener('click', () => toggleFocus(false));
