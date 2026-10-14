@@ -204,16 +204,6 @@ textarea { resize: vertical; width: 100%; line-height: 1.45; }
   position: relative;
   min-height: calc(66em);
 }
-/* three binder holes on the first sheet — the app icon's motif */
-.paper::before {
-  content: ''; position: absolute; left: 4.5ch; top: 0; width: 2.2ch; height: 66em;
-  background:
-    radial-gradient(circle at 50% 9.5em, var(--desk) 0.75ch, transparent calc(0.75ch + 1px)),
-    radial-gradient(circle at 50% 33em, var(--desk) 0.75ch, transparent calc(0.75ch + 1px)),
-    radial-gradient(circle at 50% 56.5em, var(--desk) 0.75ch, transparent calc(0.75ch + 1px));
-  pointer-events: none;
-}
-
 .script { outline: none; caret-color: var(--accent); }
 .script:focus-visible { box-shadow: none; }
 .script ::selection { background: color-mix(in srgb, var(--accent) 28%, transparent); }
@@ -320,8 +310,7 @@ body.focus .p.dl, body.focus .p.dr { opacity: 1; }
 }
 .focus-exit:hover, .focus-exit:focus-visible { opacity: 1; }
 body.focus .focus-exit { display: inline-flex; }
-/* a blank sheet: no binder holes, no shadow, no page furniture */
-body.focus .paper::before { display: none; }
+/* a blank sheet: no shadow, no page furniture */
 body.focus .paper { box-shadow: none; }
 body.focus .p.pb::before { background: linear-gradient(to bottom, transparent calc(var(--gap-fill) + 7em - 1px), color-mix(in srgb, var(--paper-muted) 35%, transparent) calc(var(--gap-fill) + 7em - 1px) calc(var(--gap-fill) + 7em), transparent calc(var(--gap-fill) + 7em)); }
 body.focus .paper-wrap { padding-top: 0; }
