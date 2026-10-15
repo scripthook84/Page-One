@@ -135,6 +135,7 @@ and production scheduling:
 
 Headers stay in view, columns filter, page counts add up in eighths, and every sheet prints in
 landscape. The same tables are in Script → Reports, copyable as CSV.
+
 ## Draft and Production
 
 A **Draft | Production** switch beside the script's title moves it between two modes. Before
@@ -158,8 +159,9 @@ locking, Page One explains in a few lines what Production will do.
     scramble the locked pages.
 - **Colour revisions** in the standard order: Blue, Pink, Yellow, Green, Goldenrod, Buff, Salmon,
   Cherry.
-    (Production → Revised pages in colour turns this off).
-  - The header carries the colour and date.
+  - Changed lines get asterisks, and the header carries the colour and date.
+  - Revised pages are shown on screen and printed as a solid page of their revision colour, like
+    pages issued on coloured paper (Production → Revised pages in colour turns this off).
   - The title page lists the White draft and each revision with its date, at the bottom right.
   - Colours advance only in order, and revision marks can't be cleared while the script is locked.
 - **Page labels everywhere.** Page numbers like 12A show on the page, in the status bar, in the
@@ -188,8 +190,15 @@ offline: nothing is sent anywhere, and no internet connection or account is need
 - **Waveform** opens a listening box over the page with the speaker's name, the line being read and
   its waveform, plus its own play controls. Close it and the read carries on.
 - **A voice for everyone.** A narrator reads scene headings, action and transitions; every character
-  speaks in their own voice. 
-- Choose whether the narrator reads scene headings, transitions and parentheticals.
+  speaks in their own voice. Seventeen character voices (eight women and seven men, American and
+  British, plus a girl and a boy) and two narrator voices are built in.
+- **Cast automatically, or choose.** Characters are cast for you, with a child's voice for names
+  like YOUNG JUNE and distinct voices for everyone else. To choose, audition and pick a voice for
+  each character in **Settings**, next to Table Read, or from a character in the Characters panel;
+  your choices are saved with the script.
+- **Narrator.** The deep voice is the default and the warm voice is one click away in Settings.
+  Choose whether the narrator reads scene headings, transitions and parentheticals.
+- Focus mode hides the Table Read controls, leaving only the page.
 - The speech engine is built from the open-source Kokoro voice model and ONNX Runtime, packed into
   the installer, so every line is spoken on your computer.
 
@@ -213,7 +222,8 @@ offline: nothing is sent anywhere, and no internet connection or account is need
   text formats it.
 - **Export:** PDF with the font embedded, Final Draft `.fdx` (with Final Draft's page layout,
   element settings and scene numbers), Fountain, formatted plain text, and the story board and
-  outline as a landscape PDF.
+  outline as a landscape PDF. Importing an `.fdx` keeps locked scene numbers, turns numbering on and
+  reads the file's scene-heading spacing.
 - Page One makes no network connections.
 
 ---
@@ -252,6 +262,17 @@ offline: nothing is sent anywhere, and no internet connection or account is need
 | Network connections | None | Sign-in, updates and collaboration |
 
 
+### Known limitations
+
+- The Windows and Mac installers aren't code-signed yet, so each system asks once before the first
+  launch (see Install below).
+- The Windows and Mac builds are new; please report anything that behaves differently from Linux.
+- Table Read speaks American and British English. The child voices are adult voices raised in pitch,
+  and words outside the pronunciation dictionary are read by spelling rules.
+- A single block that can't be split, such as a dual-dialogue exchange longer than a page, runs past
+  the bottom margin rather than breaking.
+- Screenplay format only: no TV, multi-camera or stage templates yet.
+
 ### Future Improvements
 
 - Real-time collaboration and track changes
@@ -267,6 +288,7 @@ offline: nothing is sent anywhere, and no internet connection or account is need
 
 The installers are 82–98 MB (Windows about 82 MB, Linux about 84 MB, macOS about 98 MB, since it
 holds both Apple Silicon and Intel code). Most of that is the built-in voices and speech engine.
+Installing 1.1 over 1.0 keeps your scripts, settings and backups.
 
 ### Windows
 
@@ -346,8 +368,8 @@ For the Mac universal build, add both Rust targets once:
 
 **GitHub Actions.** `.github/workflows/build.yml` builds the `.msi` on Windows, the universal `.dmg`
 on macOS and the `.deb` on Ubuntu, and publishes all three on the 1.1.0 release page. Builds run
-only when started by hand (Actions → Build → Run workflow), not on every push. Without Apple credentials the Mac app is ad-hoc signed. To sign it with your
-Developer ID and have Apple notarize it (so it opens without a warning), add these repository
+only when started by hand (Actions → Build → Run workflow), not on every push. Without Apple
+credentials the Mac app is ad-hoc signed. To sign it with your Developer ID and have Apple notarize it (so it opens without a warning), add these repository
 secrets: `APPLE_CERTIFICATE` (your Developer ID Application certificate exported as .p12, base64),
 `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY` (e.g. `Developer ID Application: Name (TEAMID)`),
 and for notarization `APPLE_ID`, `APPLE_PASSWORD` (an app-specific password) and `APPLE_TEAM_ID`.
